@@ -313,7 +313,8 @@ function viewCreate(){
       <div class="months" id="months"></div>
       <p class="hint" id="phint"></p>
     </section>
-    <button class="btn blue block" id="create">모임 만들고 링크 공유</button>`;
+    <button class="btn blue block" id="create">모임 만들고 링크 공유</button>
+    <p class="hint" id="createError" role="alert" hidden></p>`;
   const paint=()=>{
     $('#months').innerHTML=months.map((m,i)=>{
       const [y,mm]=m.split('-');const cls=m===start||m===end?'edge':(m>start&&m<end?'in':'');
@@ -333,6 +334,7 @@ function viewCreate(){
   $('#create').onclick=async()=>{
     const title=t.value.trim();if(!title){t.focus();t.style.borderColor='var(--sun)';toast('모임 이름을 먼저 적어 주세요');return}t.style.borderColor='';
     const btn=$('#create');if(btn.disabled)return;
+    $('#createError').hidden=true;
     SS.set('wmd:createDraft',JSON.stringify({title,start,end}));
     if(!kakaoUser){loginKakao('create');return}
     btn.disabled=true;btn.textContent='만드는 중…';
@@ -343,7 +345,17 @@ function viewCreate(){
       SS.set('wmd:new',id);
       try{history.pushState(null,'',`?s=${id}`)}catch(e){}
       sid=id;shown=null;window.scrollTo(0,0);bootSession();
-    }catch(e){btn.disabled=false;btn.textContent='모임 만들고 링크 공유';toast('모임을 만들지 못했어요. 인터넷 연결을 확인해 주세요.')}
+    }catch(e){
+      btn.disabled=false;btn.textContent='다시 모임 만들기';
+      const code=String(e?.code||'UNKNOWN');
+      const denied=/permission[-_ ]denied/i.test(code+' '+String(e?.message||''));
+      const message=denied
+        ?'모임 저장 권한이 없습니다. Firebase Realtime Database 규칙을 확인해 주세요. (PERMISSION_DENIED)'
+        :'모임을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'+(/^[a-z0-9_/-]{1,80}$/i.test(code)?' ('+code+')':'');
+      const error=$('#createError');error.textContent=message;error.hidden=false;
+      error.scrollIntoView({block:'nearest',behavior:'smooth'});
+      toast('입력 내용은 유지됩니다. 아래 오류를 확인해 주세요.');
+    }
   };
   if(resumeCreate&&kakaoUser&&validDraft){resumeCreate=false;return $('#create').onclick()}
   resumeCreate=false;
