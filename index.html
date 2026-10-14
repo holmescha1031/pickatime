@@ -291,6 +291,12 @@ async function share(sid,title){
 let sid = new URLSearchParams(location.search).get('s');
 
 /* ---------- 1. 모임 만들기 ---------- */
+async function meetingIdFor(creatorId,title){
+  const input=JSON.stringify([creatorId,title.trim().normalize('NFC')]);
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(input));
+  return 'm_'+Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+}
+
 function viewCreate(){
   document.title='언제봄';
   const now=new Date();
@@ -338,8 +344,10 @@ function viewCreate(){
     SS.set('wmd:createDraft',JSON.stringify({title,start,end}));
     if(!kakaoUser){loginKakao('create');return}
     btn.disabled=true;btn.textContent='만드는 중…';
-    const id=randId(8);
+    let id;
     try{
+      id=await meetingIdFor(kakaoUser.id,title);
+      if(await store.get(`sessions/${id}/meta`))throw Object.assign(new Error('Duplicate meeting'),{code:'DUPLICATE_MEETING'});
       await store.set(`sessions/${id}/meta`,{title,start,end,createdAt:Date.now()});
       SS.del('wmd:createDraft');
       SS.set('wmd:new',id);
@@ -349,11 +357,18 @@ function viewCreate(){
       btn.disabled=false;btn.textContent='다시 모임 만들기';
       const code=String(e?.code||'UNKNOWN');
       const denied=/permission[-_ ]denied/i.test(code+' '+String(e?.message||''));
-      const message=denied
+      let duplicate=code==='DUPLICATE_MEETING';
+      if(denied&&id){
+        try{duplicate=Boolean(await store.get(`sessions/${id}/meta`))}catch(readError){}
+      }
+      const message=duplicate
+        ?'이미 같은 이름으로 만든 모임이 있습니다. 모임 이름을 다르게 작성해 주세요.'
+        :denied
         ?'모임 저장 권한이 없습니다. Firebase Realtime Database 규칙을 확인해 주세요. (PERMISSION_DENIED)'
         :'모임을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'+(/^[a-z0-9_/-]{1,80}$/i.test(code)?' ('+code+')':'');
       const error=$('#createError');error.textContent=message;error.hidden=false;
       error.scrollIntoView({block:'nearest',behavior:'smooth'});
+      if(duplicate){t.focus();t.style.borderColor='var(--sun)'}
       toast('입력 내용은 유지됩니다. 아래 오류를 확인해 주세요.');
     }
   };
