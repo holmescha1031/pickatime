@@ -291,41 +291,13 @@ async function share(sid,title){
 let sid = new URLSearchParams(location.search).get('s');
 
 /* ---------- 1. 모임 만들기 ---------- */
-function viewHome(){
-  document.title='언제봄';
-  $('#app').innerHTML=`
-    <div class="hero">
-      <span class="brand">언제봄</span>
-      <h1>되는 날에<br>스티커만 붙이자</h1>
-      <p>모임을 만들고 링크를 보내면, 친구들이 달력에 스티커를 붙여요. 다 같이 되는 날이 바로 보여요.</p>
-    </div>
-    <button class="btn blue block" id="startCreate">모임 만들기</button>`;
-  $('#startCreate').onclick=()=>kakaoUser?viewCreate():viewCreateLogin();
-}
-
-function viewCreateLogin(){
-  document.title='로그인 · 언제봄';
-  $('#app').innerHTML=`
-    <a class="brand" href="./">언제봄</a>
-    <div class="hero">
-      <h1>친구들과 만날 날,<br>함께 골라요</h1>
-      <p>카카오로 로그인하고 모임을 만들어 보세요.</p>
-    </div>
-    <section class="panel">
-      <button class="btn block" id="createLogin" style="background:#FEE500;color:#191919">카카오로 로그인</button>
-      <p class="hint">로그인 후 모임 이름과 날짜를 정할 수 있어요.</p>
-    </section>
-    <button class="btn ghost block" id="backHome">메인으로 돌아가기</button>`;
-  $('#createLogin').onclick=()=>loginKakao('create');
-  $('#backHome').onclick=viewHome;
-}
-
 function viewCreate(){
-  if(!kakaoUser){viewCreateLogin();return}
   document.title='언제봄';
   const now=new Date();
   const months=[...Array(12)].map((_,i)=>ymOf(new Date(now.getFullYear(),now.getMonth()+i,1)));
-  let start=months[0],end=months[0],picking=false;
+  let draft;try{draft=JSON.parse(SS.get('wmd:createDraft'))}catch(e){}
+  const validDraft=draft&&typeof draft.title==='string'&&draft.title.trim()&&months.includes(draft.start)&&months.includes(draft.end)&&draft.start<=draft.end&&monthsBetween(draft.start,draft.end).length<=6;
+  let start=validDraft?draft.start:months[0],end=validDraft?draft.end:months[0],picking=false;
   $('#app').innerHTML=`
     <div class="hero">
       <span class="brand">언제봄</span>
@@ -334,14 +306,14 @@ function viewCreate(){
     </div>
     <section class="panel">
       <label class="f" for="title">모임 이름</label>
-      <input class="inp" id="title" maxlength="30" placeholder="예) 고등학교 친구들 가을 모임" autocomplete="off">
+      <input class="inp" id="title" maxlength="30" placeholder="예) 고등학교 친구들 가을 모임" autocomplete="off" value="${esc(validDraft?draft.title:'')}">
     </section>
     <section class="panel">
       <label class="f">언제 중에 고를까요?</label>
       <div class="months" id="months"></div>
       <p class="hint" id="phint"></p>
     </section>
-    <button class="btn blue block" id="create">모임 만들고 링크 받기</button>`;
+    <button class="btn blue block" id="create">모임 만들고 링크 공유</button>`;
   const paint=()=>{
     $('#months').innerHTML=months.map((m,i)=>{
       const [y,mm]=m.split('-');const cls=m===start||m===end?'edge':(m>start&&m<end?'in':'');
@@ -360,15 +332,21 @@ function viewCreate(){
   const t=$('#title');
   $('#create').onclick=async()=>{
     const title=t.value.trim();if(!title){t.focus();t.style.borderColor='var(--sun)';toast('모임 이름을 먼저 적어 주세요');return}t.style.borderColor='';
-    const btn=$('#create');btn.disabled=true;btn.textContent='만드는 중…';
+    const btn=$('#create');if(btn.disabled)return;
+    SS.set('wmd:createDraft',JSON.stringify({title,start,end}));
+    if(!kakaoUser){loginKakao('create');return}
+    btn.disabled=true;btn.textContent='만드는 중…';
     const id=randId(8);
     try{
       await store.set(`sessions/${id}/meta`,{title,start,end,createdAt:Date.now()});
+      SS.del('wmd:createDraft');
       SS.set('wmd:new',id);
       try{history.pushState(null,'',`?s=${id}`)}catch(e){}
       sid=id;shown=null;window.scrollTo(0,0);bootSession();
-    }catch(e){btn.disabled=false;btn.textContent='모임 만들고 링크 받기';toast('모임을 만들지 못했어요. 인터넷 연결을 확인해 주세요.')}
+    }catch(e){btn.disabled=false;btn.textContent='모임 만들고 링크 공유';toast('모임을 만들지 못했어요. 인터넷 연결을 확인해 주세요.')}
   };
+  if(resumeCreate&&kakaoUser&&validDraft){resumeCreate=false;return $('#create').onclick()}
+  resumeCreate=false;
 }
 
 /* ---------- 2. 세션 ---------- */
@@ -814,8 +792,7 @@ function renderRank(){
 (async()=>{
   await completeKakaoLogin();
   if(sid)bootSession();
-  else if(resumeCreate)kakaoUser?viewCreate():viewCreateLogin();
-  else viewHome();
+  else await viewCreate();
 })();
 window.addEventListener('popstate',()=>location.reload());
 </script>
