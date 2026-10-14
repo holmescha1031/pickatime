@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut">
+<title>언제봄</title>
+<meta name="description" content="되는 날에 스티커만 붙이면, 다 같이 되는 날이 바로 보여요.">
+<meta property="og:title" content="언제봄">
+<meta property="og:description" content="되는 날에 스티커만 붙이면, 다 같이 되는 날이 바로 보여요.">
+<meta name="theme-color" content="#EEF3FB">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%232B5BFF' stroke='white' stroke-width='8'/></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF3FB; --grid:#DCE5F3; --card:#FFFFFF; --ink:#14213D; --sub:#5B6782; --line:#D5DEEC;
+  --s1:#2B5BFF; --s2:#79AEFF; --s3:#CFE1FF; --gold:#FFD23F; --sun:#E5484D; --sat:#2B5BFF; --miss:#E4E9F2;
+  --display:"Jua","Pretendard",system-ui,sans-serif;
+  --body:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  font-family:var(--body);color:var(--ink);min-height:100vh;
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:22px 22px;
+}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--s1);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 80px}
+h1,h2,.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
+.brand{font-family:var(--display);font-size:15px;color:var(--sub);text-decoration:none}
+.hero h1{font-size:40px;line-height:1.15;margin:18px 0 10px}
+.hero p{color:var(--sub);margin:0 0 22px;line-height:1.6}
+.panel{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px}
+label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
+.hint{font-size:13px;color:var(--sub);margin:6px 0 0;line-height:1.5}
+.inp{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;font-size:16px;background:#fff}
+.inp:focus{border-color:var(--s1);outline:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:14px;padding:14px 18px;font-weight:700;font-size:16px;background:var(--ink);color:#fff}
+.btn.block{width:100%}
+.btn.blue{background:var(--s1)}
+.btn.ghost{background:transparent;color:var(--sub);padding:8px 10px;font-weight:600;font-size:14px}
+.btn:disabled{opacity:.4}
+.row{display:flex;gap:8px;align-items:center}
+
+/* month picker */
+.months{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.mo{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 0;font-weight:600;font-size:14px;line-height:1.2}
+.mo small{display:block;font-size:10px;color:var(--sub);font-weight:500}
+.mo.in{background:var(--s3);border-color:var(--s3)}
+.mo.edge{background:var(--s1);border-color:var(--s1);color:#fff}
+.mo.edge small{color:#DCE6FF}
+
+/* entry */
+.who{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px 6px 6px;font-weight:600}
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700;flex:none}
+
+/* session header */
+.top{display:flex;justify-content:space-between;align-items:center}
+.stitle{font-size:30px;line-height:1.2;margin:14px 0 4px;word-break:keep-all}
+.speriod{color:var(--sub);font-size:14px;margin:0 0 14px}
+.mebar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:6px 6px 6px 12px;margin-bottom:12px;font-size:14px}
+.mebar b{font-weight:700}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:#DDE5F2;border-radius:14px;padding:4px;margin-bottom:14px;position:sticky;top:8px;z-index:5}
+.tab{border:0;background:transparent;border-radius:11px;padding:11px 0;font-weight:700;color:var(--sub);font-size:15px}
+.tab[aria-selected=true]{background:#fff;color:var(--ink);box-shadow:0 1px 0 var(--line)}
+.live{display:inline-block;width:7px;height:7px;border-radius:50%;background:#23C16B;margin-left:6px;vertical-align:middle;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.25}}
+.demo{background:#FFF4C2;border:1.5px dashed #E8C640;border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px;line-height:1.5}
+
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--sub);margin:2px 2px 12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+
+/* calendar */
+.month{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:14px 10px 10px;margin-bottom:14px}
+.month h2{font-size:22px;margin:0 6px 10px}
+.wk,.grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.wk div{text-align:center;font-size:12px;font-weight:600;color:var(--sub);padding-bottom:6px}
+.wk div:first-child,.day.sun .n{color:var(--sun)}
+.wk div:last-child,.day.sat .n{color:var(--sat)}
+.day{display:flex;flex-direction:column;gap:3px;padding:3px 2px;min-width:0}
+.day .n{text-align:center;font-size:13px;font-weight:700;line-height:1.2;position:relative}
+.day.past .n{color:#C3CBDA!important;font-weight:500}
+.day.today .n{background:var(--ink);color:#fff!important;border-radius:99px;margin:0 auto;padding:0 7px}
+.half{position:relative;border:0;padding:0;height:30px;border-radius:9px;background:#F1F5FB;display:grid;place-items:center;overflow:visible}
+.half:disabled{background:transparent;cursor:default}
+.half:disabled .lb{opacity:0}
+.half .lb{position:relative;z-index:2;font-size:10px;font-weight:600;color:#9AA6BD;white-space:nowrap}
+.stk{position:absolute;z-index:1;inset:0;border-radius:10px;border:2.5px solid #fff;
+  box-shadow:0 1.5px 0 rgba(20,33,61,.16),0 0 0 1px rgba(20,33,61,.06);
+  transform:rotate(var(--r)) scale(0);transition:transform .22s cubic-bezier(.3,1.6,.5,1),background .15s}
+.stk::after{content:"";position:absolute;top:18%;left:12%;width:22%;height:16%;border-radius:50%;background:rgba(255,255,255,.55)}
+.half[data-l="1"] .stk{background:var(--s1);transform:rotate(var(--r)) scale(1)}
+.half[data-l="2"] .stk{background:var(--s2);transform:rotate(var(--r)) scale(1)}
+.half[data-l="3"] .stk{background:var(--s3);transform:rotate(var(--r)) scale(1)}
+.half[data-l="1"] .lb,.half[data-l="2"] .lb{color:#fff}
+.half[data-l="3"] .lb{color:var(--ink)}
+.half.busy::before{content:"";position:absolute;z-index:3;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 1.5px #fff}
+.calbar{margin-bottom:12px}
+.calbtn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;border:1.5px dashed #AEBBD3;background:#fff;border-radius:14px;padding:12px 14px;text-align:left}
+.calbtn .ic{flex:none;width:34px;height:34px;border-radius:10px;background:var(--paper);display:grid;place-items:center;font-size:18px}
+.calbtn .tx{flex:1;min-width:0}
+.calbtn b{display:block;font-size:15px}
+.calbtn small{display:block;color:var(--sub);font-size:12px;margin-top:1px}
+.calbtn .go{color:var(--sub);font-weight:700;font-size:13px;white-space:nowrap}
+.calbtn.on{border-style:solid}
+.sheet .opt{margin-top:8px}
+.btn.line{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.calbar b{font-weight:700}
+.calbar .btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sbtn{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:7px 10px;font-size:13px;font-weight:600}
+.sbtn.link{border:0;padding:7px 4px;color:var(--sub);text-decoration:underline}
+.calhelp{margin-top:8px;padding:10px;background:var(--paper);border-radius:10px;color:var(--sub)}
+.wkplan{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,1fr);gap:2px;border:0;background:#F4F6FA;border-radius:8px;padding:4px 2px;margin:-3px 0 0;text-align:left;width:100%}
+.wp-col{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ev{display:block;font-size:9.5px;line-height:1.4;padding:0 2px 0 3px;border-radius:3px;background:#E3E7EF;color:#4A5570;white-space:nowrap;overflow:hidden;border-left:2px solid #A9B3C6}
+.ev.l{border-left-color:#E0A800}.ev.d{border-left-color:#3340A0}.ev.a{background:#D3D9E5;border-left-color:#5B6782}
+.ev.more{background:transparent;border:0;color:var(--sub);font-weight:600}
+.wkdetail{grid-column:1/-1;background:#F4F6FA;border-radius:8px;padding:6px 10px 8px;font-size:12.5px;line-height:1.75;color:var(--ink)}
+.wkdetail .tm{color:var(--sub);margin-right:4px}
+.slot{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:2px}
+.slot.L{background:#FFF1C9;color:#8A6300}.slot.D{background:#E3E8FF;color:#3340A0}
+.clear{display:block;margin:4px auto 0}
+
+/* ranking */
+.sum{font-family:var(--display);font-size:22px;line-height:1.35;margin:4px 2px 12px;word-break:keep-all}
+.people{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.pp{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:4px 10px 4px 4px;font-size:13px;font-weight:600}
+.pp .av{width:22px;height:22px;font-size:11px}
+.pp em{font-style:normal;color:var(--sub);font-weight:500}
+.pp.wait{border-style:dashed;color:var(--sub)}
+.rank{list-style:none;margin:0;padding:0}
+.rk{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:8px}
+.rk.all{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
+.pos{font-family:var(--display);font-size:22px;text-align:center;color:var(--sub)}
+.rk:nth-child(-n+3) .pos{color:var(--ink)}
+.rdate{font-weight:700;font-size:16px}
+.rdate small{font-weight:600;color:var(--sub);margin-left:4px}
+.rdate small.sun{color:var(--sun)} .rdate small.sat{color:var(--sat)}
+.bar{display:flex;gap:2px;height:8px;margin:7px 0 6px;border-radius:99px;overflow:hidden}
+.bar i{flex:1}
+.b1{background:var(--s1)}.b2{background:var(--s2)}.b3{background:var(--s3)}.b0{background:var(--miss)}
+.missing{font-size:12px;color:var(--sub);line-height:1.4}
+.cnt{font-family:var(--display);font-size:22px;text-align:right;white-space:nowrap}
+.cnt small{font-family:var(--body);font-size:12px;color:var(--sub);font-weight:600}
+.allstk{display:inline-block;font-family:var(--display);font-size:15px;line-height:1.1;text-align:center;background:var(--gold);color:var(--ink);
+  padding:9px 10px;border:3px solid #fff;border-radius:14px;transform:rotate(-7deg);box-shadow:0 2px 0 rgba(20,33,61,.18)}
+.empty{text-align:center;color:var(--sub);padding:30px 10px;line-height:1.7}
+.more{width:100%;margin-top:4px}
+
+/* toast & sheet */
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;transition:.2s;pointer-events:none;z-index:30;max-width:90vw}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.sheet{position:fixed;inset:0;background:rgba(20,33,61,.4);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet .panel{width:100%;max-width:560px;margin:0;border-radius:24px 24px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom))}
+.linkbox{background:var(--paper);border-radius:12px;padding:12px;font-size:13px;word-break:break-all;margin:10px 0 14px;color:var(--sub)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap" id="app"></main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="./config.js"></script>
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* =========================================================
+   ① Firebase 설정 — README의 순서대로 만든 값을 붙여넣으세요.
+   비워두면 "체험 모드"(이 브라우저에만 저장)로 동작합니다.
+   ========================================================= */
+const FIREBASE_CONFIG = {"apiKey": "AIzaSyCp7rXgx6fnAGJQtayQ67OgDHxWrNhkSUs", "authDomain": "pickatime-meet.firebaseapp.com", "databaseURL": "https://pickatime-meet-default-rtdb.asia-southeast1.firebasedatabase.app", "projectId": "pickatime-meet", "appId": "1:413887331614:web:74a4f0f54189e989f01d0f"};
+
+/* ② Google 캘린더 불러오기용 OAuth 클라이언트 ID (README 3단계). 비워두면 버튼이 안내만 띄워요. */
+const GOOGLE_CLIENT_ID = "";
+const KAKAO_JS_KEY = "7ba374d1017c27f710651513590c4e0a";
+let kakaoUser = null;
+if(window.Kakao && !Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY);
+function loginKakao(){
+  if(!window.Kakao?.Auth?.authorize){toast('카카오 SDK를 불러오지 못했어요. 새로고침해 주세요.');return}
+  if(!window.APP_CONFIG?.authServer){toast('config.js에 Vercel 서버 주소를 먼저 설정해 주세요.');return}
+  const state=randId(32);
+  try{sessionStorage.setItem('wmd:oauth',JSON.stringify({state,sid,at:Date.now()}))}
+  catch(e){toast('로그인에 필요한 브라우저 저장소를 허용해 주세요.');return}
+  Kakao.Auth.authorize({redirectUri:location.origin+location.pathname,state});
+}
+async function completeKakaoLogin(){
+  const q=new URLSearchParams(location.search);if(!q.has('code')&&!q.has('error'))return;
+  let pending;try{pending=JSON.parse(sessionStorage.getItem('wmd:oauth'))}catch(e){}
+  sessionStorage.removeItem('wmd:oauth');
+  sid=pending?.sid||null;
+  history.replaceState(null,'',location.pathname+(sid?'?s='+encodeURIComponent(sid):''));
+  if(!pending||q.get('state')!==pending.state||Date.now()-pending.at>10*60*1000){toast('로그인 요청이 만료됐어요. 다시 시도해 주세요.');return}
+  if(q.has('error')){toast('카카오 로그인이 취소되었어요.');return}
+  $('#app').innerHTML='<p class="empty">카카오 로그인 확인 중…</p>';
+  try{
+    const base=new URL(window.APP_CONFIG.authServer);
+    if(base.protocol!=='https:')throw new Error('서버 주소는 HTTPS여야 합니다.');
+    const r=await fetch(new URL('/api/kakao',base),{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:q.get('code'),redirectUri:location.origin+location.pathname})});
+    const user=await r.json();if(!r.ok)throw new Error(user.error||'로그인 서버 오류');
+    if(!/^kakao_[0-9]+$/.test(user.id))throw new Error('회원 정보 오류');
+    kakaoUser={id:user.id,name:user.name||''};
+  }catch(e){toast('로그인 실패: '+e.message)}
+}
+
+/* ---------- 안전한 브라우저 저장소 ---------- */
+const mem={};
+const safe=k=>({
+  get:key=>{try{return window[k].getItem(key)}catch(e){return mem[k+key]??null}},
+  set:(key,v)=>{try{window[k].setItem(key,v)}catch(e){mem[k+key]=v}},
+  del:key=>{try{window[k].removeItem(key)}catch(e){delete mem[k+key]}}
+});
+const LS=safe('localStorage'), SS=safe('sessionStorage');
+
+/* ---------- 저장소 (Firebase / 체험 모드) ---------- */
+function makeStore(){
+  if (FIREBASE_CONFIG.databaseURL && window.firebase) {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.database();
+    return {
+      demo:false,
+      get:p=>db.ref(p).once('value').then(s=>s.val()),
+      set:(p,v)=>db.ref(p).set(v),
+      on:(p,cb)=>{const r=db.ref(p),h=s=>cb(s.val());r.on('value',h,()=>toast('실시간 데이터를 읽지 못했어요. DB 규칙과 연결을 확인해 주세요.'));return()=>r.off('value',h)}
+    };
+  }
+  const KEY='wmd-demo-db', listeners=new Set();
+  let bc=null;try{bc=new BroadcastChannel(KEY)}catch(e){}
+  const read=()=>{try{return JSON.parse(LS.get(KEY))||{}}catch(e){return{}}};
+  const parts=p=>p.split('/').filter(Boolean);
+  const getAt=(o,p)=>parts(p).reduce((a,k)=>a==null?null:(a[k]??null),o);
+  const fire=()=>listeners.forEach(f=>f());
+  if(bc) bc.onmessage=fire;
+  return {
+    demo:true,
+    get:async p=>JSON.parse(JSON.stringify(getAt(read(),p))),
+    set:async(p,v)=>{
+      const root=read(),ks=parts(p),stack=[];let o=root;
+      for(let i=0;i<ks.length-1;i++){if(!o[ks[i]]||typeof o[ks[i]]!=='object')o[ks[i]]={};stack.push([o,ks[i]]);o=o[ks[i]]}
+      const last=ks[ks.length-1];
+      if(v==null)delete o[last];else o[last]=v;
+      for(let i=stack.length-1;i>=0;i--){const[par,k]=stack[i];if(Object.keys(par[k]).length===0)delete par[k];else break}
+      LS.set(KEY,JSON.stringify(root));
+      bc&&bc.postMessage(1);fire();
+    },
+    on:(p,cb)=>{const f=()=>cb(JSON.parse(JSON.stringify(getAt(read(),p))));listeners.add(f);f();return()=>listeners.delete(f)}
+  };
+}
+const store = makeStore();
+
+/* ---------- 유틸 ---------- */
+const $ = s=>document.querySelector(s);
+const WD = ['일','월','화','수','목','금','토'];
+const COLORS = ['#2B5BFF','#FF7A59','#16A37B','#9B5DE5','#F2A900','#E5484D','#0EA5C6','#5B6782'];
+const pad = n=>String(n).padStart(2,'0');
+const ymOf = d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+const ymdOf = d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseYmd = s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const todayStr = ()=>ymdOf(new Date());
+const esc = s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hash = s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)};
+const colorOf = name=>COLORS[hash(name)%COLORS.length];
+const avatar = name=>`<span class="av" style="background:${colorOf(name)}">${esc([...name][0]||'?')}</span>`;
+const ro = name=>{const c=name.charCodeAt(name.length-1);if(c<0xAC00||c>0xD7A3)return'로';const j=(c-0xAC00)%28;return(j===0||j===8)?'로':'으로'};
+const randId = n=>{const a='abcdefghjkmnpqrstuvwxyz23456789';let s='';const r=crypto.getRandomValues(new Uint8Array(n));for(const x of r)s+=a[x%a.length];return s};
+const monthLabel = ym=>{const[y,m]=ym.split('-').map(Number);return `${y}년 ${m}월`};
+const periodLabel = (a,b)=>a===b?monthLabel(a):`${monthLabel(a)} ~ ${b.slice(0,4)===a.slice(0,4)?Number(b.slice(5))+'월':monthLabel(b)}`;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2000)}
+function monthsBetween(a,b){const out=[];let [y,m]=a.split('-').map(Number);const[ey,em]=b.split('-').map(Number);while(y<ey||(y===ey&&m<=em)){out.push(`${y}-${pad(m)}`);m++;if(m>12){m=1;y++}}return out}
+const shareUrl = sid=>`${location.origin}${location.pathname}?s=${sid}`;
+async function share(sid,title){
+  const url=shareUrl(sid);
+  if(navigator.share){try{await navigator.share({title:'언제봄',text:`[${title}] 되는 날에 스티커 붙여줘!`,url});return}catch(e){if(e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(url);toast('링크를 복사했어요')}catch(e){prompt('이 링크를 복사해 주세요',url)}
+}
+
+/* ---------- 라우팅 ---------- */
+let sid = new URLSearchParams(location.search).get('s');
+
+/* ---------- 1. 모임 만들기 ---------- */
+function viewCreate(){
+  document.title='언제봄';
+  const now=new Date();
+  const months=[...Array(12)].map((_,i)=>ymOf(new Date(now.getFullYear(),now.getMonth()+i,1)));
+  let start=months[0],end=months[0],picking=false;
+  $('#app').innerHTML=`
+    <div class="hero">
+      <span class="brand">언제봄</span>
+      <h1>되는 날에<br>스티커만 붙이자</h1>
+      <p>모임을 만들고 링크를 보내면, 친구들이 달력에 스티커를 붙여요. 다 같이 되는 날이 바로 보여요.</p>
+    </div>
+    <section class="panel">
+      <label class="f" for="title">모임 이름</label>
+      <input class="inp" id="title" maxlength="30" placeholder="예) 고등학교 친구들 가을 모임" autocomplete="off">
+    </section>
+    <section class="panel">
+      <label class="f">언제 중에 고를까요?</label>
+      <div class="months" id="months"></div>
+      <p class="hint" id="phint"></p>
+    </section>
+    <button class="btn blue block" id="create">모임 만들고 링크 받기</button>`;
+  const paint=()=>{
+    $('#months').innerHTML=months.map((m,i)=>{
+      const [y,mm]=m.split('-');const cls=m===start||m===end?'edge':(m>start&&m<end?'in':'');
+      const showY=i===0||mm==='01';
+      return `<button class="mo ${cls}" data-m="${m}">${Number(mm)}월<small>${showY?y:'&nbsp;'}</small></button>`}).join('');
+    $('#phint').textContent=picking?'끝나는 달을 누르세요. 같은 달을 누르면 그 달만 골라요.':`${periodLabel(start,end)} · 다른 달을 누르면 다시 고를 수 있어요.`;
+  };
+  paint();
+  $('#months').onclick=e=>{
+    const b=e.target.closest('.mo');if(!b)return;const m=b.dataset.m;
+    if(!picking){start=end=m;picking=true}
+    else{[start,end]=[start,m].sort();picking=false;
+      if(monthsBetween(start,end).length>6){end=monthsBetween(start,end)[5];toast('최대 6개월까지 고를 수 있어요')}}
+    paint();
+  };
+  const t=$('#title');
+  $('#create').onclick=async()=>{
+    const title=t.value.trim();if(!title){t.focus();t.style.borderColor='var(--sun)';toast('모임 이름을 먼저 적어 주세요');return}t.style.borderColor='';
+    const btn=$('#create');btn.disabled=true;btn.textContent='만드는 중…';
+    const id=randId(8);
+    try{
+      await store.set(`sessions/${id}/meta`,{title,start,end,createdAt:Date.now()});
+      SS.set('wmd:new',id);
+      try{history.pushState(null,'',`?s=${id}`)}catch(e){}
+      sid=id;shown=null;window.scrollTo(0,0);bootSession();
+    }catch(e){btn.disabled=false;btn.textContent='모임 만들고 링크 받기';toast('모임을 만들지 못했어요. 인터넷 연결을 확인해 주세요.')}
+  };
+}
+
+/* ---------- 2. 세션 ---------- */
+const S={meta:null,me:null,members:null,votes:{},tab:'mine',showAll:false};
+const meKey=()=>`wmd:me:${sid}`;
+
+async function bootSession(){
+  $('#app').innerHTML='<p class="empty">불러오는 중…</p>';
+  try{S.meta=await store.get(`sessions/${sid}/meta`)}catch(e){S.meta=null}
+  if(!S.meta){
+    $('#app').innerHTML=`<div class="hero"><a class="brand" href="./">언제봄</a><h1>모임을 찾을 수 없어요</h1><p>링크가 잘렸거나 잘못 복사됐을 수 있어요. 모임을 만든 친구에게 링크를 다시 받아 주세요.</p></div><a class="btn block" href="./">새 모임 만들기</a>`;
+    return;
+  }
+  document.title=`${S.meta.title} · 언제봄`;
+  S.me=kakaoUser?.id||null;
+  (S.unsub||[]).forEach(f=>f());
+  S.unsub=[store.on(`sessions/${sid}/members`,v=>{
+    S.members=v||{};
+    if(S.me&&!S.members[S.me]){S.me=null;LS.del(meKey())}
+    route();
+  }),store.on(`sessions/${sid}/votes`,v=>{S.votes=v||{};refresh()})];
+}
+
+let shown=null;
+function route(){
+  const want=S.me?'main':'entry';
+  if(want!==shown){shown=want;want==='main'?viewMain():viewEntry()}
+  else refresh();
+}
+function refresh(){
+  if(shown==='entry')viewEntry();
+  if(shown==='main'){renderMe();S.tab==='mine'?syncCalendar():renderRank()}
+}
+
+/* ----- 닉네임 선택 ----- */
+function viewEntry(){
+  const typed=$('#nick')?.value||kakaoUser?.name||'';
+  $('#app').innerHTML=`
+    <a class="brand" href="./">언제봄</a>
+    <h1 class="stitle">${esc(S.meta.title)}</h1>
+    <p class="speriod">${periodLabel(S.meta.start,S.meta.end)} 중에 골라요</p>
+    <section class="panel">
+      ${!kakaoUser?`<p>카카오로 로그인하고 되는 시간에 스티커를 붙여 주세요.</p>
+      <button class="btn block" id="kakaoLogin" style="background:#FEE500;color:#191919">카카오 로그인</button>`:
+      `<label class="f" for="nick">모임에서 사용할 닉네임</label>
+      <div class="row"><input class="inp" id="nick" maxlength="10" autocomplete="off" placeholder="친구들이 알아볼 이름" value="${esc([...typed].slice(0,10).join(''))}">
+      <button class="btn blue" id="join">참여하기</button></div>
+      <button class="btn ghost" id="otherAccount">다른 카카오 계정으로 로그인</button>`}
+      <p class="hint">친구 테스트용입니다. 닉네임과 투표가 모임 링크를 가진 사람에게 공유됩니다.</p>
+    </section>`;
+  if(!kakaoUser){$('#kakaoLogin').onclick=loginKakao;return}
+  $('#otherAccount').onclick=()=>{kakaoUser=null;Kakao.Auth.setAccessToken(null);viewEntry()};
+  const join=async()=>{
+    const name=$('#nick').value.trim();if(!name){$('#nick').focus();return}
+    const id=kakaoUser.id,btn=$('#join');btn.disabled=true;
+    try{
+      const old=await store.get(`sessions/${sid}/members/${id}`);
+      const member={name,joinedAt:old?.joinedAt||Date.now()};
+      await store.set(`sessions/${sid}/members/${id}`,member);
+      S.members={...S.members,[id]:member};enter(id);
+    }catch(e){if($('#join'))$('#join').disabled=false;toast('참여 정보를 저장하지 못했어요. DB 규칙을 확인해 주세요.')}
+  };
+  $('#join').onclick=join;$('#nick').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)join()};
+}
+function enter(id){LS.set(meKey(),id);S.me=id;route()}
+
+/* ----- 메인 ----- */
+function viewMain(){
+  $('#app').innerHTML=`
+    <div class="top">
+      <a class="brand" href="./">언제봄</a>
+      <button class="btn ghost" id="share">링크 공유</button>
+    </div>
+    <h1 class="stitle">${esc(S.meta.title)}</h1>
+    <p class="speriod">${periodLabel(S.meta.start,S.meta.end)}</p>
+    ${store.demo?`<div class="demo">체험 모드예요. 지금은 이 브라우저에만 저장돼서 친구에게 보이지 않아요. 새 탭에서 같은 링크를 열어 다른 닉네임으로 테스트해 볼 수 있어요.</div>`:''}
+    <div class="mebar" id="mebar"></div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-t="mine">내 스티커 붙이기</button>
+      <button class="tab" role="tab" data-t="rank">날짜 순위<span class="live" aria-hidden="true"></span></button>
+    </div>
+    <div id="body"></div>`;
+  $('#share').onclick=()=>share(sid,S.meta.title);
+  $('.tabs').onclick=e=>{const b=e.target.closest('.tab');if(b){S.tab=b.dataset.t;renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'})}};
+  renderMe();renderTab();
+  if(SS.get('wmd:new')===sid){SS.del('wmd:new');openShareSheet()}
+}
+function renderMe(){
+  const m=S.members?.[S.me];if(!m||!$('#mebar'))return;
+  $('#mebar').innerHTML=`<span class="row">${avatar(m.name)}<span><b>${esc(m.name)}</b>${ro(m.name)} 참여 중</span></span><button class="btn ghost" id="switch">이름 바꾸기</button>`;
+  $('#switch').onclick=()=>{const name=prompt('새 닉네임을 입력해 주세요 (최대 10자)',m.name);if(!name?.trim())return;if([...name.trim()].length>10){toast('닉네임은 10자 이내로 입력해 주세요.');return}store.set(`sessions/${sid}/members/${S.me}`,{...m,name:name.trim()}).catch(()=>toast('닉네임을 저장하지 못했어요.'))};
+}
+function renderTab(){
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.t===S.tab));
+  S.tab==='mine'?renderCalendar():renderRank();
+}
+function openShareSheet(){
+  const el=document.createElement('div');el.className='sheet';
+  el.innerHTML=`<div class="panel">
+    <h2 style="margin:0 0 6px;font-size:24px">모임을 만들었어요</h2>
+    <p class="hint" style="margin:0">이 링크를 단톡방에 보내면 친구들이 바로 스티커를 붙일 수 있어요.</p>
+    <div class="linkbox">${esc(shareUrl(sid))}</div>
+    <button class="btn blue block" id="sh">링크 공유하기</button>
+    <button class="btn ghost block" id="cl" style="margin-top:6px">나중에 할게요</button></div>`;
+  document.body.appendChild(el);
+  const close=()=>el.remove();
+  el.onclick=e=>{if(e.target===el)close()};
+  el.querySelector('#cl').onclick=close;
+  el.querySelector('#sh').onclick=async()=>{await share(sid,S.meta.title);close()};
+}
+
+/* ----- 내 스티커 달력 ----- */
+const LEVEL_TEXT={1:'무조건 가능',2:'아마 가능',3:'되긴 하는데…'};
+const SLOTS=[['L','점심'],['D','저녁']];
+const SLOT_NAME={L:'점심',D:'저녁'};
+function myVotes(){return S.votes?.[S.me]||{}}
+const lvOf=(v,d,sl)=>(v&&typeof v[d]==='object'&&v[d])?(v[d][sl]||0):0;
+function renderCalendar(){
+  const today=todayStr(),mv=myVotes(),idx=calDays();
+  const html=monthsBetween(S.meta.start,S.meta.end).map(ym=>{
+    const [y,m]=ym.split('-').map(Number);
+    const first=new Date(y,m-1,1).getDay(),days=new Date(y,m,0).getDate();
+    const cells=Array(first).fill({h:'<div></div>',past:true});
+    for(let d=1;d<=days;d++){
+      const ds=`${ym}-${pad(d)}`,dow=(first+d-1)%7,past=ds<today;
+      const dayEv=past?[]:(idx[ds]||[]);
+      const halves=SLOTS.map(([sl,name])=>{
+        const l=past?0:lvOf(mv,ds,sl),r=(hash(ds+sl)%9)-4,busy=dayEv.some(e=>e[sl]);
+        return `<button class="half${busy?' busy':''}" data-d="${ds}" data-s="${sl}" data-l="${l}" ${past?'disabled':''}
+          aria-label="${m}월 ${d}일 ${WD[dow]}요일 ${name}${busy?', 내 일정 있음':''}${l?', '+LEVEL_TEXT[l]:''}"><i class="stk" style="--r:${r}deg"></i><span class="lb">${name}</span></button>`}).join('');
+      cells.push({past,ds,dow,m,d,h:`<div class="day${dow===0?' sun':''}${dow===6?' sat':''}${ds===today?' today':''}${past?' past':''}"><span class="n">${d}</span>${halves}</div>`});
+    }
+    let rows='';
+    for(let i=0;i<cells.length;i+=7){const wk=cells.slice(i,i+7);if(wk.every(c=>c.past))continue;rows+=wk.map(c=>c.h).join('');rows+=weekStrip(wk,idx)}
+    if(!rows)return '';
+    return `<section class="month"><h2>${y===new Date().getFullYear()?'':y+'년 '}${m}월</h2>
+      <div class="wk">${WD.map(w=>`<div>${w}</div>`).join('')}</div><div class="grid" style="row-gap:6px">${rows}</div></section>`;
+  }).join('');
+  $('#body').innerHTML=`
+    <div class="calbar" id="calbar">${calBarHtml()}</div>
+    <input type="file" id="icsFile" accept=".ics,text/calendar" hidden>
+    <div class="legend">
+      <span style="width:100%;color:var(--ink);font-weight:600">날짜 칸 위는 점심, 아래는 저녁이에요</span>
+      <span><i class="dot" style="background:var(--s1)"></i>한 번: 무조건 가능</span>
+      <span><i class="dot" style="background:var(--s2)"></i>두 번: 아마 가능</span>
+      <span><i class="dot" style="background:var(--s3)"></i>세 번: 되긴 하는데…</span>
+      <span>네 번 누르면 떼져요</span>
+    </div>
+    ${html}
+    <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
+  $('#body').onclick=onDayTap;
+  $('#icsFile').onchange=importIcs;
+}
+function onDayTap(e){
+  const w=e.target.closest('.wkplan');
+  if(w){const d=w.nextElementSibling;d.hidden=!d.hidden;w.setAttribute('aria-expanded',String(!d.hidden));return}
+  const act=e.target.closest('[data-cal]')?.dataset.cal;
+  if(act==='open')return openCalSheet();
+  if(e.target.id==='clearAll'){
+    if(!Object.keys(myVotes()).length){toast('붙인 스티커가 없어요');return}
+    if(confirm('내가 붙인 스티커를 모두 뗄까요?'))store.set(`sessions/${sid}/votes/${S.me}`,null).catch(()=>toast('스티커를 지우지 못했어요. 다시 시도해 주세요.'));
+    return;
+  }
+  const b=e.target.closest('.half');if(!b||b.disabled)return;
+  const d=b.dataset.d,sl=b.dataset.s,next=((+b.dataset.l||0)+1)%4;
+  b.dataset.l=next;
+  const mv={...myVotes()};const day={...(typeof mv[d]==='object'&&mv[d]?mv[d]:{})};
+  if(next)day[sl]=next;else delete day[sl];
+  if(Object.keys(day).length)mv[d]=day;else delete mv[d];
+  S.votes={...S.votes,[S.me]:mv};
+  navigator.vibrate?.(8);
+  store.set(`sessions/${sid}/votes/${S.me}/${d}/${sl}`,next||null).catch(async()=>{toast('저장하지 못했어요. 인터넷 연결과 DB 규칙을 확인해 주세요.');try{S.votes=await store.get(`sessions/${sid}/votes`)||{};refresh()}catch(e){}});
+}
+function syncCalendar(){
+  if(!$('.month'))return;
+  const mv=myVotes();
+  document.querySelectorAll('.half:not(:disabled)').forEach(b=>{const l=String(lvOf(mv,b.dataset.d,b.dataset.s));if(b.dataset.l!==l)b.dataset.l=l});
+}
+function myCount(id){
+  const t=todayStr();let n=0;
+  for(const[d,v] of Object.entries(S.votes?.[id]||{}))if(d>=t&&v&&typeof v==='object')n+=Object.keys(v).length;
+  return n;
+}
+
+/* ----- 내 캘린더 불러오기 (이 기기에만 저장, 친구에게 안 보임) ----- */
+const CAL_KEY='wmd:cal';
+const LUNCH=[11*60,15*60], DINNER=[17*60,24*60];
+let CAL=(()=>{try{return JSON.parse(LS.get(CAL_KEY))}catch(e){return null}})();
+let calIndex=null;
+function calWindow(){const n=new Date();return{from:new Date(n.getFullYear(),n.getMonth(),n.getDate()),to:new Date(n.getFullYear(),n.getMonth()+13,1)}}
+function saveCal(source,events){
+  const seen=new Set();
+  events=events.filter(e=>{const k=e.t+'|'+e.s;if(seen.has(k))return false;seen.add(k);return true});
+  CAL={source,at:Date.now(),events};LS.set(CAL_KEY,JSON.stringify(CAL));calIndex=null;
+}
+function clearCal(){CAL=null;LS.del(CAL_KEY);calIndex=null}
+const hm=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function calDays(){
+  if(calIndex)return calIndex;
+  calIndex={};
+  const push=(ds,x)=>(calIndex[ds]??=[]).push(x);
+  for(const ev of CAL?.events||[]){
+    if(ev.a){
+      const d=parseYmd(ev.s),end=parseYmd(ev.e&&ev.e>ev.s?ev.e:ev.s);
+      if(!(end>d))end.setDate(d.getDate()+1);
+      for(let g=0;d<end&&g<62;g++){push(ymdOf(d),{t:ev.t,a:true,L:true,D:true,tm:'종일',k:-1});d.setDate(d.getDate()+1)}
+    }else{
+      const st=new Date(ev.s);let en=new Date(ev.e);if(!(en>st))en=new Date(ev.s+36e5);
+      const day=new Date(st.getFullYear(),st.getMonth(),st.getDate());
+      for(let g=0;day<en&&g<62;g++){
+        const base=day.getTime(),a=Math.max(0,(st-base)/6e4),b=Math.min(1440,(en-base)/6e4);
+        const ov=([x,y])=>a<y&&b>x,first=g===0;
+        push(ymdOf(day),{t:ev.t,L:ov(LUNCH),D:ov(DINNER),tm:first?hm(st):'이어서',k:first?a:0});
+        day.setDate(day.getDate()+1);
+      }
+    }
+  }
+  for(const k in calIndex)calIndex[k].sort((x,y)=>x.k-y.k);
+  return calIndex;
+}
+function weekStrip(wk,idx){
+  const evs=wk.map(c=>c.ds&&!c.past?(idx[c.ds]||[]):[]);
+  if(!evs.some(a=>a.length))return'';
+  const cls=e=>e.a?'a':e.D?'d':e.L?'l':'';
+  const cols=evs.map(list=>`<div class="wp-col">${list.slice(0,2).map(e=>`<span class="ev ${cls(e)}">${esc(e.t)}</span>`).join('')}${list.length>2?`<span class="ev more">+${list.length-2}</span>`:''}</div>`).join('');
+  const detail=wk.map((c,i)=>evs[i].map(e=>`<div><b>${c.m}/${c.d}(${WD[c.dow]})</b> <span class="tm">${e.tm}</span>${esc(e.t)}${e.a?'':e.D?'<span class="slot D">저녁</span>':e.L?'<span class="slot L">점심</span>':''}</div>`).join('')).join('');
+  return `<button class="wkplan" aria-expanded="false" aria-label="이번 주 내 일정 펼치기">${cols}</button><div class="wkdetail" hidden>${detail}</div>`;
+}
+function calBarHtml(){
+  if(!CAL)return `<button class="calbtn" data-cal="open"><span class="ic" aria-hidden="true">📅</span>
+    <span class="tx"><b>내 캘린더 가져오기</b><small>약속 있는 날을 달력에 표시해요</small></span><span class="go">가져오기</span></button>`;
+  const at=new Date(CAL.at);
+  return `<button class="calbtn on" data-cal="open"><span class="ic" aria-hidden="true">📅</span>
+    <span class="tx"><b>내 캘린더 일정 ${CAL.events.length}개</b><small>${esc(CAL.source)} · ${at.getMonth()+1}/${at.getDate()} ${hm(at)} 가져옴</small></span><span class="go">관리</span></button>`;
+}
+function openCalSheet(){
+  const el=document.createElement('div');el.className='sheet';
+  el.innerHTML=`<div class="panel" role="dialog" aria-label="내 캘린더 가져오기">
+    <h2 style="margin:0 0 6px;font-size:24px">내 캘린더 가져오기</h2>
+    <p class="hint" style="margin:0 0 14px">약속 있는 날이 주마다 달력 아래에 표시돼요. 일정은 이 기기에만 저장되고 친구에게는 보이지 않아요.</p>
+    <button class="btn blue block" data-a="google">Google 캘린더에서 가져오기</button>
+    <button class="btn line block opt" data-a="ics">.ics 파일 올리기</button>
+    ${CAL?`<button class="btn ghost block opt" data-a="clear">가져온 일정 지우기 (${CAL.events.length}개)</button>`:''}
+    <p class="hint" style="margin-top:14px"><b>삼성 캘린더</b>: Google 계정에 저장된 일정이면 Google로 함께 가져와져요.<br>
+    <b>아이폰 캘린더</b>: 웹에서는 iCloud 일정을 읽을 수 없어요. 아이폰에서 Google 캘린더를 쓰거나, Mac 캘린더 앱 ‘파일 &gt; 내보내기’로 만든 .ics 파일을 올려 주세요.</p>
+    <button class="btn ghost block" data-a="close">닫기</button></div>`;
+  document.body.appendChild(el);
+  const close=()=>el.remove();
+  el.onclick=e=>{
+    if(e.target===el)return close();
+    const a=e.target.closest('[data-a]')?.dataset.a;if(!a)return;
+    close();
+    if(a==='google')connectGoogle();
+    else if(a==='ics')$('#icsFile').click();
+    else if(a==='clear'&&confirm('가져온 내 일정을 이 기기에서 지울까요?')){clearCal();renderCalendar()}
+  };
+}
+function setCalMsg(msg){const b=$('#calbar .calbtn b');if(b)b.textContent=msg}
+
+/* Google */
+async function gget(url,tok){const r=await fetch(url,{headers:{Authorization:'Bearer '+tok}});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
+async function fetchGoogle(tok){
+  const {from,to}=calWindow();
+  const cl=await gget('https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader&maxResults=250',tok);
+  const cals=(cl.items||[]).filter(c=>c.selected!==false&&!/#(holiday|contacts)@/.test(c.id));
+  const out=[];
+  await Promise.allSettled(cals.map(async c=>{
+    let pageToken='';
+    do{
+      const q=new URLSearchParams({singleEvents:'true',orderBy:'startTime',maxResults:'2500',timeMin:from.toISOString(),timeMax:to.toISOString(),
+        fields:'nextPageToken,items(summary,start,end,status,transparency,attendees(self,responseStatus))'});
+      if(pageToken)q.set('pageToken',pageToken);
+      const j=await gget(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(c.id)}/events?${q}`,tok);
+      for(const e of j.items||[]){
+        if(e.status==='cancelled'||e.transparency==='transparent')continue;
+        if(e.attendees?.some(a=>a.self&&a.responseStatus==='declined'))continue;
+        const t=e.summary||'(제목 없음)';
+        if(e.start?.date)out.push({t,a:true,s:e.start.date,e:e.end?.date||e.start.date});
+        else if(e.start?.dateTime)out.push({t,s:Date.parse(e.start.dateTime),e:Date.parse(e.end?.dateTime||e.start.dateTime)});
+      }
+      pageToken=j.nextPageToken;
+    }while(pageToken);
+  }));
+  return out;
+}
+function connectGoogle(){
+  if(!GOOGLE_CLIENT_ID){toast('Google 연결 설정이 아직 안 돼 있어요. README 3단계를 확인해 주세요.');return}
+  if(!window.google?.accounts?.oauth2){toast('Google 로그인을 준비하는 중이에요. 잠시 후 다시 눌러 주세요.');return}
+  google.accounts.oauth2.initTokenClient({
+    client_id:GOOGLE_CLIENT_ID,
+    scope:'https://www.googleapis.com/auth/calendar.readonly',
+    callback:async res=>{
+      if(res.error||!res.access_token){toast('Google 연결을 취소했어요');return}
+      setCalMsg('Google 캘린더에서 일정을 불러오는 중…');
+      try{const ev=await fetchGoogle(res.access_token);saveCal('Google 캘린더',ev);toast(`일정 ${ev.length}개를 가져왔어요`)}
+      catch(e){toast('일정을 불러오지 못했어요. 다시 시도해 주세요.')}
+      renderCalendar();
+    },
+    error_callback:()=>toast('Google 로그인 창이 닫혔어요')
+  }).requestAccessToken();
+}
+
+/* .ics 파일 */
+function importIcs(e){
+  const f=e.target.files?.[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const {from,to}=calWindow();const ev=parseICS(String(rd.result),from,to);
+      if(!ev.length){toast('앞으로의 일정이 없는 파일이에요');return}
+      saveCal('.ics 파일',ev);renderCalendar();toast(`일정 ${ev.length}개를 가져왔어요`);
+    }catch(err){toast('캘린더 파일을 읽지 못했어요. .ics 파일인지 확인해 주세요.')}
+  };
+  rd.readAsText(f);e.target.value='';
+}
+function icsDate(v,pm){
+  const m=String(v).match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?/);if(!m)return null;
+  const[,Y,M,D,h,mi,,z]=m;
+  if(!h||pm.VALUE==='DATE')return{a:true,d:new Date(+Y,M-1,+D)};
+  return{a:false,d:z?new Date(Date.UTC(+Y,M-1,+D,+h,+mi)):new Date(+Y,M-1,+D,+h,+mi)};
+}
+function durMs(v){const m=String(v||'').match(/P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?/);if(!m||!m[0].length||m[0]==='P')return null;return(((+m[1]||0)*7+(+m[2]||0))*1440+(+m[3]||0)*60+(+m[4]||0))*6e4}
+function parseICS(text,from,to){
+  const lines=text.replace(/\r?\n[ \t]/g,'').split(/\r?\n/);
+  const out=[];let cur=null;
+  for(const line of lines){
+    if(line==='BEGIN:VEVENT'){cur={ex:[]};continue}
+    if(line==='END:VEVENT'){if(cur)expandIcs(cur,from,to,out);cur=null;continue}
+    if(!cur)continue;
+    const i=line.indexOf(':');if(i<0)continue;
+    const[name,...ps]=line.slice(0,i).split(';');const val=line.slice(i+1);
+    const pm=Object.fromEntries(ps.map(x=>x.split('=')));
+    switch(name.toUpperCase()){
+      case'SUMMARY':cur.t=val.replace(/\\n/gi,' ').replace(/\\([,;\\])/g,'$1');break;
+      case'DTSTART':cur.s=icsDate(val,pm);break;
+      case'DTEND':cur.e=icsDate(val,pm);break;
+      case'DURATION':cur.dur=val;break;
+      case'RRULE':cur.rr=Object.fromEntries(val.split(';').map(x=>x.split('=')));break;
+      case'EXDATE':val.split(',').forEach(x=>{const d=icsDate(x,pm);d&&cur.ex.push(d.d.getTime())});break;
+      case'STATUS':cur.st=val;break;
+      case'TRANSP':cur.tr=val;break;
+    }
+  }
+  return out;
+}
+function expandIcs(ev,from,to,out){
+  if(!ev.s||ev.st==='CANCELLED'||ev.tr==='TRANSPARENT')return;
+  const t=ev.t||'(제목 없음)',allDay=ev.s.a,base=ev.s.d;
+  const len=ev.e?ev.e.d-base:(durMs(ev.dur)??(allDay?864e5:36e5));
+  const ex=new Set(ev.ex);
+  const push=st=>{
+    if(ex.has(st.getTime()))return;
+    const en=new Date(st.getTime()+Math.max(len,0));
+    if(en<from||st>to)return;
+    out.push(allDay?{t,a:true,s:ymdOf(st),e:ymdOf(en)}:{t,s:st.getTime(),e:en.getTime()});
+  };
+  const r=ev.rr;
+  if(!r){push(base);return}
+  const WDS=['SU','MO','TU','WE','TH','FR','SA'];
+  const freq=r.FREQ,iv=+(r.INTERVAL||1)||1,count=r.COUNT?+r.COUNT:Infinity,until=r.UNTIL?icsDate(r.UNTIL,{})?.d:null;
+  const byday=r.BYDAY?r.BYDAY.split(','):null;
+  const at=(y,mo,d)=>new Date(y,mo,d,base.getHours(),base.getMinutes());
+  let n=0;
+  for(let k=0;k<3000&&n<count;k++){
+    let c=[];
+    if(freq==='DAILY')c=[at(base.getFullYear(),base.getMonth(),base.getDate()+k*iv)];
+    else if(freq==='WEEKLY'){
+      const w=at(base.getFullYear(),base.getMonth(),base.getDate()+k*iv*7);
+      c=byday?byday.map(x=>at(w.getFullYear(),w.getMonth(),w.getDate()-w.getDay()+WDS.indexOf(x.slice(-2)))).filter(x=>x>=base).sort((a,b)=>a-b):[w];
+    }else if(freq==='MONTHLY'){
+      const y=base.getFullYear(),mo=base.getMonth()+k*iv,f=new Date(y,mo,1),dim=new Date(f.getFullYear(),f.getMonth()+1,0).getDate();
+      const mm=byday&&byday[0].match(/^([+-]?\d)?([A-Z]{2})$/);
+      let d;
+      if(mm){const wd=WDS.indexOf(mm[2]),nth=+(mm[1]||1);
+        if(nth>0)d=1+((wd-f.getDay()+7)%7)+(nth-1)*7;
+        else{const ld=new Date(f.getFullYear(),f.getMonth(),dim).getDay();d=dim-((ld-wd+7)%7)+(nth+1)*7}
+      }else d=base.getDate();
+      if(d>=1&&d<=dim)c=[at(f.getFullYear(),f.getMonth(),d)];
+    }else if(freq==='YEARLY'){
+      const x=at(base.getFullYear()+k*iv,base.getMonth(),base.getDate());
+      if(x.getDate()===base.getDate())c=[x];
+    }else{push(base);return}
+    let stop=false;
+    for(const x of c){
+      if(n>=count||(until&&x>until)||x>to){stop=true;break}
+      n++;push(x);
+    }
+    if(stop)break;
+  }
+}
+
+/* ----- 순위 ----- */
+function computeRank(){
+  const ids=Object.keys(S.members||{}),today=todayStr(),map={};
+  for(const id of ids){
+    for(const [d,v] of Object.entries(S.votes?.[id]||{})){
+      if(!v||typeof v!=='object'||d<today||d.slice(0,7)<S.meta.start||d.slice(0,7)>S.meta.end)continue;
+      for(const [sl,l] of Object.entries(v)){
+        if(!SLOT_NAME[sl])continue;
+        const r=map[d+sl]??={d,sl,count:0,score:0,lv:{}};
+        r.count++;r.score+=4-l;r.lv[id]=l;
+      }
+    }
+  }
+  return {ids,list:Object.values(map).sort((a,b)=>b.count-a.count||b.score-a.score||a.d.localeCompare(b.d)||a.sl.localeCompare(b.sl))};
+}
+function renderRank(){
+  const {ids,list}=computeRank(),total=ids.length;
+  const members=S.members||{};
+  const sorted=[...ids].sort((a,b)=>members[a].joinedAt-members[b].joinedAt);
+  const cnt=myCount;
+  const allDays=list.filter(r=>r.count===total&&total>1);
+  const waiting=sorted.filter(id=>!cnt(id));
+  let sum;
+  if(!list.length)sum='아직 붙인 스티커가 없어요';
+  else if(allDays.length)sum=`다 같이 되는 시간이 ${allDays.length}개 있어요!`;
+  else if(waiting.length)sum=`${waiting.length}명이 아직 스티커를 안 붙였어요`;
+  else sum=`다 되는 시간은 없어요. 최대 ${list[0].count}명까지 모일 수 있어요`;
+
+  const shownList=S.showAll?list:list.slice(0,10);
+  $('#body').innerHTML=`
+    <p class="sum">${esc(sum)}</p>
+    <div class="people">${sorted.map(id=>{const c=cnt(id);return `<span class="pp${c?'':' wait'}">${avatar(members[id].name)}${esc(members[id].name)} <em>${c?c+'칸':'아직'}</em></span>`}).join('')}</div>
+    ${list.length?`<ol class="rank">${shownList.map((r,i)=>{
+      const dt=parseYmd(r.d),dow=dt.getDay(),isAll=r.count===total&&total>1;
+      const segs=sorted.map(id=>`<i class="b${r.lv[id]||0}"></i>`).join('');
+      const miss=sorted.filter(id=>!r.lv[id]).map(id=>members[id].name);
+      const vague=sorted.filter(id=>r.lv[id]===3).map(id=>members[id].name);
+      const notes=[miss.length?`못 와요: ${miss.map(esc).join(', ')}`:'',vague.length?`애매해요: ${vague.map(esc).join(', ')}`:''].filter(Boolean).join('<br>');
+      return `<li class="rk${isAll?' all':''}">
+        <div class="pos">${i+1}</div>
+        <div><div class="rdate">${dt.getMonth()+1}월 ${dt.getDate()}일<small class="${dow===0?'sun':dow===6?'sat':''}">${WD[dow]}</small><span class="slot ${r.sl}">${SLOT_NAME[r.sl]}</span></div>
+          <div class="bar">${segs}</div>${notes?`<div class="missing">${notes}</div>`:''}</div>
+        <div>${isAll?'<span class="allstk">다 되는<br>시간!</span>':`<div class="cnt">${r.count}<small>/${total}명</small></div>`}</div>
+      </li>`}).join('')}</ol>
+      ${list.length>10?`<button class="btn ghost more" id="more">${S.showAll?'상위 10개만 보기':`전체 ${list.length}개 보기`}</button>`:''}`
+    :`<div class="empty">‘내 스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}
+    <p class="hint" style="text-align:center;margin-top:14px">되는 사람 수가 많은 순, 같으면 진한 스티커가 많은 순이에요.</p>`;
+  const more=$('#more');if(more)more.onclick=()=>{S.showAll=!S.showAll;renderRank()};
+}
+
+/* ---------- 시작 ---------- */
+(async()=>{await completeKakaoLogin();sid ? bootSession() : viewCreate()})();
+window.addEventListener('popstate',()=>location.reload());
+</script>
+</body>
+</html>

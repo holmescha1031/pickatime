@@ -1,0 +1,53 @@
+{
+  "rules": {
+    "sessions": {
+      "$sid": {
+        ".read": true,
+        "meta": {
+          ".write": "!data.exists()",
+          ".validate": "newData.hasChildren(['title','start','end','createdAt'])",
+          "title": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+          },
+          "start": {
+            ".validate": "newData.isString()"
+          },
+          "end": {
+            ".validate": "newData.isString()"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "members": {
+          "$mid": {
+            ".write": "root.child('sessions').child($sid).child('meta').exists()",
+            ".validate": "newData.hasChildren(['name','joinedAt'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
+            },
+            "joinedAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "votes": {
+          "$mid": {
+            ".write": "root.child('sessions').child($sid).child('members').child($mid).exists()",
+            "$date": {
+              "$slot": {
+                ".validate": "($slot === 'L' || $slot === 'D') && newData.isNumber() && (newData.val() === 1 || newData.val() === 2 || newData.val() === 3)"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
