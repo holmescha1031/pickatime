@@ -1,10 +1,14 @@
 // Vercel Node.js Function. Secrets belong in Environment Variables, never in GitHub.
 module.exports = async function handler(req, res) {
-  const origin = 'https://holmescha1031.github.io';
-  const redirectUri = 'https://holmescha1031.github.io/pickatime/';
+  const callbacks = new Map([
+    ['https://pickatime-phi.vercel.app', 'https://pickatime-phi.vercel.app/'],
+    ['https://holmescha1031.github.io', 'https://holmescha1031.github.io/pickatime/']
+  ]);
+  const origin = req.headers.origin;
+  const redirectUri = callbacks.get(origin);
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Vary', 'Origin');
-  if (req.headers.origin !== origin) return res.status(403).json({error:'허용되지 않은 요청입니다.'});
+  if (!redirectUri) return res.status(403).json({error:'허용되지 않은 요청입니다.'});
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');

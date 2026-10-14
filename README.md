@@ -1,13 +1,14 @@
 # 언제봄 — 카카오 SDK v2 친구 테스트
 
-GitHub Pages 화면 + Firebase Spark DB + Vercel Hobby 로그인 함수.
+Vercel 화면·로그인 함수 + Firebase Spark DB. 기존 GitHub Pages 링크는 Vercel로 이동합니다.
 Kakao JavaScript SDK 2.7.9: 공식 다운로드 페이지에서 확인한 최신 버전입니다.
 
 ## 1. GitHub에 파일 업로드
 ZIP을 풀고 index.html, config.js, api 폴더(kakao.js 포함), package.json, vercel.json을 저장소 최상위에 올리세요.
 README.md와 database.rules.json도 함께 올려도 됩니다. ZIP 자체를 올리지 마세요.
 api/kakao.js가 루트 kakao.js로 올라가지 않도록 경로를 확인하세요.
-GitHub Pages: main / (root). URL: https://holmescha1031.github.io/pickatime/
+서비스·공유 URL: https://pickatime-phi.vercel.app/
+기존 GitHub Pages 링크는 같은 모임 ID를 유지하고 서비스 주소로 이동합니다.
 
 ## 2. Vercel Import
 Add New → Project → GitHub pickatime 저장소 Import.
@@ -26,10 +27,10 @@ GitHub의 config.js에서 authServer의 빈 문자열에 그 주소를 입력하
 Vercel 주소는 로그인 API 호출용이며 카카오 Redirect URI와 다릅니다.
 
 ## 4. 카카오 설정
-JavaScript SDK 도메인: https://holmescha1031.github.io (기존 등록 유지).
+JavaScript SDK 도메인: https://pickatime-phi.vercel.app (기존 GitHub 도메인 등록도 유지).
 카카오 로그인 Redirect URI에 아래 값을 정확히 등록합니다:
-https://holmescha1031.github.io/pickatime/
-콘솔에 키별 Redirect URI 설정이 있으면 실제 사용하는 JavaScript/REST 키 설정을 확인하세요.
+https://pickatime-phi.vercel.app/
+JavaScript 키와 REST API 키 각각에 새 Redirect URI를 추가하세요. 진행 중인 기존 로그인 요청을 위해 GitHub Redirect URI 등록도 유지하세요.
 JS 키와 REST 키는 같은 언제봄 앱의 값이어야 합니다.
 카카오 로그인 ON, 닉네임 선택 동의. Client Secret 활성화 상태를 확인합니다.
 
@@ -42,7 +43,7 @@ Realtime Database → 규칙에 database.rules.json 전체를 붙여넣고 게�
 민감한 내용을 넣지 마세요. 공개 서비스 전 Firebase 커스텀 인증을 연결해야 합니다.
 
 ## 6. 테스트
-반드시 https://holmescha1031.github.io/pickatime/ 에서 테스트하세요.
+반드시 https://pickatime-phi.vercel.app/ 에서 테스트하세요.
 모임 생성 → 카카오 로그인 → 닉네임 입력 → 투표 → 다른 기기에서 같은 링크 열기.
 새로고침 시 재로그인하면 같은 계정의 기존 투표를 불러옵니다.
 같은 닉네임의 다른 계정은 별도 참여자입니다. 이름 변경 버튼으로 닉네임을 수정합니다.
