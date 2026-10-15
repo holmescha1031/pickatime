@@ -82,6 +82,14 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .speriod{color:var(--sub);font-size:14px;margin:0 0 14px}
 .mebar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:6px 6px 6px 12px;margin-bottom:12px;font-size:14px}
 .mebar b{font-weight:700}
+.attendance{padding:16px;margin-bottom:14px;background:#fff;border:1.5px solid var(--line);border-radius:18px}
+.attendance-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.attendance-count{font-size:17px;font-weight:700}.attendance-count b{font-size:23px;color:var(--s1)}
+.invite-btn{font-size:13px;padding:10px 12px;border-radius:11px}
+.share-icon{width:21px;height:21px;flex:none}.icon-btn{width:44px;height:44px;padding:10px!important}
+.member-stickers{display:flex;flex-wrap:wrap;gap:7px}
+.name-sticker{display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:11px;background:var(--member-bg);border:1.5px solid var(--member-color);color:var(--ink);font-weight:700;font-size:13px;box-shadow:0 2px 0 #14213D0A;max-width:100%;overflow-wrap:anywhere}
+.name-sticker::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--member-color);flex:none}
 .tabs{display:grid;grid-template-columns:1fr 1fr;background:#DDE5F2;border-radius:14px;padding:4px;margin-bottom:14px;position:sticky;top:8px;z-index:5}
 .tab{border:0;background:transparent;border-radius:11px;padding:11px 0;font-weight:700;color:var(--sub);font-size:15px}
 .tab[aria-selected=true]{background:#fff;color:var(--ink);box-shadow:0 1px 0 var(--line)}
@@ -319,6 +327,10 @@ async function meetingIdFor(creatorId,title){
   return 'm_'+Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
 }
 
+function shareIcon(){
+  return '<svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/></svg>';
+}
+
 function meetingSticker(){
   return '<svg class="meeting-mark" viewBox="0 0 64 56" aria-hidden="true" focusable="false"><use href="./assets/meeting.svg#friends"></use></svg>';
 }
@@ -339,6 +351,11 @@ function viewCreate(){
     <section class="panel">
       <label class="f" for="title">모임 이름</label>
       <input class="inp" id="title" maxlength="30" placeholder="예) 고등학교 친구들 가을 모임" autocomplete="off" value="${esc(validDraft?draft.title:'')}">
+    </section>
+    <section class="panel">
+      <label class="f" for="expectedCount">몇 명이 함께하나요?</label>
+      <input class="inp" id="expectedCount" type="number" inputmode="numeric" min="1" max="100" step="1" required value="${Number.isInteger(draft?.expectedCount)?draft.expectedCount:6}" aria-describedby="countHint">
+      <p class="hint" id="countHint">나를 포함한 전체 예정 인원이에요. (1~100명)</p>
     </section>
     <section class="panel">
       <label class="f">언제 중에 고를까요?</label>
@@ -365,16 +382,18 @@ function viewCreate(){
   const t=$('#title');
   $('#create').onclick=async()=>{
     const title=t.value.trim();if(!title){t.focus();t.style.borderColor='var(--sun)';toast('모임 이름을 먼저 적어 주세요');return}t.style.borderColor='';
+    const expectedCount=Number($('#expectedCount').value);
+    if(!Number.isInteger(expectedCount)||expectedCount<1||expectedCount>100){$('#expectedCount').focus();toast('참여 예정 인원을 1~100명으로 입력해 주세요.');return}
     const btn=$('#create');if(btn.disabled)return;
     $('#createError').hidden=true;
-    SS.set('wmd:createDraft',JSON.stringify({title,start,end}));
+    SS.set('wmd:createDraft',JSON.stringify({title,start,end,expectedCount}));
     if(!kakaoUser){loginKakao('create');return}
     btn.disabled=true;btn.textContent='만드는 중…';
     let id;
     try{
       id=await meetingIdFor(kakaoUser.id,title);
       if(await store.get(`sessions/${id}/meta`))throw Object.assign(new Error('Duplicate meeting'),{code:'DUPLICATE_MEETING'});
-      await store.set(`sessions/${id}/meta`,{title,start,end,createdAt:Date.now()});
+      await store.set(`sessions/${id}/meta`,{title,start,end,expectedCount,createdAt:Date.now()});
       SS.del('wmd:createDraft');
       SS.set('wmd:new',id);
       try{history.pushState(null,'',`?s=${id}`)}catch(e){}
@@ -416,7 +435,7 @@ async function bootSession(){
   document.title=`${S.meta.title} · 언제봄?`;
   S.me=kakaoUser?.id||null;
   (S.unsub||[]).forEach(f=>f());
-  S.unsub=[store.on(`sessions/${sid}/members`,v=>{
+  S.unsub=[store.on(`sessions/${sid}/meta`,v=>{if(v){S.meta=v;refresh()}}),store.on(`sessions/${sid}/members`,v=>{
     S.members=v||{};
     if(S.me&&!S.members[S.me]){S.me=null;LS.del(meKey())}
     route();
@@ -471,11 +490,12 @@ function viewMain(){
   $('#app').innerHTML=`
     <div class="top">
       <a class="brand" href="./" aria-label="언제봄? 홈"><img src="./assets/eyes.svg" alt="" width="112" height="88"><span class="brand-word">언제봄<b>?</b></span></a>
-      <button class="btn ghost" id="share">링크 공유</button>
+      <button class="btn ghost icon-btn" id="share" aria-label="투표 링크 공유하기" title="공유하기">${shareIcon()}</button>
     </div>
     <h1 class="stitle">${esc(S.meta.title)}</h1>
     <p class="speriod">${periodLabel(S.meta.start,S.meta.end)}</p>
     ${store.demo?`<div class="demo">체험 모드예요. 지금은 이 브라우저에만 저장돼서 친구에게 보이지 않아요. 새 탭에서 같은 링크를 열어 다른 닉네임으로 테스트해 볼 수 있어요.</div>`:''}
+    <section class="attendance" id="attendance" aria-label="모임 참여 현황"></section>
     <div class="mebar" id="mebar"></div>
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" data-t="mine">내 스티커 붙이기</button>
@@ -487,7 +507,38 @@ function viewMain(){
   renderMe();renderTab();
   if(SS.get('wmd:new')===sid){SS.del('wmd:new');openShareSheet()}
 }
+function attendanceInfo(){
+  const ids=Object.keys(S.members||{});
+  const expected=Number.isInteger(S.meta?.expectedCount)&&S.meta.expectedCount>=1&&S.meta.expectedCount<=100?S.meta.expectedCount:null;
+  return {ids,joined:ids.length,expected,target:Math.max(expected||0,ids.length),remaining:expected?Math.max(0,expected-ids.length):0,voted:ids.filter(id=>myCount(id)>0).length};
+}
+function renderAttendance(){
+  const el=$('#attendance');if(!el)return;
+  const {ids,joined,expected,voted}=attendanceInfo();
+  const members=S.members||{};
+  const sorted=[...ids].sort((a,b)=>(members[a].joinedAt||0)-(members[b].joinedAt||0));
+  el.innerHTML=`
+    <div class="attendance-head">
+      <span class="attendance-count" aria-live="polite">참여 <b>${joined}${expected?'/'+expected:''}</b>명</span>
+      <button class="btn blue invite-btn" id="inviteVote">${shareIcon()}투표링크 공유하기</button>
+    </div>
+    <div class="member-stickers">${sorted.map(id=>{const c=COLORS[hash(id)%COLORS.length];return `<span class="name-sticker" style="--member-color:${c};--member-bg:${c}12">${esc(members[id].name)}${id===S.me?' <small>(나)</small>':''}</span>`}).join('')||'<span class="hint">참여한 친구들이 여기에 표시돼요.</span>'}</div>
+    <p class="hint">${voted}명이 스티커를 붙였어요.${expected?'':' 예정 인원이 아직 정해지지 않았어요.'}</p>
+    ${expected?'':'<button class="btn ghost" id="setExpected">예정 인원 설정</button>'}`;
+  $('#inviteVote').onclick=()=>share(sid,S.meta.title);
+  if($('#setExpected'))$('#setExpected').onclick=async()=>{
+    const value=prompt('나를 포함한 전체 예정 인원을 입력해 주세요. (1~100명)',String(Math.max(2,joined)));
+    if(value===null)return;
+    const count=Number(value);
+    if(!Number.isInteger(count)||count<1||count>100){toast('예정 인원을 1~100명으로 입력해 주세요.');return}
+    try{
+      await store.set(`sessions/${sid}/meta/expectedCount`,count);
+      S.meta={...S.meta,expectedCount:count};renderMe();renderTab();
+    }catch(e){toast('인원을 저장하지 못했어요. Firebase 규칙을 업데이트해 주세요.')}
+  };
+}
 function renderMe(){
+  renderAttendance();
   const m=S.members?.[S.me];if(!m||!$('#mebar'))return;
   $('#mebar').innerHTML=`<span class="row">${avatar(m.name)}<span><b>${esc(m.name)}</b>${ro(m.name)} 참여 중</span></span><button class="btn ghost" id="switch">이름 바꾸기</button>`;
   $('#switch').onclick=()=>{const name=prompt('새 닉네임을 입력해 주세요 (최대 10자)',m.name);if(!name?.trim())return;if([...name.trim()].length>10){toast('닉네임은 10자 이내로 입력해 주세요.');return}store.set(`sessions/${sid}/members/${S.me}`,{...m,name:name.trim()}).catch(()=>toast('닉네임을 저장하지 못했어요.'))};
@@ -629,34 +680,9 @@ function weekStrip(wk,idx){
   return `<button class="wkplan" aria-expanded="false" aria-label="이번 주 내 일정 펼치기">${cols}</button><div class="wkdetail" hidden>${detail}</div>`;
 }
 function calBarHtml(){
-  if(!CAL)return `<button class="calbtn" data-cal="open"><span class="ic" aria-hidden="true">📅</span>
-    <span class="tx"><b>내 캘린더 가져오기</b><small>약속 있는 날을 달력에 표시해요</small></span><span class="go">가져오기</span></button>`;
-  const at=new Date(CAL.at);
-  return `<button class="calbtn on" data-cal="open"><span class="ic" aria-hidden="true">📅</span>
-    <span class="tx"><b>내 캘린더 일정 ${CAL.events.length}개</b><small>${esc(CAL.source)} · ${at.getMonth()+1}/${at.getDate()} ${hm(at)} 가져옴</small></span><span class="go">관리</span></button>`;
+  return '<button class="calbtn" data-cal="open"><span class="ic" aria-hidden="true">📅</span><span class="tx"><b>내 캘린더 가져오기</b><small>준비 중인 기능입니다</small></span><span class="go">준비 중</span></button>';
 }
-function openCalSheet(){
-  const el=document.createElement('div');el.className='sheet';
-  el.innerHTML=`<div class="panel" role="dialog" aria-label="내 캘린더 가져오기">
-    <h2 style="margin:0 0 6px;font-size:24px">내 캘린더 가져오기</h2>
-    <p class="hint" style="margin:0 0 14px">약속 있는 날이 주마다 달력 아래에 표시돼요. 일정은 이 기기에만 저장되고 친구에게는 보이지 않아요.</p>
-    <button class="btn blue block" data-a="google">Google 캘린더에서 가져오기</button>
-    <button class="btn line block opt" data-a="ics">.ics 파일 올리기</button>
-    ${CAL?`<button class="btn ghost block opt" data-a="clear">가져온 일정 지우기 (${CAL.events.length}개)</button>`:''}
-    <p class="hint" style="margin-top:14px"><b>삼성 캘린더</b>: Google 계정에 저장된 일정이면 Google로 함께 가져와져요.<br>
-    <b>아이폰 캘린더</b>: 웹에서는 iCloud 일정을 읽을 수 없어요. 아이폰에서 Google 캘린더를 쓰거나, Mac 캘린더 앱 ‘파일 &gt; 내보내기’로 만든 .ics 파일을 올려 주세요.</p>
-    <button class="btn ghost block" data-a="close">닫기</button></div>`;
-  document.body.appendChild(el);
-  const close=()=>el.remove();
-  el.onclick=e=>{
-    if(e.target===el)return close();
-    const a=e.target.closest('[data-a]')?.dataset.a;if(!a)return;
-    close();
-    if(a==='google')connectGoogle();
-    else if(a==='ics')$('#icsFile').click();
-    else if(a==='clear'&&confirm('가져온 내 일정을 이 기기에서 지울까요?')){clearCal();renderCalendar()}
-  };
-}
+function openCalSheet(){toast('준비 중인 기능입니다')}
 function setCalMsg(msg){const b=$('#calbar .calbtn b');if(b)b.textContent=msg}
 
 /* Google */
@@ -807,33 +833,35 @@ function computeRank(){
   return {ids,list:Object.values(map).sort((a,b)=>b.count-a.count||b.score-a.score||a.d.localeCompare(b.d)||a.sl.localeCompare(b.sl))};
 }
 function renderRank(){
-  const {ids,list}=computeRank(),total=ids.length;
+  const {ids,list}=computeRank();
+  const {target:total,expected,remaining}=attendanceInfo();
   const members=S.members||{};
   const sorted=[...ids].sort((a,b)=>members[a].joinedAt-members[b].joinedAt);
   const cnt=myCount;
-  const allDays=list.filter(r=>r.count===total&&total>1);
+  const allDays=list.filter(r=>r.count===total&&total>0);
   const waiting=sorted.filter(id=>!cnt(id));
   let sum;
   if(!list.length)sum='아직 붙인 스티커가 없어요';
-  else if(allDays.length)sum=`다 같이 되는 시간이 ${allDays.length}개 있어요!`;
+  else if(remaining)sum=`아직 ${remaining}명이 참여하지 않았어요. 현재 최대 ${list[0].count}명이 만날 수 있어요`;
+  else if(allDays.length)sum=expected?`다 같이 되는 시간이 ${allDays.length}개 있어요!`:`현재 참여한 ${ids.length}명이 함께 가능한 시간이 ${allDays.length}개 있어요`;
   else if(waiting.length)sum=`${waiting.length}명이 아직 스티커를 안 붙였어요`;
-  else sum=`다 되는 시간은 없어요. 최대 ${list[0].count}명까지 모일 수 있어요`;
+  else sum=expected?`전원이 가능한 시간은 아직 없어요. 최대 ${list[0].count}명이 만날 수 있어요`:`현재 참여한 사람 중 최대 ${list[0].count}명이 만날 수 있어요`;
 
   const shownList=S.showAll?list:list.slice(0,10);
   $('#body').innerHTML=`
     <p class="sum">${esc(sum)}</p>
     <div class="people">${sorted.map(id=>{const c=cnt(id);return `<span class="pp${c?'':' wait'}">${avatar(members[id].name)}${esc(members[id].name)} <em>${c?c+'칸':'아직'}</em></span>`}).join('')}</div>
     ${list.length?`<ol class="rank">${shownList.map((r,i)=>{
-      const dt=parseYmd(r.d),dow=dt.getDay(),isAll=r.count===total&&total>1;
-      const segs=sorted.map(id=>`<i class="b${r.lv[id]||0}"></i>`).join('');
+      const dt=parseYmd(r.d),dow=dt.getDay(),isAll=r.count===total&&total>0;
+      const segs=sorted.map(id=>`<i class="b${r.lv[id]||0}"></i>`).join('')+'<i class="b0"></i>'.repeat(Math.max(0,total-ids.length));
       const miss=sorted.filter(id=>!r.lv[id]).map(id=>members[id].name);
       const vague=sorted.filter(id=>r.lv[id]===3).map(id=>members[id].name);
-      const notes=[miss.length?`못 와요: ${miss.map(esc).join(', ')}`:'',vague.length?`애매해요: ${vague.map(esc).join(', ')}`:''].filter(Boolean).join('<br>');
+      const notes=[miss.length?`아직 선택 안 함: ${miss.map(esc).join(', ')}`:'',vague.length?`애매해요: ${vague.map(esc).join(', ')}`:''].filter(Boolean).join('<br>');
       return `<li class="rk${isAll?' all':''}">
         <div class="pos">${i+1}</div>
         <div><div class="rdate">${dt.getMonth()+1}월 ${dt.getDate()}일<small class="${dow===0?'sun':dow===6?'sat':''}">${WD[dow]}</small><span class="slot ${r.sl}">${SLOT_NAME[r.sl]}</span></div>
           <div class="bar">${segs}</div>${notes?`<div class="missing">${notes}</div>`:''}</div>
-        <div>${isAll?'<span class="allstk">다 되는<br>시간!</span>':`<div class="cnt">${r.count}<small>/${total}명</small></div>`}</div>
+        <div>${isAll?`<span class="allstk">${expected?'다 되는<br>시간!':'현재 참여자<br>모두 가능'}</span>`:`<div class="cnt">${r.count}<small>/${total}명</small></div>`}</div>
       </li>`}).join('')}</ol>
       ${list.length>10?`<button class="btn ghost more" id="more">${S.showAll?'상위 10개만 보기':`전체 ${list.length}개 보기`}</button>`:''}`
     :`<div class="empty">‘내 스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}

@@ -58,3 +58,8 @@ Realtime Database → 규칙에 database.rules.json 전체를 붙여넣고 게�
 - Firebase Spark와 Vercel Hobby의 사용 한도가 적용됩니다.
 
 공식 SDK: https://developers.kakao.com/docs/ko/javascript/download
+
+## 참여 예정 인원
+새 모임 생성 시 나를 포함한 예정 인원을 1~100명으로 입력합니다. 모임 화면의 참여 인원은 닉네임 등록을 완료한 계정 수이며, 투표한 인원은 별도로 표시합니다. 예정 인원이 없던 기존 모임에서는 ‘예정 인원 설정’을 한 번 사용할 수 있습니다. 인원 수집은 정원 제한이 아닙니다.
+
+이 기능을 사용하기 전 Realtime Database의 규칙을 이 저장소의 최신 database.rules.json으로 갱신하고 게시해야 합니다. 새로 추가된 meta.expectedCount 필드가 기존 규칙에서는 차단됩니다. 다른 데이터에 대한 규칙이 있다면 전체를 덮어쓰지 말고 이 필드의 규칙만 추가하세요.
