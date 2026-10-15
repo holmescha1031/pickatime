@@ -52,6 +52,23 @@
           }
         }
       }
+    },
+    "profiles": {
+      "$profileKey": {
+        ".read": "$profileKey.matches(/^u_[a-f0-9]{64}$/)",
+        ".write": "$profileKey.matches(/^u_[a-f0-9]{64}$/)",
+        "nickname": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 10"
+        },
+        "meetings": {
+          "$meetingId": {
+            ".validate": "$meetingId.matches(/^[A-Za-z0-9_-]{1,100}$/) && newData.val() === true"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }

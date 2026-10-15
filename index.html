@@ -190,6 +190,17 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .sheet .panel{width:100%;max-width:560px;margin:0;border-radius:24px 24px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom))}
 .linkbox{background:var(--paper);border-radius:12px;padding:12px;font-size:13px;word-break:break-all;margin:10px 0 14px;color:var(--sub)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.top-actions{display:flex;align-items:center;gap:2px}
+.my-meetings .panel{max-height:85dvh;overflow-y:auto;overscroll-behavior:contain}
+.list-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+.list-heading h2{margin:0;font-size:25px}
+.meeting-list{display:grid;gap:10px;margin:16px 0 0}
+.meeting-card{display:block;width:100%;padding:16px;text-align:left;border:1.5px solid var(--line);border-radius:15px;background:#fff;color:var(--ink);text-decoration:none}
+.meeting-card:hover{border-color:var(--s1);background:#F6F8FF}
+.meeting-card b{display:block;font-size:17px;margin-bottom:9px;overflow-wrap:anywhere}
+.meeting-card small{display:block;color:var(--sub);font-size:13px;line-height:1.6}
+.meeting-card .meeting-attendance{display:inline-block;color:var(--s1);font-weight:700;background:#EDF2FF;border-radius:8px;padding:3px 8px;margin-top:9px;font-size:13px}
 </style>
 </head>
 <body>
@@ -242,7 +253,8 @@ async function completeKakaoLogin(){
       body:JSON.stringify({code:q.get('code'),redirectUri:loginRedirectUri()})});
     const user=await r.json();if(!r.ok)throw new Error(user.error||'로그인 서버 오류');
     if(!/^kakao_[0-9]+$/.test(user.id))throw new Error('회원 정보 오류');
-    kakaoUser={id:user.id,name:user.name||''};
+    kakaoUser={id:user.id,name:user.name||'',profileKey:/^u_[a-f0-9]{64}$/.test(user.profileKey||'')?user.profileKey:null};
+    await loadMyProfile();
   }catch(e){toast('로그인 실패: '+e.message)}
 }
 
@@ -291,6 +303,70 @@ function makeStore(){
 }
 const store = makeStore();
 
+/* ---------- 계정별 닉네임 · 참여 모임 ---------- */
+let myProfile={nickname:'',meetings:{}};
+let profileCloudReady=true;
+const validMeetingId=id=>/^[a-zA-Z0-9_-]{1,100}$/.test(id);
+function cleanProfile(value){
+  const nickname=typeof value?.nickname==='string'?[...value.nickname.trim()].slice(0,10).join(''):'';
+  const meetings={};
+  for(const [id,joined] of Object.entries(value?.meetings||{}))if(validMeetingId(id)&&joined===true)meetings[id]=true;
+  return {nickname,meetings};
+}
+function cacheMyProfile(){if(kakaoUser)LS.set('wmd:profile:'+kakaoUser.id,JSON.stringify(myProfile))}
+async function loadMyProfile(){
+  let local;try{local=JSON.parse(LS.get('wmd:profile:'+kakaoUser.id))}catch(e){}
+  myProfile=cleanProfile(local);profileCloudReady=Boolean(kakaoUser.profileKey);
+  // 기존 브라우저에 남아 있는 참여 이력도 새 목록에 포함합니다.
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key?.startsWith('wmd:me:')&&localStorage.getItem(key)===kakaoUser.id){const id=key.slice(7);if(validMeetingId(id))myProfile.meetings[id]=true}
+    }
+  }catch(e){}
+  if(kakaoUser.profileKey){
+    try{
+      const remote=cleanProfile(await store.get('profiles/'+kakaoUser.profileKey));
+      const cached=myProfile;
+      myProfile={nickname:remote.nickname||cached.nickname,meetings:{...cached.meetings,...remote.meetings}};
+      const migration=[];
+      if(!remote.nickname&&cached.nickname)migration.push(store.set(`profiles/${kakaoUser.profileKey}/nickname`,cached.nickname));
+      for(const id of Object.keys(cached.meetings))if(!remote.meetings[id])migration.push(store.set(`profiles/${kakaoUser.profileKey}/meetings/${id}`,true));
+      const migrated=await Promise.allSettled(migration);
+      if(migrated.some(r=>r.status==='rejected'))profileCloudReady=false;
+    }catch(e){profileCloudReady=false}
+  }
+  cacheMyProfile();
+}
+async function saveMyNickname(name){
+  myProfile.nickname=name;cacheMyProfile();
+  if(!kakaoUser?.profileKey){profileCloudReady=false;return false}
+  try{await store.set(`profiles/${kakaoUser.profileKey}/nickname`,name);return true}catch(e){profileCloudReady=false;return false}
+}
+async function rememberMeeting(id){
+  if(!kakaoUser||!validMeetingId(id))return;
+  myProfile.meetings[id]=true;cacheMyProfile();
+  if(!kakaoUser.profileKey){profileCloudReady=false;return}
+  try{await store.set(`profiles/${kakaoUser.profileKey}/meetings/${id}`,true)}catch(e){profileCloudReady=false}
+}
+async function joinWithNickname(id,name){
+  const old=await store.get(`sessions/${id}/members/${kakaoUser.id}`);
+  const member={name,joinedAt:old?.joinedAt||Date.now()};
+  await store.set(`sessions/${id}/members/${kakaoUser.id}`,member);
+  if(myProfile.nickname!==name)await saveMyNickname(name);
+  await rememberMeeting(id);
+  return member;
+}
+async function renameMyNickname(name){
+  const previous=myProfile.nickname;
+  const saved=await saveMyNickname(name);
+  if(kakaoUser?.profileKey&&!saved){myProfile.nickname=previous;cacheMyProfile();throw new Error('PROFILE_SAVE_FAILED')}
+  const ids=[...new Set([...Object.keys(myProfile.meetings),sid])].filter(validMeetingId);
+  const changed=await Promise.allSettled(ids.map(id=>store.set(`sessions/${id}/members/${kakaoUser.id}/name`,name)));
+  if(S.members?.[S.me])S.members={...S.members,[S.me]:{...S.members[S.me],name}};
+  return changed.every(r=>r.status==='fulfilled');
+}
+
 /* ---------- 유틸 ---------- */
 const $ = s=>document.querySelector(s);
 const WD = ['일','월','화','수','목','금','토'];
@@ -327,6 +403,9 @@ async function meetingIdFor(creatorId,title){
   return 'm_'+Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
 }
 
+function listIcon(){
+  return '<svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>';
+}
 function shareIcon(){
   return '<svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/></svg>';
 }
@@ -425,21 +504,42 @@ function viewCreate(){
 const S={meta:null,me:null,members:null,votes:{},tab:'mine',showAll:false};
 const meKey=()=>`wmd:me:${sid}`;
 
+let sessionLoad=0;
 async function bootSession(){
+  const id=sid,request=++sessionLoad;
+  (S.unsub||[]).forEach(f=>f());S.unsub=[];
+  shown=null;S.me=null;S.members={};S.votes={};S.tab='mine';
   $('#app').innerHTML='<p class="empty">불러오는 중…</p>';
-  try{S.meta=await store.get(`sessions/${sid}/meta`)}catch(e){S.meta=null}
+  let data;try{data=await store.get(`sessions/${id}`)}catch(e){}
+  if(request!==sessionLoad)return;
+  S.meta=data?.meta||null;
   if(!S.meta){
-    $('#app').innerHTML=`<div class="hero"><a class="brand" href="./" aria-label="언제봄? 홈"><img src="./assets/eyes.svg" alt="" width="112" height="88"><span class="brand-word">언제봄<b>?</b></span></a><h1>모임을 찾을 수 없어요</h1><p>링크가 잘렸거나 잘못 복사됐을 수 있어요. 모임을 만든 친구에게 링크를 다시 받아 주세요.</p></div><a class="btn block" href="./">새 모임 만들기</a>`;
+    $('#app').innerHTML=`<div class="hero"><a class="brand" href="./" aria-label="언제봄? 홈"><img src="./assets/eyes.svg" alt="" width="112" height="88"><span class="brand-word">언제봄<b>?</b></span></a><h1>모임을 찾을 수 없어요</h1><p>링크가 잘렸거나 모임을 불러올 수 없어요. 링크를 다시 확인해 주세요.</p></div><a class="btn block" href="./">새 모임 만들기</a>`;
     return;
   }
+  S.members=data.members||{};S.votes=data.votes||{};
+  if(kakaoUser){
+    await loadMyProfile();
+    if(request!==sessionLoad)return;
+    const old=S.members[kakaoUser.id];
+    const name=myProfile.nickname||old?.name;
+    if(name){
+      try{
+        const member=await joinWithNickname(id,name);
+        if(request!==sessionLoad)return;
+        S.members={...S.members,[kakaoUser.id]:member};S.me=kakaoUser.id;
+      }catch(e){toast('참여 정보를 저장하지 못했어요. 다시 참여하기를 눌러 주세요.')}
+    }
+  }
+  if(request!==sessionLoad)return;
   document.title=`${S.meta.title} · 언제봄?`;
-  S.me=kakaoUser?.id||null;
-  (S.unsub||[]).forEach(f=>f());
-  S.unsub=[store.on(`sessions/${sid}/meta`,v=>{if(v){S.meta=v;refresh()}}),store.on(`sessions/${sid}/members`,v=>{
+  route();
+  S.unsub=[store.on(`sessions/${id}/meta`,v=>{if(request!==sessionLoad)return;if(v){S.meta=v;refresh()}}),store.on(`sessions/${id}/members`,v=>{
+    if(request!==sessionLoad)return;
     S.members=v||{};
     if(S.me&&!S.members[S.me]){S.me=null;LS.del(meKey())}
     route();
-  }),store.on(`sessions/${sid}/votes`,v=>{S.votes=v||{};refresh()})];
+  }),store.on(`sessions/${id}/votes`,v=>{if(request!==sessionLoad)return;S.votes=v||{};refresh()})];
 }
 
 let shown=null;
@@ -455,7 +555,7 @@ function refresh(){
 
 /* ----- 닉네임 선택 ----- */
 function viewEntry(){
-  const typed=$('#nick')?.value||kakaoUser?.name||'';
+  const typed=myProfile.nickname||$('#nick')?.value||kakaoUser?.name||'';
   $('#app').innerHTML=`
     <a class="brand" href="./" aria-label="언제봄? 홈"><img src="./assets/eyes.svg" alt="" width="112" height="88"><span class="brand-word">언제봄<b>?</b></span></a>
     <h1 class="stitle">${esc(S.meta.title)}</h1>
@@ -464,20 +564,20 @@ function viewEntry(){
       ${!kakaoUser?`<p>카카오로 로그인하고 되는 시간에 스티커를 붙여 주세요.</p>
       <button class="btn block" id="kakaoLogin" style="background:#FEE500;color:#191919">카카오 로그인</button>`:
       `<label class="f" for="nick">모임에서 사용할 닉네임</label>
-      <div class="row"><input class="inp" id="nick" maxlength="10" autocomplete="off" placeholder="친구들이 알아볼 이름" value="${esc([...typed].slice(0,10).join(''))}">
+      <div class="row"><input class="inp" id="nick" maxlength="10" autocomplete="off" placeholder="친구들이 알아볼 이름" value="${esc([...typed].slice(0,10).join(''))}" ${myProfile.nickname?'readonly aria-describedby="nickHint"':''}>
       <button class="btn blue" id="join">참여하기</button></div>
+      <p class="hint" id="nickHint">${myProfile.nickname?'다른 모임에서도 같은 닉네임을 사용해요.':'처음 정한 닉네임을 다른 모임에서도 사용해요.'}</p>
       <button class="btn ghost" id="otherAccount">다른 카카오 계정으로 로그인</button>`}
       <p class="hint">친구 테스트용입니다. 닉네임과 투표가 모임 링크를 가진 사람에게 공유됩니다.</p>
     </section>`;
   if(!kakaoUser){$('#kakaoLogin').onclick=loginKakao;return}
-  $('#otherAccount').onclick=()=>{kakaoUser=null;Kakao.Auth.setAccessToken(null);viewEntry()};
+  $('#otherAccount').onclick=()=>{kakaoUser=null;myProfile={nickname:'',meetings:{}};Kakao.Auth.setAccessToken(null);viewEntry()};
   const join=async()=>{
-    const name=$('#nick').value.trim();if(!name){$('#nick').focus();return}
+    const name=(myProfile.nickname||$('#nick').value).trim();if(!name){$('#nick').focus();return}
+    if([...name].length>10){toast('닉네임은 10자 이내로 입력해 주세요.');return}
     const id=kakaoUser.id,btn=$('#join');btn.disabled=true;
     try{
-      const old=await store.get(`sessions/${sid}/members/${id}`);
-      const member={name,joinedAt:old?.joinedAt||Date.now()};
-      await store.set(`sessions/${sid}/members/${id}`,member);
+      const member=await joinWithNickname(sid,name);
       S.members={...S.members,[id]:member};enter(id);
     }catch(e){if($('#join'))$('#join').disabled=false;toast('참여 정보를 저장하지 못했어요. DB 규칙을 확인해 주세요.')}
   };
@@ -490,7 +590,7 @@ function viewMain(){
   $('#app').innerHTML=`
     <div class="top">
       <a class="brand" href="./" aria-label="언제봄? 홈"><img src="./assets/eyes.svg" alt="" width="112" height="88"><span class="brand-word">언제봄<b>?</b></span></a>
-      <button class="btn ghost icon-btn" id="share" aria-label="투표 링크 공유하기" title="공유하기">${shareIcon()}</button>
+      <div class="top-actions"><button class="btn ghost icon-btn" id="share" aria-label="투표 링크 공유하기" title="공유하기">${shareIcon()}</button><button class="btn ghost icon-btn" id="myMeetings" aria-label="내가 참여한 모임투표 목록" title="내 모임투표">${listIcon()}</button></div>
     </div>
     <h1 class="stitle">${esc(S.meta.title)}</h1>
     <p class="speriod">${periodLabel(S.meta.start,S.meta.end)}</p>
@@ -503,9 +603,63 @@ function viewMain(){
     </div>
     <div id="body"></div>`;
   $('#share').onclick=()=>share(sid,S.meta.title);
+  $('#myMeetings').onclick=openMyMeetings;
   $('.tabs').onclick=e=>{const b=e.target.closest('.tab');if(b){S.tab=b.dataset.t;renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'})}};
   renderMe();renderTab();
   if(SS.get('wmd:new')===sid){SS.del('wmd:new');openShareSheet()}
+}
+function meetingPreview(id,data,userId){
+  if(!data?.meta||!data.members?.[userId])return null;
+  const {list}=computeRank(data),best=list[0];
+  const tied=best?list.filter(r=>r.count===best.count&&r.score===best.score).length:0;
+  const date=best?parseYmd(best.d):null;
+  const top=best?`${date.getFullYear()}.${pad(date.getMonth()+1)}.${pad(date.getDate())} (${WD[date.getDay()]}) ${SLOT_NAME[best.sl]}${tied>1?' · 공동 1위 '+tied+'개':''}`:'아직 예정된 1위 일시가 없어요';
+  const joined=Object.keys(data.members).length;
+  const expected=Number.isInteger(data.meta.expectedCount)&&data.meta.expectedCount>=1&&data.meta.expectedCount<=100?data.meta.expectedCount:null;
+  return {id,title:data.meta.title,top,attendance:expected?`${joined}/${expected}`:String(joined),createdAt:Number(data.meta.createdAt)||0};
+}
+function navigateToMeeting(id){
+  if(!validMeetingId(id))return;
+  sid=id;history.pushState(null,'','?s='+encodeURIComponent(id));
+  window.scrollTo(0,0);return bootSession();
+}
+async function openMyMeetings(){
+  if(!kakaoUser){toast('로그인 후 내 모임을 볼 수 있어요.');return}
+  const userId=kakaoUser.id,previousFocus=document.activeElement;
+  const el=document.createElement('div');el.className='sheet my-meetings';
+  el.innerHTML=`<section class="panel" role="dialog" aria-modal="true" aria-labelledby="myMeetingsTitle" tabindex="-1">
+    <div class="list-heading"><h2 id="myMeetingsTitle">내가 참여한 모임투표</h2><button class="btn ghost icon-btn" data-close aria-label="목록 닫기">✕</button></div>
+    <p class="hint">모임을 누르면 해당 투표로 이동해요.</p>
+    <div class="meeting-list" aria-live="polite"><p class="empty">모임을 불러오는 중…</p></div></section>`;
+  const panel=el.querySelector('.panel'),body=el.querySelector('.meeting-list');
+  const close=()=>{document.removeEventListener('keydown',onKey);el.remove();previousFocus?.focus()};
+  const onKey=e=>{
+    if(e.key==='Escape')close();
+    if(e.key==='Tab'){
+      const items=[...panel.querySelectorAll('button,a[href]')],first=items[0],last=items.at(-1);
+      if(e.shiftKey&&(document.activeElement===first||document.activeElement===panel)){e.preventDefault();last?.focus()}
+      else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}
+    }
+  };
+  el.onclick=e=>{
+    if(e.target===el||e.target.closest('[data-close]'))return close();
+    const item=e.target.closest('[data-meeting]');
+    if(item){e.preventDefault();const id=item.dataset.meeting;close();navigateToMeeting(id)}
+    if(e.target.closest('[data-retry]')){close();openMyMeetings()}
+  };
+  document.body.appendChild(el);document.addEventListener('keydown',onKey);panel.focus();
+  try{
+    await loadMyProfile();
+    if(!el.isConnected||kakaoUser?.id!==userId)return;
+    const ids=Object.keys(myProfile.meetings);
+    const results=await Promise.allSettled(ids.map(async id=>meetingPreview(id,await store.get(`sessions/${id}`),userId)));
+    if(!el.isConnected||kakaoUser?.id!==userId)return;
+    const meetings=results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value).sort((a,b)=>b.createdAt-a.createdAt||a.title.localeCompare(b.title));
+    const failed=results.some(r=>r.status==='rejected');
+    body.innerHTML=`${!profileCloudReady?'<p class="hint">계정의 모임 목록을 동기화하지 못해 이 기기에 저장된 참여 이력을 표시합니다.</p>':''}
+      ${meetings.map(m=>`<a class="meeting-card" href="${esc(shareUrl(m.id))}" data-meeting="${esc(m.id)}"><b>${esc(m.title)}</b><small>현재 1위 · ${esc(m.top)}</small><span class="meeting-attendance">참여 ${esc(m.attendance)}명</span></a>`).join('')||'<p class="empty">아직 참여한 모임투표가 없어요.<br>모임 링크에서 참여하면 여기에 표시돼요.</p>'}
+      ${failed?'<p class="hint">일부 모임을 불러오지 못했어요.</p><button class="btn ghost" data-retry>다시 불러오기</button>':''}`;
+  }catch(e){if(el.isConnected)body.innerHTML='<p class="empty">목록을 불러오지 못했어요.</p><button class="btn ghost" data-retry>다시 불러오기</button>'}
 }
 function attendanceInfo(){
   const ids=Object.keys(S.members||{});
@@ -541,7 +695,15 @@ function renderMe(){
   renderAttendance();
   const m=S.members?.[S.me];if(!m||!$('#mebar'))return;
   $('#mebar').innerHTML=`<span class="row">${avatar(m.name)}<span><b>${esc(m.name)}</b>${ro(m.name)} 참여 중</span></span><button class="btn ghost" id="switch">이름 바꾸기</button>`;
-  $('#switch').onclick=()=>{const name=prompt('새 닉네임을 입력해 주세요 (최대 10자)',m.name);if(!name?.trim())return;if([...name.trim()].length>10){toast('닉네임은 10자 이내로 입력해 주세요.');return}store.set(`sessions/${sid}/members/${S.me}`,{...m,name:name.trim()}).catch(()=>toast('닉네임을 저장하지 못했어요.'))};
+  $('#switch').onclick=async()=>{
+    const typed=prompt('모든 모임에서 사용할 닉네임을 입력해 주세요. (최대 10자)',myProfile.nickname||m.name);
+    const name=typed?.trim();if(!name)return;
+    if([...name].length>10){toast('닉네임은 10자 이내로 입력해 주세요.');return}
+    try{
+      const changed=await renameMyNickname(name);renderMe();
+      toast(!changed?'일부 모임의 이름을 바꾸지 못했어요. 해당 모임에 다시 들어가 주세요.':'참여한 모임의 닉네임을 바꿨어요.');
+    }catch(e){toast('계정 닉네임을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')}
+  };
 }
 function renderTab(){
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.t===S.tab));
@@ -818,13 +980,13 @@ function expandIcs(ev,from,to,out){
 }
 
 /* ----- 순위 ----- */
-function computeRank(){
-  const ids=Object.keys(S.members||{}),today=todayStr(),map={};
+function computeRank(data=S){
+  const ids=Object.keys(data.members||{}),today=todayStr(),map={};
   for(const id of ids){
-    for(const [d,v] of Object.entries(S.votes?.[id]||{})){
-      if(!v||typeof v!=='object'||d<today||d.slice(0,7)<S.meta.start||d.slice(0,7)>S.meta.end)continue;
+    for(const [d,v] of Object.entries(data.votes?.[id]||{})){
+      if(!v||typeof v!=='object'||d<today||d.slice(0,7)<data.meta.start||d.slice(0,7)>data.meta.end)continue;
       for(const [sl,l] of Object.entries(v)){
-        if(!SLOT_NAME[sl])continue;
+        if(!SLOT_NAME[sl]||![1,2,3].includes(l))continue;
         const r=map[d+sl]??={d,sl,count:0,score:0,lv:{}};
         r.count++;r.score+=4-l;r.lv[id]=l;
       }
@@ -881,7 +1043,11 @@ function renderRank(){
   if(sid)bootSession();
   else await viewCreate();
 })();
-window.addEventListener('popstate',()=>location.reload());
+window.addEventListener('popstate',()=>{
+  sid=new URLSearchParams(location.search).get('s');
+  if(sid)bootSession();
+  else{sessionLoad++;(S.unsub||[]).forEach(f=>f());S.unsub=[];shown=null;viewCreate()}
+});
 </script>
 </body>
 </html>

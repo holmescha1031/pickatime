@@ -33,6 +33,8 @@ module.exports = async function handler(req, res) {
       headers:{Authorization:'Bearer '+token.access_token},signal:AbortSignal.timeout(10000)});
     const user=await result.json();
     if(!result.ok || user.id==null)return res.status(401).json({error:'카카오 회원 조회에 실패했습니다.'});
-    return res.status(200).json({id:'kakao_'+String(user.id),name:user.kakao_account?.profile?.nickname||user.properties?.nickname||''});
+    const profileKey='u_'+require('node:crypto').createHmac('sha256',secret)
+      .update('pickatime:profile:v1:'+String(user.id)).digest('hex');
+    return res.status(200).json({id:'kakao_'+String(user.id),profileKey,name:user.kakao_account?.profile?.nickname||user.properties?.nickname||''});
   } catch { return res.status(502).json({error:'카카오 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.'}); }
 };
