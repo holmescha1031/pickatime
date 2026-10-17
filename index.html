@@ -7,7 +7,7 @@
 <meta name="description" content="되는 날에 스티커만 붙이면, 다 같이 되는 날이 바로 보여요.">
 <meta property="og:title" content="언제봄?">
 <meta property="og:description" content="되는 날에 스티커만 붙이면, 다 같이 되는 날이 바로 보여요.">
-<meta name="theme-color" content="#F7F3FD">
+<meta name="theme-color" content="#F3F4FF">
 <link rel="icon" type="image/png" href="./assets/sticker-eyes.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,8 +15,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#F7F3FD; --card:#FFFFFF; --ink:#241D49; --sub:#6E658A; --line:#E6DDF3;
-  --s1:#5141A6; --s2:#A08AC8; --s3:#D7C8EA; --gold:#FFD23F; --sun:#E5484D; --sat:#6554AF; --miss:#ECE6F2;
+  --paper:#F3F4FF; --card:#FFFFFF; --ink:#20234C; --sub:#646987; --line:#DFE2F4;
+  --s1:#4D50BA; --s2:#9098D5; --s3:#CDD2F2; --gold:#FFD23F; --sun:#E5484D; --sat:#5665BD; --miss:#E8EBF7;
   --display:"Jua","Pretendard",system-ui,sans-serif;
   --body:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
 }
@@ -25,7 +25,7 @@ html,body{margin:0}
 body{
   font-family:var(--body);color:var(--ink);min-height:100vh;
   background-color:var(--paper);
-  background-image:radial-gradient(ellipse at 8% 0%,#E8DDF8 0,transparent 48%),radial-gradient(ellipse at 100% 24%,#F5E8FA 0,transparent 45%),linear-gradient(160deg,#FAF7FF,#F5F0FC);
+  background-image:radial-gradient(ellipse at 8% 0%,#E0E5FC 0,transparent 48%),radial-gradient(ellipse at 100% 24%,#EBEAFE 0,transparent 45%),linear-gradient(160deg,#F8F9FF,#EFF1FC);
   background-attachment:fixed;
 }
 button,input{font:inherit;color:inherit}
@@ -91,7 +91,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .member-stickers{display:flex;flex-wrap:wrap;gap:7px}
 .name-sticker{display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:11px;background:var(--member-bg);border:1.5px solid var(--member-color);color:var(--ink);font-weight:700;font-size:13px;box-shadow:0 2px 0 #14213D0A;max-width:100%;overflow-wrap:anywhere}
 .name-sticker::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--member-color);flex:none}
-.tabs{display:grid;grid-template-columns:1fr 1fr;background:#E9E1F3;border-radius:14px;padding:4px;margin-bottom:14px;position:sticky;top:8px;z-index:5}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:#E2E5F7;border-radius:14px;padding:4px;margin-bottom:14px;position:sticky;top:8px;z-index:5}
 .tab{border:0;background:transparent;border-radius:11px;padding:11px 0;font-weight:700;color:var(--sub);font-size:15px}
 .tab[aria-selected=true]{background:#fff;color:var(--ink);box-shadow:0 1px 0 var(--line)}
 .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:#23C16B;margin-left:6px;vertical-align:middle;animation:blink 1.6s infinite}
@@ -101,7 +101,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 /* legend */
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--sub);margin:2px 2px 12px}
 .legend>span{display:inline-flex;align-items:center;gap:6px}
-.legend-sticker{display:inline-flex;width:30px;height:29px;flex:none;padding:3px;background:white;border-radius:9px;box-shadow:0 1px 2px #14213D20}
+.legend-sticker{display:inline-flex;width:30px;height:29px;flex:none;padding:0;background:transparent}
 .legend-sticker.l1{color:var(--s1)}.legend-sticker.l2{color:var(--s2)}.legend-sticker.l3{color:var(--s3)}
 .legend-sticker.l2 .eye-sticker{opacity:.8}.legend-sticker.l3 .eye-sticker{opacity:.55}
 .dot{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
@@ -117,13 +117,13 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .day .n{text-align:center;font-size:13px;font-weight:700;line-height:1.2;position:relative}
 .day.past .n{color:#C3CBDA!important;font-weight:500}
 .day.today .n{background:var(--ink);color:#fff!important;border-radius:99px;margin:0 auto;padding:0 7px}
-.half{position:relative;border:0;padding:0;height:48px;border-radius:11px;background:#F4EFF9;display:grid;place-items:center;overflow:visible}
+.half{position:relative;border:0;padding:0;height:48px;border-radius:11px;background:#EFF1FA;display:grid;place-items:center;overflow:visible}
 .half:disabled{background:transparent;cursor:default}
 .half:disabled .lb{opacity:0}
 .half .lb{position:relative;z-index:2;font-size:10px;font-weight:600;color:#8C9B92;white-space:nowrap}
-.half[data-l]:not([data-l="0"]) .lb{position:absolute;bottom:1px;color:var(--ink);font-size:9px;background:#FFFFFFE8;border-radius:4px;padding:0 2px}
-.stk{position:absolute;z-index:1;inset:0 0 10px;border-radius:11px;border:2px solid #fff;padding:1px 3px;background:#fff;
-  box-shadow:0 1.5px 0 rgba(20,33,61,.16),0 0 0 1px rgba(20,33,61,.06);
+.half[data-l]:not([data-l="0"]) .lb{position:absolute;bottom:1px;color:var(--ink);font-size:9px;background:transparent;padding:0 2px}
+.stk{position:absolute;z-index:1;inset:0 0 10px;border:0;padding:1px 3px;background:transparent;
+  box-shadow:none;
   transform:rotate(var(--r)) scale(0);transition:transform .22s cubic-bezier(.3,1.6,.5,1),color .15s}
 .half[data-l="1"] .stk{color:var(--s1);transform:rotate(var(--r)) scale(1)}
 .half[data-l="2"] .stk{color:var(--s2);transform:rotate(var(--r)) scale(1)}
@@ -138,7 +138,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .calbtn .tx{flex:1;min-width:0}
 .calbtn b{display:block;font-size:15px}
 .calbtn small{display:block;color:var(--sub);font-size:12px;margin-top:1px}
-.calbtn .go{color:var(--sub);font-weight:700;font-size:13px;white-space:nowrap}
+.calbtn .go{color:var(--sub);font-weight:700;font-size:12px;text-align:right;word-break:keep-all}
 .calbtn.on{border-style:solid}
 .sheet .opt{margin-top:8px}
 .btn.line{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
@@ -237,6 +237,17 @@ function loginKakao(intent='join'){
   catch(e){toast('로그인에 필요한 브라우저 저장소를 허용해 주세요.');return}
   Kakao.Auth.authorize({redirectUri:loginRedirectUri(),state});
 }
+async function restoreKakaoSession(){
+  if(new URLSearchParams(location.search).has('code'))return;
+  try{
+    const r=await fetch(new URL('/api/kakao',window.APP_CONFIG.authServer),{credentials:'include',cache:'no-store'});
+    if(!r.ok)return;
+    const user=await r.json();
+    if(!/^kakao_[0-9]+$/.test(user.id)||!/^u_[a-f0-9]{64}$/.test(user.profileKey||''))return;
+    kakaoUser={id:user.id,name:user.name||'',profileKey:user.profileKey};
+    await loadMyProfile();
+  }catch(e){}
+}
 async function completeKakaoLogin(){
   const q=new URLSearchParams(location.search);if(!q.has('code')&&!q.has('error'))return;
   let pending;try{pending=JSON.parse(sessionStorage.getItem('wmd:oauth'))}catch(e){}
@@ -250,7 +261,7 @@ async function completeKakaoLogin(){
   try{
     const base=new URL(window.APP_CONFIG.authServer);
     if(base.protocol!=='https:')throw new Error('서버 주소는 HTTPS여야 합니다.');
-    const r=await fetch(new URL('/api/kakao',base),{method:'POST',headers:{'Content-Type':'application/json'},
+    const r=await fetch(new URL('/api/kakao',base),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({code:q.get('code'),redirectUri:loginRedirectUri()})});
     const user=await r.json();if(!r.ok)throw new Error(user.error||'로그인 서버 오류');
     if(!/^kakao_[0-9]+$/.test(user.id))throw new Error('회원 정보 오류');
@@ -371,7 +382,7 @@ async function renameMyNickname(name){
 /* ---------- 유틸 ---------- */
 const $ = s=>document.querySelector(s);
 const WD = ['일','월','화','수','목','금','토'];
-const COLORS = ['#5141A6','#FF7A59','#16A37B','#9B5DE5','#F2A900','#E5484D','#0EA5C6','#5B6782'];
+const COLORS = ['#4D50BA','#FF7A59','#16A37B','#9B5DE5','#F2A900','#E5484D','#0EA5C6','#5B6782'];
 const pad = n=>String(n).padStart(2,'0');
 const ymOf = d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
 const ymdOf = d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -595,7 +606,13 @@ function viewEntry(){
     </section>
     ${kakaoUser?'<div class="account-switch"><button class="btn ghost" id="otherAccount">다른 카카오 계정으로 로그인</button></div>':''}`;
   if(!kakaoUser){$('#kakaoLogin').onclick=loginKakao;return}
-  $('#otherAccount').onclick=()=>{kakaoUser=null;myProfile={nickname:'',meetings:{}};Kakao.Auth.setAccessToken(null);viewEntry()};
+  $('#otherAccount').onclick=async()=>{
+    try{
+      const r=await fetch(new URL('/api/kakao',window.APP_CONFIG.authServer),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'})});
+      if(!r.ok)throw new Error();
+      kakaoUser=null;myProfile={nickname:'',meetings:{}};Kakao.Auth.setAccessToken(null);viewEntry();
+    }catch(e){toast('계정 전환에 실패했어요. 다시 시도해 주세요.')}
+  };
   const join=async()=>{
     const name=(myProfile.nickname||$('#nick').value).trim();if(!name){$('#nick').focus();return}
     if([...name].length>10){toast('닉네임은 10자 이내로 입력해 주세요.');return}
@@ -622,7 +639,7 @@ function viewMain(){
     <section class="attendance" id="attendance" aria-label="모임 참여 현황"></section>
     <div class="mebar" id="mebar"></div>
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" data-t="mine">내 스티커 붙이기</button>
+      <button class="tab" role="tab" data-t="mine">스티커 붙이기</button>
       <button class="tab" role="tab" data-t="rank">날짜 순위<span class="live" aria-hidden="true"></span></button>
     </div>
     <div id="body"></div>`;
@@ -866,7 +883,7 @@ function weekStrip(wk,idx){
   return `<button class="wkplan" aria-expanded="false" aria-label="이번 주 내 일정 펼치기">${cols}</button><div class="wkdetail" hidden>${detail}</div>`;
 }
 function calBarHtml(){
-  return '<button class="calbtn" data-cal="open"><span class="ic" aria-hidden="true">📅</span><span class="tx"><b>내 캘린더 가져오기</b><small>준비 중인 기능입니다</small></span><span class="go">준비 중</span></button>';
+  return '<button class="calbtn" data-cal="open"><span class="ic" aria-hidden="true">📅</span><span class="tx"><b>내 캘린더 가져오기</b></span><span class="go">준비중인 기능입니다</span></button>';
 }
 function openCalSheet(){toast('준비 중인 기능입니다')}
 function setCalMsg(msg){const b=$('#calbar .calbtn b');if(b)b.textContent=msg}
@@ -1050,7 +1067,7 @@ function renderRank(){
         <div>${isAll?`<span class="allstk">${expected?'다 되는<br>시간!':'현재 참여자<br>모두 가능'}</span>`:`<div class="cnt">${r.count}<small>/${total}명</small></div>`}</div>
       </li>`}).join('')}</ol>
       ${list.length>10?`<button class="btn ghost more" id="more">${S.showAll?'상위 10개만 보기':`전체 ${list.length}개 보기`}</button>`:''}`
-    :`<div class="empty">‘내 스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}
+    :`<div class="empty">‘스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}
     <p class="hint" style="text-align:center;margin-top:14px">되는 사람 수가 많은 순, 같으면 진한 스티커가 많은 순이에요.</p>`;
   const more=$('#more');if(more)more.onclick=()=>{S.showAll=!S.showAll;renderRank()};
 }
@@ -1063,6 +1080,7 @@ function renderRank(){
     publicUrl.search=location.search;publicUrl.hash=location.hash;
     location.replace(publicUrl.href);return;
   }
+  await restoreKakaoSession();
   await completeKakaoLogin();
   if(sid)bootSession();
   else await viewCreate();
