@@ -188,6 +188,11 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;transition:.2s;pointer-events:none;z-index:30;max-width:90vw}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 .sheet{position:fixed;inset:0;background:rgba(20,33,61,.4);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.existing-meeting{width:calc(100% - 32px);max-width:480px;max-height:calc(100dvh - 40px);margin:auto;padding:22px 18px;border:1.5px solid var(--line);border-radius:22px;background:var(--card);color:var(--ink);overflow:auto}
+.existing-meeting::backdrop{background:rgba(20,25,60,.4)}
+.existing-meeting .dialog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.existing-meeting h2{margin:6px 0 8px;font-size:22px}
+.existing-meeting .btn{text-decoration:none}
 .sheet .panel{width:100%;max-width:560px;margin:0;border-radius:24px 24px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom))}
 .linkbox{background:var(--paper);border-radius:12px;padding:12px;font-size:13px;word-break:break-all;margin:10px 0 14px;color:var(--sub)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -455,7 +460,7 @@ function viewCreate(){
     </section>
     <button class="btn blue block" id="create">모임 만들고 링크 공유</button>
     <p class="hint" id="createError" role="alert" hidden></p>
-    <section class="panel" id="existingMeeting" aria-live="polite" hidden></section>`;
+    <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog>`;
   const paint=()=>{
     $('#months').innerHTML=months.map((m,i)=>{
       const [y,mm]=m.split('-');const cls=m===start||m===end?'edge':(m>start&&m<end?'in':'');
@@ -473,7 +478,7 @@ function viewCreate(){
   };
   const t=$('#title');
   t.oninput=()=>{
-    $('#existingMeeting').hidden=true;
+    $('#existingMeeting').close();
     $('#createError').hidden=true;
     t.style.borderColor='';
   };
@@ -482,20 +487,23 @@ function viewCreate(){
     $('#create').disabled=false;
     $('#create').textContent='모임 만들고 링크 공유';
     $('#createError').hidden=true;
-    panel.innerHTML=`<h2 style="margin:0 0 8px;font-size:22px">이미 만든 모임이 있어요</h2>
+    panel.innerHTML=`<div class="dialog-heading"><h2 id="existingMeetingTitle">이미 만든 모임이 있어요</h2>
+      <button class="btn ghost icon-btn" id="closeExistingMeeting" aria-label="기존 모임 안내 닫기" autofocus>✕</button></div>
       <p class="hint">같은 계정으로 만든 모임이에요. 기존 투표를 이어서 사용할 수 있어요.</p>
-      <div class="linkbox"><a href="${esc(url)}">${esc(url)}</a></div>
-      <a class="btn blue block" id="openExistingMeeting" href="${esc(url)}">기존 모임투표 열기</a>
+      <div class="linkbox"><a id="existingMeetingLink" href="${esc(url)}">${esc(url)}</a></div>
+      <button class="btn blue block" id="openExistingMeeting">기존 모임투표 열기</button>
       <button class="btn ghost block" id="copyExistingMeeting" style="margin-top:6px">투표 링크 복사</button>`;
-    panel.hidden=false;
-    panel.querySelector('#openExistingMeeting').onclick=e=>{
-      e.preventDefault();SS.del('wmd:createDraft');SS.del('wmd:new');navigateToMeeting(id);
+    panel.querySelector('#closeExistingMeeting').onclick=()=>panel.close();
+    const openExisting=e=>{
+      e.preventDefault();panel.close();SS.del('wmd:createDraft');SS.del('wmd:new');navigateToMeeting(id);
     };
+    panel.querySelector('#openExistingMeeting').onclick=openExisting;
+    panel.querySelector('#existingMeetingLink').onclick=openExisting;
     panel.querySelector('#copyExistingMeeting').onclick=async()=>{
       try{await navigator.clipboard.writeText(url);toast('투표 링크를 복사했어요')}
       catch(e){prompt('이 링크를 복사해 주세요',url)}
     };
-    panel.scrollIntoView({block:'nearest',behavior:'smooth'});
+    panel.showModal();
   };
   $('#create').onclick=async()=>{
     const title=t.value.trim();if(!title){t.focus();t.style.borderColor='var(--sun)';toast('모임 이름을 먼저 적어 주세요');return}t.style.borderColor='';
@@ -503,7 +511,7 @@ function viewCreate(){
     if(!Number.isInteger(expectedCount)||expectedCount<1||expectedCount>100){$('#expectedCount').focus();toast('참여 예정 인원을 1~100명으로 입력해 주세요.');return}
     const btn=$('#create');if(btn.disabled)return;
     $('#createError').hidden=true;
-    $('#existingMeeting').hidden=true;
+    $('#existingMeeting').close();
     SS.set('wmd:createDraft',JSON.stringify({title,start,end,expectedCount}));
     if(!kakaoUser){loginKakao('create');return}
     btn.disabled=true;btn.textContent='만드는 중…';
