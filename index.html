@@ -121,7 +121,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .half:disabled{background:transparent;cursor:default}
 .half:disabled .lb{opacity:0}
 .half .lb{position:relative;z-index:2;font-size:10px;font-weight:600;color:#8C9B92;white-space:nowrap}
-.half[data-l]:not([data-l="0"]) .lb{position:absolute;bottom:1px;color:var(--ink);font-size:9px;background:transparent;padding:0 2px}
+.half[data-l]:not([data-l="0"]) .lb{display:none}
 .stk{position:absolute;z-index:1;inset:0 0 10px;border:0;padding:1px 3px;background:transparent;
   box-shadow:none;
   transform:rotate(var(--r)) scale(0);transition:transform .22s cubic-bezier(.3,1.6,.5,1),color .15s}
@@ -447,7 +447,7 @@ function viewCreate(){
     <div class="hero">
       <span class="brand brand--hero" aria-label="언제봄?"><img src="./assets/brand-logo.png" alt="언제봄?" width="2172" height="724"></span>
       <h1 class="home-headline">되는 날에 스티커만 붙여줘</h1>
-      <p>모임을 만들고 링크를 보내면, 친구들이 달력에 스티커를 붙여요. 다 같이 되는 날이 바로 보여요.</p>
+      <p>모임을 만들고 링크를 보내면, 친구들이 달력에 스티커를 붙여요.<br>다 같이 되는 날이 바로 보여요.</p>
     </div>
     <section class="panel">
       <label class="f" for="title">모임 이름</label>
@@ -641,7 +641,7 @@ function viewMain(){
   $('#app').innerHTML=`
     <div class="top">
       <a class="brand" href="./" aria-label="언제봄? 홈"><img src="./assets/brand-logo.png" alt="언제봄?" width="2172" height="724"></a>
-      <div class="top-actions"><button class="btn ghost icon-btn" id="share" aria-label="투표 링크 공유하기" title="공유하기">${shareIcon()}</button><button class="btn ghost icon-btn" id="myMeetings" aria-label="내가 참여한 모임투표 목록" title="내 모임투표">${listIcon()}</button></div>
+      <div class="top-actions"><button class="btn ghost icon-btn" id="myMeetings" aria-label="내가 참여한 모임투표 목록" title="내 모임투표">${listIcon()}</button></div>
     </div>
     <h1 class="stitle">${esc(S.meta.title)}</h1>
     <p class="speriod">${periodLabel(S.meta.start,S.meta.end)}</p>
@@ -653,7 +653,6 @@ function viewMain(){
       <button class="tab" role="tab" data-t="rank">날짜 순위<span class="live" aria-hidden="true"></span></button>
     </div>
     <div id="body"></div>`;
-  $('#share').onclick=()=>share(sid,S.meta.title);
   $('#myMeetings').onclick=openMyMeetings;
   $('.tabs').onclick=e=>{const b=e.target.closest('.tab');if(b){S.tab=b.dataset.t;renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'})}};
   renderMe();renderTab();
@@ -662,7 +661,7 @@ function viewMain(){
 function meetingPreview(id,data,userId){
   if(!data?.meta||!data.members?.[userId])return null;
   const {list}=computeRank(data),best=list[0];
-  const tied=best?list.filter(r=>r.count===best.count&&r.score===best.score).length:0;
+  const tied=best?list.filter(r=>r.levels[1]===best.levels[1]&&r.levels[2]===best.levels[2]&&r.levels[3]===best.levels[3]).length:0;
   const date=best?parseYmd(best.d):null;
   const top=best?`${date.getFullYear()}.${pad(date.getMonth()+1)}.${pad(date.getDate())} (${WD[date.getDay()]}) ${SLOT_NAME[best.sl]}${tied>1?' · 공동 1위 '+tied+'개':''}`:'아직 예정된 1위 일시가 없어요';
   const joined=Object.keys(data.members).length;
@@ -806,10 +805,9 @@ function renderCalendar(){
     <div class="calbar" id="calbar">${calBarHtml()}</div>
     <input type="file" id="icsFile" accept=".ics,text/calendar" hidden>
     <div class="legend">
-      <span style="width:100%;color:var(--ink);font-weight:600">날짜 칸 위는 점심, 아래는 저녁이에요</span>
-      <span><i class="legend-sticker l1" aria-hidden="true">${meetingSticker()}</i>한 번: 무조건 가능</span>
-      <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>두 번: 아마 가능</span>
-      <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>세 번: 되긴 하는데…</span>
+      <span><i class="legend-sticker l1" aria-hidden="true">${meetingSticker()}</i>한 번 클릭: 무조건 가능</span>
+      <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>두 번 클릭: 아마 가능</span>
+      <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>세 번 클릭: 되긴 하는데…</span>
       <span>네 번 누르면 떼져요</span>
     </div>
     ${html}
@@ -1038,12 +1036,12 @@ function computeRank(data=S){
       if(!v||typeof v!=='object'||d<today||d.slice(0,7)<data.meta.start||d.slice(0,7)>data.meta.end)continue;
       for(const [sl,l] of Object.entries(v)){
         if(!SLOT_NAME[sl]||![1,2,3].includes(l))continue;
-        const r=map[d+sl]??={d,sl,count:0,score:0,lv:{}};
-        r.count++;r.score+=4-l;r.lv[id]=l;
+        const r=map[d+sl]??={d,sl,count:0,levels:[0,0,0,0],lv:{}};
+        r.count++;r.levels[l]++;r.lv[id]=l;
       }
     }
   }
-  return {ids,list:Object.values(map).sort((a,b)=>b.count-a.count||b.score-a.score||a.d.localeCompare(b.d)||a.sl.localeCompare(b.sl))};
+  return {ids,list:Object.values(map).sort((a,b)=>b.levels[1]-a.levels[1]||b.levels[2]-a.levels[2]||b.levels[3]-a.levels[3]||a.d.localeCompare(b.d)||['L','D'].indexOf(a.sl)-['L','D'].indexOf(b.sl))};
 }
 function renderRank(){
   const {ids,list}=computeRank();
@@ -1052,13 +1050,14 @@ function renderRank(){
   const sorted=[...ids].sort((a,b)=>members[a].joinedAt-members[b].joinedAt);
   const cnt=myCount;
   const allDays=list.filter(r=>r.count===total&&total>0);
+  const maxCount=Math.max(0,...list.map(r=>r.count));
   const waiting=sorted.filter(id=>!cnt(id));
   let sum;
   if(!list.length)sum='아직 붙인 스티커가 없어요';
-  else if(remaining)sum=`아직 ${remaining}명이 참여하지 않았어요. 현재 최대 ${list[0].count}명이 만날 수 있어요`;
+  else if(remaining)sum=`아직 ${remaining}명이 참여하지 않았어요. 현재 최대 ${maxCount}명이 만날 수 있어요`;
   else if(allDays.length)sum=expected?`다 같이 되는 시간이 ${allDays.length}개 있어요!`:`현재 참여한 ${ids.length}명이 함께 가능한 시간이 ${allDays.length}개 있어요`;
   else if(waiting.length)sum=`${waiting.length}명이 아직 스티커를 안 붙였어요`;
-  else sum=expected?`전원이 가능한 시간은 아직 없어요. 최대 ${list[0].count}명이 만날 수 있어요`:`현재 참여한 사람 중 최대 ${list[0].count}명이 만날 수 있어요`;
+  else sum=expected?`전원이 가능한 시간은 아직 없어요. 최대 ${maxCount}명이 만날 수 있어요`:`현재 참여한 사람 중 최대 ${maxCount}명이 만날 수 있어요`;
 
   const shownList=S.showAll?list:list.slice(0,10);
   $('#body').innerHTML=`
@@ -1078,7 +1077,7 @@ function renderRank(){
       </li>`}).join('')}</ol>
       ${list.length>10?`<button class="btn ghost more" id="more">${S.showAll?'상위 10개만 보기':`전체 ${list.length}개 보기`}</button>`:''}`
     :`<div class="empty">‘스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}
-    <p class="hint" style="text-align:center;margin-top:14px">되는 사람 수가 많은 순, 같으면 진한 스티커가 많은 순이에요.</p>`;
+    <p class="hint" style="text-align:center;margin-top:14px">무조건 가능 → 아마 가능 → 되긴 하는데… 스티커가 많은 순으로 비교해요. 모두 같으면 날짜·시간순이에요.</p>`;
   const more=$('#more');if(more)more.onclick=()=>{S.showAll=!S.showAll;renderRank()};
 }
 
