@@ -195,7 +195,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .existing-meeting .dialog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .existing-meeting h2{margin:6px 0 8px;font-size:22px}
 .existing-meeting .btn{text-decoration:none}
-.existing-meeting #closeExistingMeeting{border:0;outline:none;box-shadow:none}
+.existing-meeting #closeExistingMeeting,.existing-meeting .dialog-close{border:0;outline:none;box-shadow:none}
 .existing-meeting #closeExistingMeeting:focus-visible{background:var(--paper)}
 .existing-meeting .meeting-link-row{display:flex;align-items:center;gap:8px}
 .existing-meeting .meeting-link-row a{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -213,7 +213,8 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .meeting-card .meeting-details{min-width:0}
 .meeting-card .view-vote{white-space:nowrap;padding:11px 13px;font-size:14px;border-radius:11px}
 .meeting-card .view-vote:disabled{background:var(--line);color:var(--sub);opacity:1;cursor:default}
-.meeting-card:hover{border-color:var(--s1);background:#F8F4FE}
+.meeting-card:not([aria-current="page"]){cursor:pointer}
+.meeting-card:not([aria-current="page"]):hover{border-color:var(--s1);background:#F8F4FE}
 .meeting-card b{display:block;font-size:17px;margin-bottom:9px;overflow-wrap:anywhere}
 .meeting-card small{display:block;color:var(--sub);font-size:13px;line-height:1.6}
 .meeting-card .meeting-attendance{display:inline-block;color:var(--s1);font-weight:700;background:#F1EAFB;border-radius:8px;padding:3px 8px;margin-top:9px;font-size:13px}
@@ -428,8 +429,26 @@ function monthsBetween(a,b){const out=[];let [y,m]=a.split('-').map(Number);cons
 const shareUrl = sid=>{const url=new URL(PUBLIC_SITE_URL);url.searchParams.set('s',sid);return url.href};
 async function share(sid,title){
   const url=shareUrl(sid);
-  if(navigator.share){try{await navigator.share({title:'언제봐?',text:`[${title}] 되는 날에 스티커 붙여줘!`,url});return}catch(e){if(e.name==='AbortError')return}}
-  try{await navigator.clipboard.writeText(url);toast('링크를 복사했어요')}catch(e){prompt('이 링크를 복사해 주세요',url)}
+  const supported=typeof navigator.share==='function';
+  if(supported){
+    try{await navigator.share({title:'언제봐?',text:`[${title}] 되는 날에 스티커 붙여줘!`,url});return}
+    catch(e){if(e.name==='AbortError')return}
+  }
+  document.querySelector('#shareFallback')?.remove();
+  const el=document.createElement('dialog');el.id='shareFallback';el.className='existing-meeting';
+  el.setAttribute('aria-labelledby','shareFallbackTitle');
+  el.innerHTML=`<div class="dialog-heading"><h2 id="shareFallbackTitle">투표 링크 공유하기</h2><button class="btn ghost icon-btn dialog-close" data-close aria-label="공유 안내 닫기">✕</button></div>
+    <p class="hint">${supported?'이 브라우저에서 시스템 공유창을 열지 못했어요.':'이 브라우저는 시스템 공유를 지원하지 않아요.'}<br>Chrome 또는 Safari에서 열면 시스템 공유를 사용할 수 있어요.</p>
+    <div class="linkbox">${esc(url)}</div>
+    <button class="btn blue block" data-copy>링크 복사</button>`;
+  const close=()=>{el.close();el.remove()};
+  el.querySelector('[data-close]').onclick=close;
+  el.addEventListener('cancel',e=>{e.preventDefault();close()});
+  el.querySelector('[data-copy]').onclick=async()=>{
+    try{await navigator.clipboard.writeText(url);close();toast('링크를 복사했어요')}
+    catch(e){prompt('이 링크를 복사해 주세요',url)}
+  };
+  document.body.appendChild(el);el.showModal();
 }
 
 /* ---------- 라우팅 ---------- */
@@ -473,7 +492,7 @@ function viewCreate(){
     <section class="panel">
       <label class="f" for="expectedCount">몇 명이 함께하나요?</label>
       <input class="inp" id="expectedCount" type="number" inputmode="numeric" min="2" max="100" step="1" required placeholder="참여 인원을 입력해 주세요" value="${Number.isSafeInteger(draft?.expectedCount)&&draft.expectedCount>=2&&draft.expectedCount<=100?draft.expectedCount:''}" aria-describedby="countHint countError">
-      <p class="hint" id="countHint">나를 포함한 전체 예정 인원이에요. (2명 이상)</p>
+      <p class="hint" id="countHint">나를 포함한 전체 인원이에요. (2명 이상)</p>
       <p class="count-error" id="countError" role="alert" hidden>참여 인원은 100명을 초과할 수 없어요.</p>
     </section>
     <section class="panel">
@@ -722,7 +741,7 @@ async function openMyMeetings(){
   el.onclick=e=>{
     if(e.target===el||e.target.closest('[data-close]'))return close();
     const item=e.target.closest('[data-meeting]');
-    if(item){e.preventDefault();if(item.disabled)return;const id=item.dataset.meeting;close();navigateToMeeting(id)}
+    if(item){e.preventDefault();const id=item.dataset.meeting;if(item.disabled||id===sid)return;close();navigateToMeeting(id)}
     if(e.target.closest('[data-retry]')){close();openMyMeetings()}
   };
   document.body.appendChild(el);document.addEventListener('keydown',onKey);panel.focus();
@@ -735,7 +754,7 @@ async function openMyMeetings(){
     const meetings=results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value).sort((a,b)=>b.createdAt-a.createdAt||a.title.localeCompare(b.title));
     const failed=results.some(r=>r.status==='rejected');
     body.innerHTML=`${!profileCloudReady?`<p class="hint">${esc(profileSyncIssue||'계정 목록을 동기화하지 못했어요.')} 현재 기기의 참여 이력을 표시합니다.</p><button class="btn ghost" data-retry>동기화 다시 시도</button>`:''}
-      ${meetings.map(m=>`<article class="meeting-card"><div class="meeting-details"><b>${esc(m.title)}</b><small>현재 1위 · ${esc(m.top)}</small><span class="meeting-attendance">참여 ${esc(m.attendance)}명</span></div><button class="btn blue view-vote" data-meeting="${esc(m.id)}" ${m.id===sid?'disabled aria-current="page"':''} aria-label="${esc(m.title)} ${m.id===sid?'보는 중':'투표 보기'}">${m.id===sid?'보는 중':'투표 보기'}</button></article>`).join('')||'<p class="empty">아직 참여한 모임투표가 없어요.<br>모임 링크에서 참여하면 여기에 표시돼요.</p>'}
+      ${meetings.map(m=>`<article class="meeting-card" data-meeting="${esc(m.id)}" ${m.id===sid?'aria-current="page"':''}><div class="meeting-details"><b>${esc(m.title)}</b><small>현재 1위 · ${esc(m.top)}</small><span class="meeting-attendance">참여 ${esc(m.attendance)}명</span></div><button class="btn blue view-vote" data-meeting="${esc(m.id)}" ${m.id===sid?'disabled aria-current="page"':''} aria-label="${esc(m.title)} ${m.id===sid?'보는 중':'투표 보기'}">${m.id===sid?'보는 중':'투표 보기'}</button></article>`).join('')||'<p class="empty">아직 참여한 모임투표가 없어요.<br>모임 링크에서 참여하면 여기에 표시돼요.</p>'}
       ${failed?'<p class="hint">일부 모임을 불러오지 못했어요.</p><button class="btn ghost" data-retry>다시 불러오기</button>':''}`;
   }catch(e){if(el.isConnected)body.innerHTML='<p class="empty">목록을 불러오지 못했어요.</p><button class="btn ghost" data-retry>다시 불러오기</button>'}
 }
@@ -759,7 +778,7 @@ function renderAttendance(){
     ${expected?'':'<button class="btn ghost" id="setExpected">예정 인원 설정</button>'}`;
   $('#inviteVote').onclick=()=>share(sid,S.meta.title);
   if($('#setExpected'))$('#setExpected').onclick=async()=>{
-    const value=prompt('나를 포함한 전체 예정 인원을 입력해 주세요. (2명 이상)',String(Math.max(2,joined)));
+    const value=prompt('나를 포함한 전체 인원을 입력해 주세요. (2명 이상)',String(Math.max(2,joined)));
     if(value===null)return;
     const count=Number(value);
     if(count>100){toast('참여 인원은 100명을 초과할 수 없어요.');return}
