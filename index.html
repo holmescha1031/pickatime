@@ -661,7 +661,7 @@ function viewMain(){
 function meetingPreview(id,data,userId){
   if(!data?.meta||!data.members?.[userId])return null;
   const {list}=computeRank(data),best=list[0];
-  const tied=best?list.filter(r=>r.levels[1]===best.levels[1]&&r.levels[2]===best.levels[2]&&r.levels[3]===best.levels[3]).length:0;
+  const tied=best?list.filter(r=>r.count===best.count&&r.score===best.score).length:0;
   const date=best?parseYmd(best.d):null;
   const top=best?`${date.getFullYear()}.${pad(date.getMonth()+1)}.${pad(date.getDate())} (${WD[date.getDay()]}) ${SLOT_NAME[best.sl]}${tied>1?' · 공동 1위 '+tied+'개':''}`:'아직 예정된 1위 일시가 없어요';
   const joined=Object.keys(data.members).length;
@@ -1036,12 +1036,12 @@ function computeRank(data=S){
       if(!v||typeof v!=='object'||d<today||d.slice(0,7)<data.meta.start||d.slice(0,7)>data.meta.end)continue;
       for(const [sl,l] of Object.entries(v)){
         if(!SLOT_NAME[sl]||![1,2,3].includes(l))continue;
-        const r=map[d+sl]??={d,sl,count:0,levels:[0,0,0,0],lv:{}};
-        r.count++;r.levels[l]++;r.lv[id]=l;
+        const r=map[d+sl]??={d,sl,count:0,score:0,lv:{}};
+        r.count++;r.score+=4-l;r.lv[id]=l;
       }
     }
   }
-  return {ids,list:Object.values(map).sort((a,b)=>b.levels[1]-a.levels[1]||b.levels[2]-a.levels[2]||b.levels[3]-a.levels[3]||a.d.localeCompare(b.d)||['L','D'].indexOf(a.sl)-['L','D'].indexOf(b.sl))};
+  return {ids,list:Object.values(map).sort((a,b)=>b.count-a.count||b.score-a.score||a.d.localeCompare(b.d)||['L','D'].indexOf(a.sl)-['L','D'].indexOf(b.sl))};
 }
 function renderRank(){
   const {ids,list}=computeRank();
@@ -1077,7 +1077,7 @@ function renderRank(){
       </li>`}).join('')}</ol>
       ${list.length>10?`<button class="btn ghost more" id="more">${S.showAll?'상위 10개만 보기':`전체 ${list.length}개 보기`}</button>`:''}`
     :`<div class="empty">‘스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}
-    <p class="hint" style="text-align:center;margin-top:14px">무조건 가능 → 아마 가능 → 되긴 하는데… 스티커가 많은 순으로 비교해요. 모두 같으면 날짜·시간순이에요.</p>`;
+    <p class="hint" style="text-align:center;margin-top:14px">가능하다고 표시한 사람 수가 많은 순, 같으면 스티커 가중치 합계가 높은 순이에요. 무조건 가능 3점 · 아마 가능 2점 · 되긴 하는데… 1점</p>`;
   const more=$('#more');if(more)more.onclick=()=>{S.showAll=!S.showAll;renderRank()};
 }
 
