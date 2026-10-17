@@ -428,9 +428,32 @@ const periodLabel = (a,b)=>a===b?monthLabel(a):`${monthLabel(a)} ~ ${b.slice(0,4
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2000)}
 function monthsBetween(a,b){const out=[];let [y,m]=a.split('-').map(Number);const[ey,em]=b.split('-').map(Number);while(y<ey||(y===ey&&m<=em)){out.push(`${y}-${pad(m)}`);m++;if(m>12){m=1;y++}}return out}
 const shareUrl = sid=>{const url=new URL(PUBLIC_SITE_URL);url.searchParams.set('s',sid);return url.href};
+function canShareToKakao(){
+  return Boolean(window.Kakao?.isInitialized?.()&&window.Kakao?.Share?.sendDefault);
+}
+function shareToKakao(sid,title){
+  const url=shareUrl(sid);
+  window.Kakao.Share.sendDefault({
+    objectType:'feed',
+    content:{
+      title:`[${title}] 되는 날에 스티커 붙여줘!`,
+      description:'언제봐?에서 가능한 점심·저녁에 스티커를 붙이고 함께 만날 날을 골라요.',
+      imageUrl:new URL('assets/brand-logo.png',PUBLIC_SITE_URL).href,
+      imageWidth:2172,imageHeight:724,
+      link:{mobileWebUrl:url,webUrl:url}
+    },
+    buttons:[{title:'모임투표 참여하기',link:{mobileWebUrl:url,webUrl:url}}]
+  });
+}
 async function share(sid,title){
   const url=shareUrl(sid);
   const supported=typeof navigator.share==='function';
+  const kakaoAvailable=canShareToKakao();
+  const inKakao=/KAKAOTALK/i.test(navigator.userAgent||'');
+  // Keep the Kakao SDK call in the original tap handler for app/webview navigation.
+  if(kakaoAvailable&&(inKakao||!supported)){
+    try{shareToKakao(sid,title);return}catch(e){}
+  }
   if(supported){
     try{await navigator.share({title:'언제봐?',text:`[${title}] 되는 날에 스티커 붙여줘!`,url});return}
     catch(e){if(e.name==='AbortError')return}
@@ -439,12 +462,16 @@ async function share(sid,title){
   const el=document.createElement('dialog');el.id='shareFallback';el.className='existing-meeting';
   el.setAttribute('aria-labelledby','shareFallbackTitle');
   el.innerHTML=`<div class="dialog-heading"><h2 id="shareFallbackTitle">투표 링크 공유하기</h2><button class="btn ghost icon-btn dialog-close" data-close aria-label="공유 안내 닫기">✕</button></div>
-    <p class="hint">${supported?'이 브라우저에서 시스템 공유창을 열지 못했어요.':'이 브라우저는 시스템 공유를 지원하지 않아요.'}<br>Chrome 또는 Safari에서 열면 시스템 공유를 사용할 수 있어요.</p>
+    <p class="hint">${kakaoAvailable?'카카오톡으로 친구나 단톡방에 투표 링크를 보내세요.':'공유 기능을 불러오지 못했어요. 새로고침 후 다시 시도하거나 링크를 복사해 주세요.'}</p>
     <div class="linkbox">${esc(url)}</div>
-    <button class="btn blue block" data-copy>링크 복사</button>`;
+    ${kakaoAvailable?'<button class="btn block" style="background:#FEE500;color:#191919" data-kakao>카카오톡으로 공유</button>':''}
+    <button class="btn ${kakaoAvailable?'ghost':'blue'} block" data-copy>링크 복사</button>`;
   const close=()=>{el.close();el.remove()};
   el.querySelector('[data-close]').onclick=close;
   el.addEventListener('cancel',e=>{e.preventDefault();close()});
+  if(kakaoAvailable)el.querySelector('[data-kakao]').onclick=()=>{
+    try{shareToKakao(sid,title);close()}catch(e){toast('카카오톡 공유를 열지 못했어요. 잠시 후 다시 시도해 주세요.')}
+  };
   el.querySelector('[data-copy]').onclick=async()=>{
     try{await navigator.clipboard.writeText(url);close();toast('링크를 복사했어요')}
     catch(e){prompt('이 링크를 복사해 주세요',url)}
