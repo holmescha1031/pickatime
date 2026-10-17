@@ -37,9 +37,7 @@ h1,h2,.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 .brand img{display:block;width:158px;max-width:100%;height:auto;object-fit:contain}
 .brand--hero{display:flex;margin:0 0 2px;width:clamp(180px,60vw,250px);max-width:100%}
 .brand--hero img{width:100%;height:auto}
-.home-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.home-header .brand--hero{width:clamp(150px,48vw,250px);margin:0;flex:0 1 250px;min-width:0}
-.btn.home-meetings{flex:none;white-space:nowrap;color:var(--s1)}
+.btn.home-meetings{margin-top:16px;background:#E3DFF5;color:#484177}
 .hero h1{font-size:40px;line-height:1.15;margin:18px 0 10px}
 .hero p{color:var(--sub);margin:0 0 22px;line-height:1.6}
 .hero{container-type:inline-size}
@@ -453,8 +451,7 @@ function viewCreate(){
   let start=validDraft?draft.start:months[0],end=validDraft?draft.end:months[0],picking=false;
   $('#app').innerHTML=`
     <div class="hero">
-      <div class="home-header"><span class="brand brand--hero" aria-label="언제봐?"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></span>
-      <button class="btn ghost home-meetings" id="homeMyMeetings">${listIcon()}내 모임투표</button></div>
+      <span class="brand brand--hero" aria-label="언제봐?"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></span>
       <h1 class="home-headline">되는 날에 스티커만 붙여줘</h1>
       <p>모임을 만들고 링크를 보내면, 친구들이 달력에 스티커를 붙여요.<br>다 같이 되는 날이 바로 보여요.</p>
     </div>
@@ -474,6 +471,7 @@ function viewCreate(){
     </section>
     <button class="btn blue block" id="create">모임 만들고 링크 공유</button>
     <p class="hint" id="createError" role="alert" hidden></p>
+    <button class="btn block home-meetings" id="homeMyMeetings">${listIcon()}투표중인 모임 보기</button>
     <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog>`;
   $('#homeMyMeetings').onclick=()=>openMyMeetings();
   const paint=()=>{
