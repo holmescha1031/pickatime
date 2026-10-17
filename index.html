@@ -461,8 +461,8 @@ function viewCreate(){
     </section>
     <section class="panel">
       <label class="f" for="expectedCount">몇 명이 함께하나요?</label>
-      <input class="inp" id="expectedCount" type="number" inputmode="numeric" min="1" max="100" step="1" required placeholder="참여 인원을 입력해 주세요" value="${Number.isInteger(draft?.expectedCount)&&draft.expectedCount>=1&&draft.expectedCount<=100?draft.expectedCount:''}" aria-describedby="countHint">
-      <p class="hint" id="countHint">나를 포함한 전체 예정 인원이에요. (1~100명)</p>
+      <input class="inp" id="expectedCount" type="number" inputmode="numeric" min="2" step="1" required placeholder="참여 인원을 입력해 주세요" value="${Number.isSafeInteger(draft?.expectedCount)&&draft.expectedCount>=2?draft.expectedCount:''}" aria-describedby="countHint">
+      <p class="hint" id="countHint">나를 포함한 전체 예정 인원이에요. (2명 이상)</p>
     </section>
     <section class="panel">
       <label class="f">언제 중에 고를까요?</label>
@@ -471,7 +471,7 @@ function viewCreate(){
     </section>
     <button class="btn blue block" id="create">모임 만들고 링크 공유</button>
     <p class="hint" id="createError" role="alert" hidden></p>
-    <button class="btn block home-meetings" id="homeMyMeetings">${listIcon()}투표중인 모임 보기</button>
+    <button class="btn block home-meetings" id="homeMyMeetings">투표중인 모임 보기</button>
     <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog>`;
   $('#homeMyMeetings').onclick=()=>openMyMeetings();
   const paint=()=>{
@@ -518,7 +518,7 @@ function viewCreate(){
   $('#create').onclick=async()=>{
     const title=t.value.trim();if(!title){t.focus();t.style.borderColor='var(--sun)';toast('모임 이름을 먼저 적어 주세요');return}t.style.borderColor='';
     const expectedCount=Number($('#expectedCount').value);
-    if(!Number.isInteger(expectedCount)||expectedCount<1||expectedCount>100){$('#expectedCount').focus();toast('참여 예정 인원을 1~100명으로 입력해 주세요.');return}
+    if(!Number.isSafeInteger(expectedCount)||expectedCount<2){$('#expectedCount').focus();toast('참여 예정 인원을 2명 이상의 정수로 입력해 주세요.');return}
     const btn=$('#create');if(btn.disabled)return;
     $('#createError').hidden=true;
     $('#existingMeeting').close();
@@ -673,7 +673,7 @@ function meetingPreview(id,data,userId){
   const date=best?parseYmd(best.d):null;
   const top=best?`${date.getFullYear()}.${pad(date.getMonth()+1)}.${pad(date.getDate())} (${WD[date.getDay()]}) ${SLOT_NAME[best.sl]}${tied>1?' · 공동 1위 '+tied+'개':''}`:'아직 예정된 1위 일시가 없어요';
   const joined=Object.keys(data.members).length;
-  const expected=Number.isInteger(data.meta.expectedCount)&&data.meta.expectedCount>=1&&data.meta.expectedCount<=100?data.meta.expectedCount:null;
+  const expected=Number.isSafeInteger(data.meta.expectedCount)&&data.meta.expectedCount>=2?data.meta.expectedCount:null;
   return {id,title:data.meta.title,top,attendance:expected?`${joined}/${expected}`:String(joined),createdAt:Number(data.meta.createdAt)||0};
 }
 function navigateToMeeting(id){
@@ -720,7 +720,7 @@ async function openMyMeetings(){
 }
 function attendanceInfo(){
   const ids=Object.keys(S.members||{});
-  const expected=Number.isInteger(S.meta?.expectedCount)&&S.meta.expectedCount>=1&&S.meta.expectedCount<=100?S.meta.expectedCount:null;
+  const expected=Number.isSafeInteger(S.meta?.expectedCount)&&S.meta.expectedCount>=2?S.meta.expectedCount:null;
   return {ids,joined:ids.length,expected,target:Math.max(expected||0,ids.length),remaining:expected?Math.max(0,expected-ids.length):0,voted:ids.filter(id=>myCount(id)>0).length};
 }
 function renderAttendance(){
@@ -738,10 +738,10 @@ function renderAttendance(){
     ${expected?'':'<button class="btn ghost" id="setExpected">예정 인원 설정</button>'}`;
   $('#inviteVote').onclick=()=>share(sid,S.meta.title);
   if($('#setExpected'))$('#setExpected').onclick=async()=>{
-    const value=prompt('나를 포함한 전체 예정 인원을 입력해 주세요. (1~100명)',String(Math.max(2,joined)));
+    const value=prompt('나를 포함한 전체 예정 인원을 입력해 주세요. (2명 이상)',String(Math.max(2,joined)));
     if(value===null)return;
     const count=Number(value);
-    if(!Number.isInteger(count)||count<1||count>100){toast('예정 인원을 1~100명으로 입력해 주세요.');return}
+    if(!Number.isSafeInteger(count)||count<2){toast('예정 인원을 2명 이상의 정수로 입력해 주세요.');return}
     try{
       await store.set(`sessions/${sid}/meta/expectedCount`,count);
       S.meta={...S.meta,expectedCount:count};renderMe();renderTab();
