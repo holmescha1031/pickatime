@@ -37,6 +37,9 @@ h1,h2,.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 .brand img{display:block;width:158px;max-width:100%;height:auto;object-fit:contain}
 .brand--hero{display:flex;margin:0 0 2px;width:clamp(180px,60vw,250px);max-width:100%}
 .brand--hero img{width:100%;height:auto}
+.home-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.home-header .brand--hero{width:clamp(150px,48vw,250px);margin:0;flex:0 1 250px;min-width:0}
+.btn.home-meetings{flex:none;white-space:nowrap;color:var(--s1)}
 .hero h1{font-size:40px;line-height:1.15;margin:18px 0 10px}
 .hero p{color:var(--sub);margin:0 0 22px;line-height:1.6}
 .hero{container-type:inline-size}
@@ -238,6 +241,7 @@ const GOOGLE_CLIENT_ID = "";
 const KAKAO_JS_KEY = "7ba374d1017c27f710651513590c4e0a";
 let kakaoUser = null;
 let resumeCreate = false;
+let resumeMeetings = false;
 const PUBLIC_SITE_URL = window.APP_CONFIG?.publicSite || 'https://pickatime-phi.vercel.app/';
 const loginRedirectUri = ()=>location.origin===new URL(PUBLIC_SITE_URL).origin
   ? PUBLIC_SITE_URL : location.origin+location.pathname;
@@ -246,7 +250,7 @@ function loginKakao(intent='join'){
   if(!window.Kakao?.Auth?.authorize){toast('카카오 SDK를 불러오지 못했어요. 새로고침해 주세요.');return}
   if(!window.APP_CONFIG?.authServer){toast('config.js에 Vercel 서버 주소를 먼저 설정해 주세요.');return}
   const state=randId(32);
-  try{sessionStorage.setItem('wmd:oauth',JSON.stringify({state,sid,action:intent==='create'?'create':'join',at:Date.now()}))}
+  try{sessionStorage.setItem('wmd:oauth',JSON.stringify({state,sid,action:['create','meetings'].includes(intent)?intent:'join',at:Date.now()}))}
   catch(e){toast('로그인에 필요한 브라우저 저장소를 허용해 주세요.');return}
   Kakao.Auth.authorize({redirectUri:loginRedirectUri(),state});
 }
@@ -269,6 +273,7 @@ async function completeKakaoLogin(){
   history.replaceState(null,'',location.pathname+(sid?'?s='+encodeURIComponent(sid):''));
   if(!pending||q.get('state')!==pending.state||Date.now()-pending.at>10*60*1000){toast('로그인 요청이 만료됐어요. 다시 시도해 주세요.');return}
   resumeCreate=pending.action==='create';
+  resumeMeetings=pending.action==='meetings';
   if(q.has('error')){toast('카카오 로그인이 취소되었어요.');return}
   $('#app').innerHTML='<p class="empty">카카오 로그인 확인 중…</p>';
   try{
@@ -448,7 +453,8 @@ function viewCreate(){
   let start=validDraft?draft.start:months[0],end=validDraft?draft.end:months[0],picking=false;
   $('#app').innerHTML=`
     <div class="hero">
-      <span class="brand brand--hero" aria-label="언제봐?"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></span>
+      <div class="home-header"><span class="brand brand--hero" aria-label="언제봐?"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></span>
+      <button class="btn ghost home-meetings" id="homeMyMeetings">${listIcon()}내 모임투표</button></div>
       <h1 class="home-headline">되는 날에 스티커만 붙여줘</h1>
       <p>모임을 만들고 링크를 보내면, 친구들이 달력에 스티커를 붙여요.<br>다 같이 되는 날이 바로 보여요.</p>
     </div>
@@ -458,7 +464,7 @@ function viewCreate(){
     </section>
     <section class="panel">
       <label class="f" for="expectedCount">몇 명이 함께하나요?</label>
-      <input class="inp" id="expectedCount" type="number" inputmode="numeric" min="1" max="100" step="1" required value="${Number.isInteger(draft?.expectedCount)?draft.expectedCount:6}" aria-describedby="countHint">
+      <input class="inp" id="expectedCount" type="number" inputmode="numeric" min="1" max="100" step="1" required placeholder="참여 인원을 입력해 주세요" value="${Number.isInteger(draft?.expectedCount)&&draft.expectedCount>=1&&draft.expectedCount<=100?draft.expectedCount:''}" aria-describedby="countHint">
       <p class="hint" id="countHint">나를 포함한 전체 예정 인원이에요. (1~100명)</p>
     </section>
     <section class="panel">
@@ -469,6 +475,7 @@ function viewCreate(){
     <button class="btn blue block" id="create">모임 만들고 링크 공유</button>
     <p class="hint" id="createError" role="alert" hidden></p>
     <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog>`;
+  $('#homeMyMeetings').onclick=()=>openMyMeetings();
   const paint=()=>{
     $('#months').innerHTML=months.map((m,i)=>{
       const [y,mm]=m.split('-');const cls=m===start||m===end?'edge':(m>start&&m<end?'in':'');
@@ -677,7 +684,7 @@ function navigateToMeeting(id){
   window.scrollTo(0,0);return bootSession();
 }
 async function openMyMeetings(){
-  if(!kakaoUser){toast('로그인 후 내 모임을 볼 수 있어요.');return}
+  if(!kakaoUser){loginKakao('meetings');return}
   const userId=kakaoUser.id,previousFocus=document.activeElement;
   const el=document.createElement('div');el.className='sheet my-meetings';
   el.innerHTML=`<section class="panel" role="dialog" aria-modal="true" aria-labelledby="myMeetingsTitle" tabindex="-1">
@@ -1095,6 +1102,7 @@ function renderRank(){
   await completeKakaoLogin();
   if(sid)bootSession();
   else await viewCreate();
+  if(resumeMeetings&&kakaoUser){resumeMeetings=false;await openMyMeetings()}
 })();
 window.addEventListener('popstate',()=>{
   sid=new URLSearchParams(location.search).get('s');
