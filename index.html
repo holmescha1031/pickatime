@@ -39,12 +39,8 @@ h1,h2,.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 .brand--hero img{width:100%;height:auto}
 .hero h1{font-size:40px;line-height:1.15;margin:18px 0 10px}
 .hero p{color:var(--sub);margin:0 0 22px;line-height:1.6}
-.headline-row{display:flex;align-items:center;gap:8px}
-.headline-copy{white-space:nowrap;font-size:clamp(28px,7.6vw,40px)}
-.hero-stickers{position:relative;display:inline-block;width:72px;height:65px;flex:none;vertical-align:middle}
-.hero-stickers .sticker-sample{position:absolute;width:51px;height:49px;padding:6px;border-radius:17px;background:#fff;box-shadow:0 3px 0 #14213D18,0 0 0 1px #14213D08}
-.hero-stickers .sticker-sample:first-child{left:0;top:10px;color:var(--s2);transform:rotate(-16deg)}
-.hero-stickers .sticker-sample:last-child{right:0;top:0;color:var(--s1);transform:rotate(12deg)}
+.hero{container-type:inline-size}
+.hero h1.home-headline{white-space:nowrap;font-size:clamp(12px,5.1vw,29px);font-size:clamp(12px,5.5cqw,29px)}
 .meeting-mark{display:block;width:100%;height:100%;pointer-events:none}
 .eye-sticker{background-image:url('./assets/sticker-sparkle.png');background-repeat:no-repeat;background-size:120% auto;background-position:center 65%}
 .eye-sticker.level-2{background-image:url('./assets/sticker-eyes.png')}
@@ -52,7 +48,6 @@ h1,h2,.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 .half[data-l="1"] .eye-sticker{background-image:url('./assets/sticker-sparkle.png')}
 .half[data-l="2"] .eye-sticker{background-image:url('./assets/sticker-eyes.png')}
 .half[data-l="3"] .eye-sticker{background-image:url('./assets/sticker-question.png')}
-@media(max-width:360px){.headline-row{gap:3px}.hero-stickers{width:59px}.hero-stickers .sticker-sample{width:44px;height:43px}}
 .panel{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px}
 label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .hint{font-size:13px;color:var(--sub);margin:6px 0 0;line-height:1.5}
@@ -74,6 +69,10 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .mo.edge small{color:#EEE8FA}
 
 /* entry */
+.join-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.join-row .inp{min-width:0}
+.join-row .btn{white-space:nowrap;padding:13px 16px}
+.account-switch{display:flex;justify-content:center;margin:28px 0 0}
 .who{display:flex;flex-wrap:wrap;gap:8px}
 .chip{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px 6px 6px;font-weight:600}
 .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700;flex:none}
@@ -426,12 +425,12 @@ function viewCreate(){
   $('#app').innerHTML=`
     <div class="hero">
       <span class="brand brand--hero" aria-label="언제봄?"><img src="./assets/brand-logo.png" alt="언제봄?" width="2172" height="724"></span>
-      <h1>되는 날에<br><span class="headline-row"><span class="headline-copy">스티커만 붙이자</span><span class="hero-stickers" aria-hidden="true"><span class="sticker-sample">${meetingSticker(2)}</span><span class="sticker-sample">${meetingSticker(1)}</span></span></span></h1>
+      <h1 class="home-headline">되는 날에 스티커만 붙여줘</h1>
       <p>모임을 만들고 링크를 보내면, 친구들이 달력에 스티커를 붙여요. 다 같이 되는 날이 바로 보여요.</p>
     </div>
     <section class="panel">
       <label class="f" for="title">모임 이름</label>
-      <input class="inp" id="title" maxlength="30" placeholder="예) 고등학교 친구들 가을 모임" autocomplete="off" value="${esc(validDraft?draft.title:'')}">
+      <input class="inp" id="title" maxlength="30" placeholder="예) 고등학교 친구들 송년회" autocomplete="off" value="${esc(validDraft?draft.title:'')}">
     </section>
     <section class="panel">
       <label class="f" for="expectedCount">몇 명이 함께하나요?</label>
@@ -591,12 +590,10 @@ function viewEntry(){
       ${!kakaoUser?`<p>카카오로 로그인하고 되는 시간에 스티커를 붙여 주세요.</p>
       <button class="btn block" id="kakaoLogin" style="background:#FEE500;color:#191919">카카오 로그인</button>`:
       `<label class="f" for="nick">모임에서 사용할 닉네임</label>
-      <div class="row"><input class="inp" id="nick" maxlength="10" autocomplete="off" placeholder="친구들이 알아볼 이름" value="${esc([...typed].slice(0,10).join(''))}" ${myProfile.nickname?'readonly aria-describedby="nickHint"':''}>
-      <button class="btn blue" id="join">참여하기</button></div>
-      <p class="hint" id="nickHint">${myProfile.nickname?'다른 모임에서도 같은 닉네임을 사용해요.':'처음 정한 닉네임을 다른 모임에서도 사용해요.'}</p>
-      <button class="btn ghost" id="otherAccount">다른 카카오 계정으로 로그인</button>`}
-      <p class="hint">친구 테스트용입니다. 닉네임과 투표가 모임 링크를 가진 사람에게 공유됩니다.</p>
-    </section>`;
+      <div class="join-row"><input class="inp" id="nick" maxlength="10" autocomplete="off" placeholder="친구들이 알아볼 이름" value="${esc([...typed].slice(0,10).join(''))}" ${myProfile.nickname?'readonly':''}>
+      <button class="btn blue" id="join">참여하기</button></div>`}
+    </section>
+    ${kakaoUser?'<div class="account-switch"><button class="btn ghost" id="otherAccount">다른 카카오 계정으로 로그인</button></div>':''}`;
   if(!kakaoUser){$('#kakaoLogin').onclick=loginKakao;return}
   $('#otherAccount').onclick=()=>{kakaoUser=null;myProfile={nickname:'',meetings:{}};Kakao.Auth.setAccessToken(null);viewEntry()};
   const join=async()=>{
