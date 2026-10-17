@@ -51,6 +51,7 @@ h1,h2,.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 .half[data-l="3"] .eye-sticker{background-image:url('./assets/sticker-question.png')}
 .panel{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px}
 label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
+.count-error{font-size:12px;color:var(--sun);margin:6px 0 0;line-height:1.5}
 .hint{font-size:13px;color:var(--sub);margin:6px 0 0;line-height:1.5}
 .inp{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;font-size:16px;background:#fff}
 .inp:focus{border-color:var(--s1);outline:none}
@@ -461,8 +462,9 @@ function viewCreate(){
     </section>
     <section class="panel">
       <label class="f" for="expectedCount">몇 명이 함께하나요?</label>
-      <input class="inp" id="expectedCount" type="number" inputmode="numeric" min="2" step="1" required placeholder="참여 인원을 입력해 주세요" value="${Number.isSafeInteger(draft?.expectedCount)&&draft.expectedCount>=2?draft.expectedCount:''}" aria-describedby="countHint">
+      <input class="inp" id="expectedCount" type="number" inputmode="numeric" min="2" max="100" step="1" required placeholder="참여 인원을 입력해 주세요" value="${Number.isSafeInteger(draft?.expectedCount)&&draft.expectedCount>=2&&draft.expectedCount<=100?draft.expectedCount:''}" aria-describedby="countHint countError">
       <p class="hint" id="countHint">나를 포함한 전체 예정 인원이에요. (2명 이상)</p>
+      <p class="count-error" id="countError" role="alert" hidden>참여 인원은 100명을 초과할 수 없어요.</p>
     </section>
     <section class="panel">
       <label class="f">언제 중에 고를까요?</label>
@@ -474,6 +476,14 @@ function viewCreate(){
     <button class="btn block home-meetings" id="homeMyMeetings">투표중인 모임 보기</button>
     <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog>`;
   $('#homeMyMeetings').onclick=()=>openMyMeetings();
+  const countInput=$('#expectedCount');
+  const validateCountLimit=()=>{
+    const exceeded=Number(countInput.value)>100;
+    $('#countError').hidden=!exceeded;
+    countInput.setAttribute('aria-invalid',String(exceeded));
+    return !exceeded;
+  };
+  countInput.oninput=validateCountLimit;
   const paint=()=>{
     $('#months').innerHTML=months.map((m,i)=>{
       const [y,mm]=m.split('-');const cls=m===start||m===end?'edge':(m>start&&m<end?'in':'');
@@ -517,7 +527,8 @@ function viewCreate(){
   };
   $('#create').onclick=async()=>{
     const title=t.value.trim();if(!title){t.focus();t.style.borderColor='var(--sun)';toast('모임 이름을 먼저 적어 주세요');return}t.style.borderColor='';
-    const expectedCount=Number($('#expectedCount').value);
+    const expectedCount=Number(countInput.value);
+    if(!validateCountLimit()){countInput.focus();return}
     if(!Number.isSafeInteger(expectedCount)||expectedCount<2){$('#expectedCount').focus();toast('참여 예정 인원을 2명 이상의 정수로 입력해 주세요.');return}
     const btn=$('#create');if(btn.disabled)return;
     $('#createError').hidden=true;
@@ -673,7 +684,7 @@ function meetingPreview(id,data,userId){
   const date=best?parseYmd(best.d):null;
   const top=best?`${date.getFullYear()}.${pad(date.getMonth()+1)}.${pad(date.getDate())} (${WD[date.getDay()]}) ${SLOT_NAME[best.sl]}${tied>1?' · 공동 1위 '+tied+'개':''}`:'아직 예정된 1위 일시가 없어요';
   const joined=Object.keys(data.members).length;
-  const expected=Number.isSafeInteger(data.meta.expectedCount)&&data.meta.expectedCount>=2?data.meta.expectedCount:null;
+  const expected=Number.isSafeInteger(data.meta.expectedCount)&&data.meta.expectedCount>=2&&data.meta.expectedCount<=100?data.meta.expectedCount:null;
   return {id,title:data.meta.title,top,attendance:expected?`${joined}/${expected}`:String(joined),createdAt:Number(data.meta.createdAt)||0};
 }
 function navigateToMeeting(id){
@@ -720,7 +731,7 @@ async function openMyMeetings(){
 }
 function attendanceInfo(){
   const ids=Object.keys(S.members||{});
-  const expected=Number.isSafeInteger(S.meta?.expectedCount)&&S.meta.expectedCount>=2?S.meta.expectedCount:null;
+  const expected=Number.isSafeInteger(S.meta?.expectedCount)&&S.meta.expectedCount>=2&&S.meta.expectedCount<=100?S.meta.expectedCount:null;
   return {ids,joined:ids.length,expected,target:Math.max(expected||0,ids.length),remaining:expected?Math.max(0,expected-ids.length):0,voted:ids.filter(id=>myCount(id)>0).length};
 }
 function renderAttendance(){
@@ -741,6 +752,7 @@ function renderAttendance(){
     const value=prompt('나를 포함한 전체 예정 인원을 입력해 주세요. (2명 이상)',String(Math.max(2,joined)));
     if(value===null)return;
     const count=Number(value);
+    if(count>100){toast('참여 인원은 100명을 초과할 수 없어요.');return}
     if(!Number.isSafeInteger(count)||count<2){toast('예정 인원을 2명 이상의 정수로 입력해 주세요.');return}
     try{
       await store.set(`sessions/${sid}/meta/expectedCount`,count);
