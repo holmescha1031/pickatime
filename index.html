@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut">
-<title>언제봄?</title>
+<title>언제봐?</title>
 <meta name="description" content="되는 날에 스티커만 붙이면, 다 같이 되는 날이 바로 보여요.">
-<meta property="og:title" content="언제봄?">
+<meta property="og:title" content="언제봐?">
 <meta property="og:description" content="되는 날에 스티커만 붙이면, 다 같이 되는 날이 바로 보여요.">
 <meta name="theme-color" content="#F3F4FF">
 <link rel="icon" type="image/png" href="./assets/sticker-eyes.png">
@@ -122,7 +122,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .half:disabled .lb{opacity:0}
 .half .lb{position:relative;z-index:2;font-size:10px;font-weight:600;color:#8C9B92;white-space:nowrap}
 .half[data-l]:not([data-l="0"]) .lb{display:none}
-.stk{position:absolute;z-index:1;inset:0 0 10px;border:0;padding:1px 3px;background:transparent;
+.stk{position:absolute;z-index:1;inset:0;border:0;padding:1px 3px;background:transparent;
   box-shadow:none;
   transform:rotate(var(--r)) scale(0);transition:transform .22s cubic-bezier(.3,1.6,.5,1),color .15s}
 .half[data-l="1"] .stk{color:var(--s1);transform:rotate(var(--r)) scale(1)}
@@ -411,7 +411,7 @@ function monthsBetween(a,b){const out=[];let [y,m]=a.split('-').map(Number);cons
 const shareUrl = sid=>{const url=new URL(PUBLIC_SITE_URL);url.searchParams.set('s',sid);return url.href};
 async function share(sid,title){
   const url=shareUrl(sid);
-  if(navigator.share){try{await navigator.share({title:'언제봄?',text:`[${title}] 되는 날에 스티커 붙여줘!`,url});return}catch(e){if(e.name==='AbortError')return}}
+  if(navigator.share){try{await navigator.share({title:'언제봐?',text:`[${title}] 되는 날에 스티커 붙여줘!`,url});return}catch(e){if(e.name==='AbortError')return}}
   try{await navigator.clipboard.writeText(url);toast('링크를 복사했어요')}catch(e){prompt('이 링크를 복사해 주세요',url)}
 }
 
@@ -437,7 +437,7 @@ function meetingSticker(level=1){
 }
 
 function viewCreate(){
-  document.title='언제봄?';
+  document.title='언제봐?';
   const now=new Date();
   const months=[...Array(12)].map((_,i)=>ymOf(new Date(now.getFullYear(),now.getMonth()+i,1)));
   let draft;try{draft=JSON.parse(SS.get('wmd:createDraft'))}catch(e){}
@@ -445,7 +445,7 @@ function viewCreate(){
   let start=validDraft?draft.start:months[0],end=validDraft?draft.end:months[0],picking=false;
   $('#app').innerHTML=`
     <div class="hero">
-      <span class="brand brand--hero" aria-label="언제봄?"><img src="./assets/brand-logo.png" alt="언제봄?" width="2172" height="724"></span>
+      <span class="brand brand--hero" aria-label="언제봐?"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></span>
       <h1 class="home-headline">되는 날에 스티커만 붙여줘</h1>
       <p>모임을 만들고 링크를 보내면, 친구들이 달력에 스티커를 붙여요.<br>다 같이 되는 날이 바로 보여요.</p>
     </div>
@@ -561,7 +561,7 @@ async function bootSession(){
   if(request!==sessionLoad)return;
   S.meta=data?.meta||null;
   if(!S.meta){
-    $('#app').innerHTML=`<div class="hero"><a class="brand" href="./" aria-label="언제봄? 홈"><img src="./assets/brand-logo.png" alt="언제봄?" width="2172" height="724"></a><h1>모임을 찾을 수 없어요</h1><p>링크가 잘렸거나 모임을 불러올 수 없어요. 링크를 다시 확인해 주세요.</p></div><a class="btn block" href="./">새 모임 만들기</a>`;
+    $('#app').innerHTML=`<div class="hero"><a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a><h1>모임을 찾을 수 없어요</h1><p>링크가 잘렸거나 모임을 불러올 수 없어요. 링크를 다시 확인해 주세요.</p></div><a class="btn block" href="./">새 모임 만들기</a>`;
     return;
   }
   S.members=data.members||{};S.votes=data.votes||{};
@@ -579,7 +579,7 @@ async function bootSession(){
     }
   }
   if(request!==sessionLoad)return;
-  document.title=`${S.meta.title} · 언제봄?`;
+  document.title=`${S.meta.title} · 언제봐?`;
   route();
   S.unsub=[store.on(`sessions/${id}/meta`,v=>{if(request!==sessionLoad)return;if(v){S.meta=v;refresh()}}),store.on(`sessions/${id}/members`,v=>{
     if(request!==sessionLoad)return;
@@ -604,7 +604,7 @@ function refresh(){
 function viewEntry(){
   const typed=myProfile.nickname||$('#nick')?.value||kakaoUser?.name||'';
   $('#app').innerHTML=`
-    <a class="brand" href="./" aria-label="언제봄? 홈"><img src="./assets/brand-logo.png" alt="언제봄?" width="2172" height="724"></a>
+    <a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a>
     <h1 class="stitle">${esc(S.meta.title)}</h1>
     <p class="speriod">${periodLabel(S.meta.start,S.meta.end)} 중에 골라요</p>
     <section class="panel">
@@ -640,7 +640,7 @@ function enter(id){LS.set(meKey(),id);S.me=id;route()}
 function viewMain(){
   $('#app').innerHTML=`
     <div class="top">
-      <a class="brand" href="./" aria-label="언제봄? 홈"><img src="./assets/brand-logo.png" alt="언제봄?" width="2172" height="724"></a>
+      <a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a>
       <div class="top-actions"><button class="btn ghost icon-btn" id="myMeetings" aria-label="내가 참여한 모임투표 목록" title="내 모임투표">${listIcon()}</button></div>
     </div>
     <h1 class="stitle">${esc(S.meta.title)}</h1>
@@ -808,7 +808,7 @@ function renderCalendar(){
       <span><i class="legend-sticker l1" aria-hidden="true">${meetingSticker()}</i>한 번 클릭: 무조건 가능</span>
       <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>두 번 클릭: 아마 가능</span>
       <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>세 번 클릭: 되긴 하는데…</span>
-      <span>네 번 누르면 떼져요</span>
+      <span>(네 번 누르면 떼져요)</span>
     </div>
     ${html}
     <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
