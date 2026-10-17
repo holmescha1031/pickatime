@@ -444,7 +444,8 @@ function viewCreate(){
       <p class="hint" id="phint"></p>
     </section>
     <button class="btn blue block" id="create">모임 만들고 링크 공유</button>
-    <p class="hint" id="createError" role="alert" hidden></p>`;
+    <p class="hint" id="createError" role="alert" hidden></p>
+    <section class="panel" id="existingMeeting" aria-live="polite" hidden></section>`;
   const paint=()=>{
     $('#months').innerHTML=months.map((m,i)=>{
       const [y,mm]=m.split('-');const cls=m===start||m===end?'edge':(m>start&&m<end?'in':'');
@@ -461,19 +462,45 @@ function viewCreate(){
     paint();
   };
   const t=$('#title');
+  t.oninput=()=>{
+    $('#existingMeeting').hidden=true;
+    $('#createError').hidden=true;
+    t.style.borderColor='';
+  };
+  const showExistingMeeting=id=>{
+    const url=shareUrl(id),panel=$('#existingMeeting');
+    $('#create').disabled=false;
+    $('#create').textContent='모임 만들고 링크 공유';
+    $('#createError').hidden=true;
+    panel.innerHTML=`<h2 style="margin:0 0 8px;font-size:22px">이미 만든 모임이 있어요</h2>
+      <p class="hint">같은 계정으로 만든 모임이에요. 기존 투표를 이어서 사용할 수 있어요.</p>
+      <div class="linkbox"><a href="${esc(url)}">${esc(url)}</a></div>
+      <a class="btn blue block" id="openExistingMeeting" href="${esc(url)}">기존 모임투표 열기</a>
+      <button class="btn ghost block" id="copyExistingMeeting" style="margin-top:6px">투표 링크 복사</button>`;
+    panel.hidden=false;
+    panel.querySelector('#openExistingMeeting').onclick=e=>{
+      e.preventDefault();SS.del('wmd:createDraft');SS.del('wmd:new');navigateToMeeting(id);
+    };
+    panel.querySelector('#copyExistingMeeting').onclick=async()=>{
+      try{await navigator.clipboard.writeText(url);toast('투표 링크를 복사했어요')}
+      catch(e){prompt('이 링크를 복사해 주세요',url)}
+    };
+    panel.scrollIntoView({block:'nearest',behavior:'smooth'});
+  };
   $('#create').onclick=async()=>{
     const title=t.value.trim();if(!title){t.focus();t.style.borderColor='var(--sun)';toast('모임 이름을 먼저 적어 주세요');return}t.style.borderColor='';
     const expectedCount=Number($('#expectedCount').value);
     if(!Number.isInteger(expectedCount)||expectedCount<1||expectedCount>100){$('#expectedCount').focus();toast('참여 예정 인원을 1~100명으로 입력해 주세요.');return}
     const btn=$('#create');if(btn.disabled)return;
     $('#createError').hidden=true;
+    $('#existingMeeting').hidden=true;
     SS.set('wmd:createDraft',JSON.stringify({title,start,end,expectedCount}));
     if(!kakaoUser){loginKakao('create');return}
     btn.disabled=true;btn.textContent='만드는 중…';
     let id;
     try{
       id=await meetingIdFor(kakaoUser.id,title);
-      if(await store.get(`sessions/${id}/meta`))throw Object.assign(new Error('Duplicate meeting'),{code:'DUPLICATE_MEETING'});
+      if(await store.get(`sessions/${id}/meta`)){showExistingMeeting(id);return}
       await store.set(`sessions/${id}/meta`,{title,start,end,expectedCount,createdAt:Date.now()});
       SS.del('wmd:createDraft');
       SS.set('wmd:new',id);
@@ -487,14 +514,12 @@ function viewCreate(){
       if(denied&&id){
         try{duplicate=Boolean(await store.get(`sessions/${id}/meta`))}catch(readError){}
       }
-      const message=duplicate
-        ?'이미 같은 이름으로 만든 모임이 있습니다. 모임 이름을 다르게 작성해 주세요.'
-        :denied
+      if(duplicate&&id){showExistingMeeting(id);return}
+      const message=denied
         ?'모임 저장 권한이 없습니다. Firebase Realtime Database 규칙을 확인해 주세요. (PERMISSION_DENIED)'
         :'모임을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'+(/^[a-z0-9_/-]{1,80}$/i.test(code)?' ('+code+')':'');
       const error=$('#createError');error.textContent=message;error.hidden=false;
       error.scrollIntoView({block:'nearest',behavior:'smooth'});
-      if(duplicate){t.focus();t.style.borderColor='var(--sun)'}
       toast('입력 내용은 유지됩니다. 아래 오류를 확인해 주세요.');
     }
   };
