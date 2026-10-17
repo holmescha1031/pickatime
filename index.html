@@ -35,12 +35,12 @@ button{cursor:pointer}
 h1,h2,.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 .brand{display:inline-flex;align-items:center;line-height:1;text-decoration:none;flex:none}
 .brand img{display:block;width:158px;max-width:100%;height:auto;object-fit:contain}
-.brand--hero{display:flex;margin:0 0 2px;width:clamp(240px,75vw,350px);max-width:100%}
+.brand--hero{display:flex;margin:0 0 2px;width:clamp(180px,60vw,250px);max-width:100%}
 .brand--hero img{width:100%;height:auto}
 .hero h1{font-size:40px;line-height:1.15;margin:18px 0 10px}
 .hero p{color:var(--sub);margin:0 0 22px;line-height:1.6}
 .hero{container-type:inline-size}
-.hero h1.home-headline{white-space:nowrap;font-size:clamp(12px,5.1vw,29px);font-size:clamp(12px,5.5cqw,29px)}
+.hero h1.home-headline{white-space:nowrap;font-size:clamp(16px,6.7vw,40px);font-size:clamp(16px,7.6cqw,40px)}
 .meeting-mark{display:block;width:100%;height:100%;pointer-events:none}
 .eye-sticker{background-image:url('./assets/sticker-sparkle.png');background-repeat:no-repeat;background-size:120% auto;background-position:center 65%}
 .eye-sticker.level-2{background-image:url('./assets/sticker-eyes.png')}
@@ -193,6 +193,11 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .existing-meeting .dialog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .existing-meeting h2{margin:6px 0 8px;font-size:22px}
 .existing-meeting .btn{text-decoration:none}
+.existing-meeting #closeExistingMeeting{border:0;outline:none;box-shadow:none}
+.existing-meeting #closeExistingMeeting:focus-visible{background:var(--paper)}
+.existing-meeting .meeting-link-row{display:flex;align-items:center;gap:8px}
+.existing-meeting .meeting-link-row a{flex:1;min-width:0;overflow-wrap:anywhere}
+.existing-meeting .meeting-link-row .btn{flex:none;color:var(--s1)}
 .sheet .panel{width:100%;max-width:560px;margin:0;border-radius:24px 24px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom))}
 .linkbox{background:var(--paper);border-radius:12px;padding:12px;font-size:13px;word-break:break-all;margin:10px 0 14px;color:var(--sub)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -490,19 +495,16 @@ function viewCreate(){
     panel.innerHTML=`<div class="dialog-heading"><h2 id="existingMeetingTitle">이미 만든 모임이 있어요</h2>
       <button class="btn ghost icon-btn" id="closeExistingMeeting" aria-label="기존 모임 안내 닫기" autofocus>✕</button></div>
       <p class="hint">같은 계정으로 만든 모임이에요. 기존 투표를 이어서 사용할 수 있어요.</p>
-      <div class="linkbox"><a id="existingMeetingLink" href="${esc(url)}">${esc(url)}</a></div>
-      <button class="btn blue block" id="openExistingMeeting">기존 모임투표 열기</button>
-      <button class="btn ghost block" id="copyExistingMeeting" style="margin-top:6px">투표 링크 복사</button>`;
+      <div class="linkbox meeting-link-row"><a id="existingMeetingLink" href="${esc(url)}">${esc(url)}</a>
+        <button class="btn ghost icon-btn" id="shareExistingMeeting" aria-label="기존 모임투표 링크 공유하기" title="공유하기">${shareIcon()}</button></div>
+      <button class="btn blue block" id="openExistingMeeting">기존 모임투표 열기</button>`;
     panel.querySelector('#closeExistingMeeting').onclick=()=>panel.close();
     const openExisting=e=>{
       e.preventDefault();panel.close();SS.del('wmd:createDraft');SS.del('wmd:new');navigateToMeeting(id);
     };
     panel.querySelector('#openExistingMeeting').onclick=openExisting;
     panel.querySelector('#existingMeetingLink').onclick=openExisting;
-    panel.querySelector('#copyExistingMeeting').onclick=async()=>{
-      try{await navigator.clipboard.writeText(url);toast('투표 링크를 복사했어요')}
-      catch(e){prompt('이 링크를 복사해 주세요',url)}
-    };
+    panel.querySelector('#shareExistingMeeting').onclick=()=>share(id,t.value.trim());
     panel.showModal();
   };
   $('#create').onclick=async()=>{
