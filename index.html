@@ -46,10 +46,10 @@ h1,h2,.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 .hero{container-type:inline-size}
 .hero h1.home-headline{white-space:nowrap;font-size:clamp(16px,6.7vw,40px);font-size:clamp(16px,7.6cqw,40px)}
 .meeting-mark{display:block;width:100%;height:100%;pointer-events:none}
-.eye-sticker{background-image:url('./assets/sticker-sparkle.png');background-repeat:no-repeat;background-size:120% auto;background-position:center 65%}
+.eye-sticker{background-image:url('./assets/sticker-eyes.png');background-repeat:no-repeat;background-size:120% auto;background-position:center 65%}
 .eye-sticker.level-2{background-image:url('./assets/sticker-eyes.png')}
 .eye-sticker.level-3{background-image:url('./assets/sticker-question.png')}
-.half[data-l="1"] .eye-sticker{background-image:url('./assets/sticker-sparkle.png')}
+
 .half[data-l="2"] .eye-sticker{background-image:url('./assets/sticker-eyes.png')}
 .half[data-l="3"] .eye-sticker{background-image:url('./assets/sticker-question.png')}
 .panel{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px}
@@ -108,7 +108,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .legend>span{display:inline-flex;align-items:center;gap:6px}
 .legend-sticker{display:inline-flex;width:30px;height:29px;flex:none;padding:0;background:transparent}
 .legend-sticker.l1{color:var(--s1)}.legend-sticker.l2{color:var(--s2)}.legend-sticker.l3{color:var(--s3)}
-.legend-sticker.l2 .eye-sticker{opacity:.8}.legend-sticker.l3 .eye-sticker{opacity:.55}
+.legend-sticker .eye-sticker{opacity:1}
 .dot{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
 
 /* calendar */
@@ -133,11 +133,10 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .stk{position:absolute;z-index:1;inset:0;border:0;padding:1px 3px;background:transparent;
   box-shadow:none;
   transform:rotate(var(--r)) scale(0);transition:transform .22s cubic-bezier(.3,1.6,.5,1),color .15s}
-.half[data-l="1"] .stk{color:var(--s1);transform:rotate(var(--r)) scale(1)}
-.half[data-l="2"] .stk{color:var(--s2);transform:rotate(var(--r)) scale(1)}
-.half[data-l="3"] .stk{color:var(--s3);transform:rotate(var(--r)) scale(1)}
-.half[data-l="2"] .eye-sticker{opacity:.8}
-.half[data-l="3"] .eye-sticker{opacity:.55}
+
+.half[data-l="2"] .stk{color:var(--s1);transform:rotate(var(--r)) scale(1)}
+.half[data-l="3"] .stk{color:var(--s2);transform:rotate(var(--r)) scale(1)}
+.half .eye-sticker{opacity:1}
 @media(prefers-reduced-motion:reduce){.stk{transition:none}}
 .half.busy::before{content:"";position:absolute;z-index:3;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 1.5px #fff}
 .calbar{margin-bottom:12px}
@@ -183,7 +182,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .rdate small.sun{color:var(--sun)} .rdate small.sat{color:var(--sat)}
 .bar{display:flex;gap:2px;height:8px;margin:7px 0 6px;border-radius:99px;overflow:hidden}
 .bar i{flex:1}
-.b1{background:var(--s1)}.b2{background:var(--s2)}.b3{background:var(--s3)}.b0{background:var(--miss)}
+.b2{background:var(--s1)}.b3{background:var(--s2)}.b0{background:var(--miss)}
 .missing{font-size:12px;color:var(--sub);line-height:1.4}
 .cnt{font-family:var(--display);font-size:22px;text-align:right;white-space:nowrap}
 .cnt small{font-family:var(--body);font-size:12px;color:var(--sub);font-weight:600}
@@ -210,8 +209,8 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .linkbox{background:var(--paper);border-radius:12px;padding:12px;font-size:13px;word-break:break-all;margin:10px 0 14px;color:var(--sub)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
-.vote-delete-footer{display:flex;justify-content:center;margin:26px 0 0}
-.btn.delete-vote{background:transparent;color:var(--sun);font-size:12px;font-weight:500;padding:8px 10px;gap:5px}
+.vote-delete-footer{display:flex;justify-content:center;margin:44px 0 0}
+.btn.delete-vote{background:#C93642;color:#fff;font-size:12px;font-weight:600;padding:10px 14px;gap:5px;border-radius:11px}
 .delete-vote svg{width:14px;height:14px;flex:none}
 .top-actions{display:flex;align-items:center;gap:2px}
 .my-meetings .panel{max-height:85dvh;overflow-y:auto;overscroll-behavior:contain}
@@ -236,7 +235,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 
 <script src="./config.js"></script>
 <script src="./assets/kr-holidays.js"></script>
-<script src="./assets/vote-drag.js"></script>
+<script src="./assets/vote-drag-v2.js"></script>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -551,7 +550,7 @@ function shareIcon(){
   return '<svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/></svg>';
 }
 
-function meetingSticker(level=1){
+function meetingSticker(level=2){
   return `<span class="meeting-mark eye-sticker level-${level}" aria-hidden="true"></span>`;
 }
 
@@ -935,11 +934,14 @@ function openShareSheet(){
 }
 
 /* ----- 내 스티커 달력 ----- */
-const LEVEL_TEXT={1:'무조건 가능',2:'아마 가능',3:'되긴 하는데…'};
+const LEVEL_TEXT={2:'아마 가능',3:'되긴 하는데…'};
+// Keep stored levels 2/3 stable; merge old sparkle (1) into normal eyes (2).
+const normalizeVoteLevel=level=>level===1?2:level===2||level===3?level:0;
+const nextVoteLevel=level=>Number(level)===2?3:Number(level)===3?0:2;
 const SLOTS=[['L','점심'],['D','저녁']];
 const SLOT_NAME={L:'점심',D:'저녁'};
 function myVotes(){return S.votes?.[S.me]||{}}
-const lvOf=(v,d,sl)=>(v&&typeof v[d]==='object'&&v[d])?(v[d][sl]||0):0;
+const lvOf=(v,d,sl)=>(v&&typeof v[d]==='object'&&v[d])?normalizeVoteLevel(v[d][sl]):0;
 function renderCalendar(){
   detachVoteDrag?.();detachVoteDrag=null;
   const today=todayStr(),mv=myVotes(),idx=calDays();
@@ -967,16 +969,15 @@ function renderCalendar(){
     <div class="calbar" id="calbar">${calBarHtml()}</div>
     <input type="file" id="icsFile" accept=".ics,text/calendar" hidden>
     <div class="legend">
-      <span><i class="legend-sticker l1" aria-hidden="true">${meetingSticker()}</i>한 번 클릭: 무조건 가능</span>
-      <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>두 번 클릭: 아마 가능</span>
-      <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>세 번 클릭: 되긴 하는데…</span>
-      <span>(네 번 누르면 떼져요)</span>
+      <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>한 번 클릭: 아마 가능</span>
+      <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>두 번 클릭: 되긴 하는데…</span>
+      <span>(세 번 누르면 떼져요)</span>
     </div>
     <p class="hint" style="margin:0 2px 12px">드래그하면 같은 스티커를 이어 붙여요. 휴대폰에서는 길게 누른 뒤 움직여 보세요.</p>
     ${html}
     <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
-  detachVoteDrag=window.attachVoteDrag($('#body'),setVoteLevel);
+  detachVoteDrag=window.attachVoteDrag($('#body'),setVoteLevel,nextVoteLevel);
   $('#icsFile').onchange=importIcs;
 }
 function onDayTap(e){
@@ -990,7 +991,7 @@ function onDayTap(e){
     return;
   }
   const b=e.target.closest('.half');if(!b||b.disabled)return;
-  setVoteLevel(b,((Number(b.dataset.l)||0)+1)%4);
+  setVoteLevel(b,nextVoteLevel(b.dataset.l));
 }
 function setVoteLevel(b,next){
   if(!b||b.disabled||!S.me)return;
@@ -1203,8 +1204,9 @@ function computeRank(data=S){
   for(const id of ids){
     for(const [d,v] of Object.entries(data.votes?.[id]||{})){
       if(!v||typeof v!=='object'||d<today||d.slice(0,7)<data.meta.start||d.slice(0,7)>data.meta.end)continue;
-      for(const [sl,l] of Object.entries(v)){
-        if(!SLOT_NAME[sl]||![1,2,3].includes(l))continue;
+      for(const [sl,storedLevel] of Object.entries(v)){
+        const l=normalizeVoteLevel(storedLevel);
+        if(!SLOT_NAME[sl]||!l)continue;
         const r=map[d+sl]??={d,sl,count:0,score:0,lv:{}};
         r.count++;r.score+=4-l;r.lv[id]=l;
       }
@@ -1246,7 +1248,7 @@ function renderRank(){
       </li>`}).join('')}</ol>
       ${list.length>10?`<button class="btn ghost more" id="more">${S.showAll?'상위 10개만 보기':`전체 ${list.length}개 보기`}</button>`:''}`
     :`<div class="empty">‘스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}
-    <p class="hint" style="text-align:center;margin-top:14px">가능하다고 표시한 사람 수가 많은 순, 같으면 스티커 가중치 합계가 높은 순이에요. 무조건 가능 3점 · 아마 가능 2점 · 되긴 하는데… 1점</p>`;
+    <p class="hint" style="text-align:center;margin-top:14px">가능하다고 표시한 사람 수가 많은 순, 같으면 스티커 가중치 합계가 높은 순이에요. 아마 가능 2점 · 되긴 하는데… 1점</p>`;
   const more=$('#more');if(more)more.onclick=()=>{S.showAll=!S.showAll;renderRank()};
 }
 
@@ -1272,5 +1274,6 @@ window.addEventListener('popstate',()=>{
 </script>
 </body>
 </html>
+
 
 
