@@ -87,6 +87,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .stitle{font-size:30px;line-height:1.2;margin:14px 0 4px;word-break:keep-all}
 .speriod{color:var(--sub);font-size:14px;margin:0 0 14px}
 .mebar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:6px 6px 6px 12px;margin-bottom:12px;font-size:14px}
+.mebar[hidden]{display:none}
 .mebar b{font-weight:700}
 .attendance{padding:16px;margin-bottom:14px;background:#fff;border:1.5px solid var(--line);border-radius:18px}
 .attendance-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -166,6 +167,9 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .clear{display:block;margin:4px auto 0}
 
 /* ranking */
+.status-share-panel{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:14px;margin:12px 0 16px}
+.status-share-panel p{margin:0 0 10px;font-size:14px;line-height:1.5;font-weight:600}
+.vote-results-ready{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:12px;padding-top:12px;font-size:13px;color:var(--s1)}
 .sum{font-family:var(--display);font-size:22px;line-height:1.35;margin:4px 2px 12px;word-break:keep-all}
 .people{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
 .pp{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:4px 10px 4px 4px;font-size:13px;font-weight:600}
@@ -261,7 +265,7 @@ function loginKakao(intent='join'){
   if(!window.Kakao?.Auth?.authorize){toast('카카오 SDK를 불러오지 못했어요. 새로고침해 주세요.');return}
   if(!window.APP_CONFIG?.authServer){toast('config.js에 Vercel 서버 주소를 먼저 설정해 주세요.');return}
   const state=randId(32);
-  try{sessionStorage.setItem('wmd:oauth',JSON.stringify({state,sid,action:['create','meetings'].includes(intent)?intent:'join',at:Date.now()}))}
+  try{sessionStorage.setItem('wmd:oauth',JSON.stringify({state,sid,tab:new URLSearchParams(location.search).get('tab')==='rank'?'rank':'mine',action:['create','meetings'].includes(intent)?intent:'join',at:Date.now()}))}
   catch(e){toast('로그인에 필요한 브라우저 저장소를 허용해 주세요.');return}
   Kakao.Auth.authorize({redirectUri:loginRedirectUri(),state});
 }
@@ -281,7 +285,7 @@ async function completeKakaoLogin(){
   let pending;try{pending=JSON.parse(sessionStorage.getItem('wmd:oauth'))}catch(e){}
   sessionStorage.removeItem('wmd:oauth');
   sid=pending?.sid||null;
-  history.replaceState(null,'',location.pathname+(sid?'?s='+encodeURIComponent(sid):''));
+  history.replaceState(null,'',location.pathname+(sid?'?s='+encodeURIComponent(sid)+(pending?.tab==='rank'?'&tab=rank':''):''));
   if(!pending||q.get('state')!==pending.state||Date.now()-pending.at>10*60*1000){toast('로그인 요청이 만료됐어요. 다시 시도해 주세요.');return}
   resumeCreate=pending.action==='create';
   resumeMeetings=pending.action==='meetings';
@@ -438,35 +442,41 @@ const monthLabel = ym=>{const[y,m]=ym.split('-').map(Number);return `${y}년 ${m
 const periodLabel = (a,b)=>a===b?monthLabel(a):`${monthLabel(a)} ~ ${b.slice(0,4)===a.slice(0,4)?Number(b.slice(5))+'월':monthLabel(b)}`;
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2000)}
 function monthsBetween(a,b){const out=[];let [y,m]=a.split('-').map(Number);const[ey,em]=b.split('-').map(Number);while(y<ey||(y===ey&&m<=em)){out.push(`${y}-${pad(m)}`);m++;if(m>12){m=1;y++}}return out}
-const shareUrl = sid=>{const url=new URL(PUBLIC_SITE_URL);url.searchParams.set('s',sid);return url.href};
+const shareUrl = (sid,tab='mine')=>{const url=new URL(PUBLIC_SITE_URL);url.searchParams.set('s',sid);if(tab==='rank')url.searchParams.set('tab','rank');return url.href};
+function shareContent(sid,title,options={}){
+  const url=shareUrl(sid,options.tab);
+  const heading=options.title||`📅 ${title} 날 잡아요!`;
+  const description=options.description||'가능한 시간에 스티커만 붙여주세요';
+  return {url,title:heading,description,buttonTitle:options.buttonTitle||'모임투표 참여하기',copyText:options.copyMessage?[heading,description,url].join('\n'):url};
+}
 function canShareToKakao(){
   return Boolean(window.Kakao?.isInitialized?.()&&window.Kakao?.Share?.sendDefault);
 }
-function shareToKakao(sid,title){
-  const url=shareUrl(sid);
+function shareToKakao(sid,title,options={}){
+  const payload=shareContent(sid,title,options),url=payload.url;
   window.Kakao.Share.sendDefault({
     objectType:'feed',
     content:{
-      title:`📅 ${title} 날 잡아요!`,
-      description:'가능한 시간에 스티커만 붙여주세요',
+      title:payload.title,
+      description:payload.description,
       imageUrl:new URL('assets/share-thumbnail-v7.jpg',PUBLIC_SITE_URL).href,
       imageWidth:1734,imageHeight:907,
       link:{mobileWebUrl:url,webUrl:url}
     },
-    buttons:[{title:'모임투표 참여하기',link:{mobileWebUrl:url,webUrl:url}}]
+    buttons:[{title:payload.buttonTitle,link:{mobileWebUrl:url,webUrl:url}}]
   });
 }
-async function share(sid,title){
-  const url=shareUrl(sid);
+async function share(sid,title,options={}){
+  const payload=shareContent(sid,title,options),url=payload.url;
   const supported=typeof navigator.share==='function';
   const kakaoAvailable=canShareToKakao();
   const inKakao=/KAKAOTALK/i.test(navigator.userAgent||'');
   // Keep the Kakao SDK call in the original tap handler for app/webview navigation.
   if(kakaoAvailable&&(inKakao||!supported)){
-    try{shareToKakao(sid,title);return}catch(e){}
+    try{shareToKakao(sid,title,options);return}catch(e){}
   }
   if(supported){
-    try{await navigator.share({title:`📅 ${title} 날 잡아요!`,text:'가능한 시간에 스티커만 붙여주세요',url});return}
+    try{await navigator.share({title:payload.title,text:payload.description,url});return}
     catch(e){if(e.name==='AbortError')return}
   }
   document.querySelector('#shareFallback')?.remove();
@@ -481,11 +491,11 @@ async function share(sid,title){
   el.querySelector('[data-close]').onclick=close;
   el.addEventListener('cancel',e=>{e.preventDefault();close()});
   if(kakaoAvailable)el.querySelector('[data-kakao]').onclick=()=>{
-    try{shareToKakao(sid,title);close()}catch(e){toast('카카오톡 공유를 열지 못했어요. 잠시 후 다시 시도해 주세요.')}
+    try{shareToKakao(sid,title,options);close()}catch(e){toast('카카오톡 공유를 열지 못했어요. 잠시 후 다시 시도해 주세요.')}
   };
   el.querySelector('[data-copy]').onclick=async()=>{
-    try{await navigator.clipboard.writeText(url);close();toast('링크를 복사했어요')}
-    catch(e){prompt('이 링크를 복사해 주세요',url)}
+    try{await navigator.clipboard.writeText(payload.copyText);close();toast(options.copyMessage?'투표 상황과 링크를 복사했어요':'링크를 복사했어요')}
+    catch(e){prompt('공유할 내용을 복사해 주세요',payload.copyText)}
   };
   document.body.appendChild(el);el.showModal();
 }
@@ -694,7 +704,7 @@ async function bootSession(){
   detachVoteDrag?.();detachVoteDrag=null;
   const id=sid,request=++sessionLoad;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];
-  shown=null;S.me=null;S.members={};S.votes={};S.tab='mine';
+  shown=null;S.me=null;S.members={};S.votes={};S.tab=new URLSearchParams(location.search).get('tab')==='rank'?'rank':'mine';
   $('#app').innerHTML='<p class="empty">불러오는 중…</p>';
   let data;
   try{
@@ -716,7 +726,9 @@ async function bootSession(){
     if(request!==sessionLoad)return;
     const old=S.members[kakaoUser.id];
     const name=myProfile.nickname||old?.name;
-    if(name){
+    if(S.tab==='rank'){
+      if(old){S.me=kakaoUser.id;await rememberMeeting(id)}
+    }else if(name){
       try{
         const member=await joinWithNickname(id,name);
         if(request!==sessionLoad)return;
@@ -738,7 +750,7 @@ async function bootSession(){
 
 let shown=null;
 function route(){
-  const want=S.me?'main':'entry';
+  const want=S.me||S.tab==='rank'?'main':'entry';
   if(want!==shown){shown=want;want==='main'?viewMain():viewEntry()}
   else refresh();
 }
@@ -811,7 +823,13 @@ function viewMain(){
     <div class="vote-delete-footer" id="deleteControl"></div>`;
   renderDeleteControl();
   $('#myMeetings').onclick=openMyMeetings;
-  $('.tabs').onclick=e=>{const b=e.target.closest('.tab');if(b){S.tab=b.dataset.t;renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'})}};
+  $('.tabs').onclick=e=>{const b=e.target.closest('.tab');if(b){
+    S.tab=b.dataset.t;const url=new URL(location.href);
+    if(S.tab==='rank')url.searchParams.set('tab','rank');else url.searchParams.delete('tab');
+    history.replaceState(null,'',url.pathname+url.search);
+    if(!S.me&&S.tab==='mine'){route();return}
+    renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'})
+  }};
   renderMe();renderTab();
   if(SS.get('wmd:new')===sid){SS.del('wmd:new');openShareSheet()}
 }
@@ -867,6 +885,24 @@ async function openMyMeetings(){
       ${failed?'<p class="hint">일부 모임을 불러오지 못했어요.</p><button class="btn ghost" data-retry>다시 불러오기</button>':''}`;
   }catch(e){if(el.isConnected)body.innerHTML='<p class="empty">목록을 불러오지 못했어요.</p><button class="btn ghost" data-retry>다시 불러오기</button>'}
 }
+function rankShareState(data=S,ranked=computeRank(data).list){
+  const ids=Object.keys(data.members||{}),voters=new Set();
+  for(const row of ranked)for(const id of Object.keys(row.lv))voters.add(id);
+  const expected=Number.isSafeInteger(data.meta?.expectedCount)&&data.meta.expectedCount>=2&&data.meta.expectedCount<=100?data.meta.expectedCount:null;
+  const total=Math.max(expected||0,ids.length),voted=voters.size,remaining=expected?Math.max(0,total-voted):null;
+  const complete=Boolean(expected&&total>=2&&remaining===0);
+  const headline=expected?(complete?'모두 투표에 참여했어요!':remaining+'명만 더 투표하면 돼요!'):voted+'명이 투표에 참여했어요.';
+  const dates=[],seen=new Set();
+  for(const row of ranked){if(seen.has(row.d))continue;seen.add(row.d);dates.push(row);if(dates.length===5)break}
+  const lines=dates.map((row,i)=>{const d=parseYmd(row.d);return (i+1)+'. '+d.getFullYear()+'.'+pad(d.getMonth()+1)+'.'+pad(d.getDate())+' ('+WD[d.getDay()]+') '+SLOT_NAME[row.sl]+' · '+row.count+'/'+total+'명'});
+  const description=[headline,dates.length?(complete?'상위 '+dates.length+'개 날짜':'현재 유력 날짜'):'아직 유력 날짜가 없어요.',...lines].join('\n');
+  return {total,voted,remaining,complete,headline,dates,description};
+}
+function shareRankStatus(){
+  const status=rankShareState();
+  return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+(status.complete?' 투표 결과':' 현재 투표 상황'),description:status.description,buttonTitle:'날짜 순위 보기',copyMessage:true});
+}
+
 function attendanceInfo(){
   const ids=Object.keys(S.members||{});
   const expected=Number.isSafeInteger(S.meta?.expectedCount)&&S.meta.expectedCount>=2&&S.meta.expectedCount<=100?S.meta.expectedCount:null;
@@ -875,6 +911,7 @@ function attendanceInfo(){
 function renderAttendance(){
   const el=$('#attendance');if(!el)return;
   const {ids,joined,expected,voted}=attendanceInfo();
+  const shareStatus=rankShareState();
   const members=S.members||{};
   const sorted=[...ids].sort((a,b)=>(members[a].joinedAt||0)-(members[b].joinedAt||0));
   el.innerHTML=`
@@ -884,7 +921,9 @@ function renderAttendance(){
     </div>
     <div class="member-stickers">${sorted.map(id=>{const c=COLORS[hash(id)%COLORS.length];return `<span class="name-sticker" style="--member-color:${c};--member-bg:${c}12">${esc(members[id].name)}${id===S.me?' <small>(나)</small>':''}</span>`}).join('')||'<span class="hint">참여한 친구들이 여기에 표시돼요.</span>'}</div>
     <p class="hint">${voted}명이 스티커를 붙였어요.${expected?'':' 예정 인원이 아직 정해지지 않았어요.'}</p>
-    ${expected?'':'<button class="btn ghost" id="setExpected">예정 인원 설정</button>'}`;
+    ${expected?'':'<button class="btn ghost" id="setExpected">예정 인원 설정</button>'}
+    ${shareStatus.complete?'<div class="vote-results-ready"><b>모두 참여했어요! 상위 5개 날짜를 공유해 보세요.</b><button class="btn blue invite-btn" id="shareAllResults">'+shareIcon()+'결과 공유하기</button></div>':''}`;
+  if($('#shareAllResults'))$('#shareAllResults').onclick=shareRankStatus;
   $('#inviteVote').onclick=()=>share(sid,S.meta.title);
   if($('#setExpected'))$('#setExpected').onclick=async()=>{
     const value=prompt('나를 포함한 전체 인원을 입력해 주세요. (2명 이상)',String(Math.max(2,joined)));
@@ -900,7 +939,7 @@ function renderAttendance(){
 }
 function renderMe(){
   renderAttendance();
-  const m=S.members?.[S.me];if(!m||!$('#mebar'))return;
+  const m=S.members?.[S.me],bar=$('#mebar');if(!bar)return;bar.hidden=!m;if(!m)return;
   $('#mebar').innerHTML=`<span class="row">${avatar(m.name)}<span><b>${esc(m.name)}</b>${ro(m.name)} 참여 중</span></span><button class="btn ghost" id="switch">이름 바꾸기</button>`;
   $('#switch').onclick=async()=>{
     const typed=prompt('모든 모임에서 사용할 닉네임을 입력해 주세요. (최대 10자)',myProfile.nickname||m.name);
@@ -1215,6 +1254,7 @@ function computeRank(data=S){
 }
 function renderRank(){
   const {ids,list}=computeRank();
+  const shareStatus=rankShareState(S,list);
   const {target:total,expected,remaining}=attendanceInfo();
   const members=S.members||{};
   const sorted=[...ids].sort((a,b)=>members[a].joinedAt-members[b].joinedAt);
@@ -1232,6 +1272,7 @@ function renderRank(){
   const shownList=S.showAll?list:list.slice(0,10);
   $('#body').innerHTML=`
     <p class="sum">${esc(sum)}</p>
+    <section class="status-share-panel" aria-label="현재 투표 상황 공유"><p>${esc(shareStatus.headline)}</p><button class="btn blue block" id="shareVoteStatus">${shareIcon()}${shareStatus.complete?'상위 5일 결과 공유하기':'현재 상황 공유하기'}</button></section>
     <div class="people">${sorted.map(id=>{const c=cnt(id);return `<span class="pp${c?'':' wait'}">${avatar(members[id].name)}${esc(members[id].name)} <em>${c?c+'칸':'아직'}</em></span>`}).join('')}</div>
     ${list.length?`<ol class="rank">${shownList.map((r,i)=>{
       const dt=parseYmd(r.d),dow=dt.getDay(),isAll=r.count===total&&total>0;
@@ -1248,6 +1289,7 @@ function renderRank(){
       ${list.length>10?`<button class="btn ghost more" id="more">${S.showAll?'상위 10개만 보기':`전체 ${list.length}개 보기`}</button>`:''}`
     :`<div class="empty">‘스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}
     <p class="hint" style="text-align:center;margin-top:14px">가능하다고 표시한 사람 수가 많은 순, 같으면 스티커 가중치 합계가 높은 순이에요. 아마 가능 2점 · 되긴 하는데… 1점</p>`;
+  $('#shareVoteStatus').onclick=shareRankStatus;
   const more=$('#more');if(more)more.onclick=()=>{S.showAll=!S.showAll;renderRank()};
 }
 
@@ -1273,6 +1315,7 @@ window.addEventListener('popstate',()=>{
 </script>
 </body>
 </html>
+
 
 
 
