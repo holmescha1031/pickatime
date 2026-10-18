@@ -210,6 +210,9 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .linkbox{background:var(--paper);border-radius:12px;padding:12px;font-size:13px;word-break:break-all;margin:10px 0 14px;color:var(--sub)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
+.vote-delete-footer{display:flex;justify-content:center;margin:26px 0 0}
+.btn.delete-vote{background:transparent;color:var(--sun);font-size:12px;font-weight:500;padding:8px 10px;gap:5px}
+.delete-vote svg{width:14px;height:14px;flex:none}
 .top-actions{display:flex;align-items:center;gap:2px}
 .my-meetings .panel{max-height:85dvh;overflow-y:auto;overscroll-behavior:contain}
 .list-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
@@ -498,6 +501,49 @@ async function meetingIdFor(creatorId,title){
   return 'm_'+Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
 }
 
+let stopMeetingStatusWatch=()=>{};
+async function isMeetingDeleted(id){
+  if(!/^m_[a-f0-9]{64}$/.test(id||''))return false;
+  const url=new URL('/api/meeting',window.APP_CONFIG.authServer);url.searchParams.set('sid',id);
+  const r=await fetch(url,{credentials:'include',cache:'no-store'});
+  const data=await r.json();if(!r.ok)throw new Error(data.error||'삭제 정보를 확인하지 못했어요.');
+  return data.deleted===true;
+}
+function showDeletedMeeting(){
+  stopMeetingStatusWatch();detachVoteDrag?.();detachVoteDrag=null;
+  (S.unsub||[]).forEach(f=>f());S.unsub=[];shown=null;
+  $('#app').innerHTML='<div class="hero"><a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a><h1>삭제된 투표예요</h1><p>모임을 만든 사람이 삭제한 투표입니다.</p></div><a class="btn blue block" href="./">홈으로 돌아가기</a>';
+}
+function watchMeetingStatus(id,request){
+  stopMeetingStatusWatch();let busy=false;
+  const check=async()=>{
+    if(document.hidden||busy||sid!==id||request!==sessionLoad)return;busy=true;
+    try{const deleted=await isMeetingDeleted(id);if(deleted&&sid===id&&request===sessionLoad){sessionLoad++;showDeletedMeeting()}}catch{}finally{busy=false}
+  };
+  const timer=setInterval(check,30000);document.addEventListener('visibilitychange',check);
+  stopMeetingStatusWatch=()=>{clearInterval(timer);document.removeEventListener('visibilitychange',check);stopMeetingStatusWatch=()=>{}};
+}
+async function renderDeleteControl(){
+  const id=sid,title=S.meta?.title,host=$('#deleteControl');
+  if(!host||!kakaoUser||!title)return;
+  const userId=kakaoUser.id;
+  if(await meetingIdFor(userId,title)!==id||sid!==id||kakaoUser?.id!==userId||$('#deleteControl')!==host)return;
+  host.innerHTML='<button class="btn delete-vote" id="deleteVote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>이 투표 삭제하기</button>';
+  $('#deleteVote').onclick=async()=>{
+    if(!confirm('이 투표를 삭제할까요?\n삭제하면 참여자 목록에서 사라지고 공유 링크로도 열 수 없어요.'))return;
+    const btn=$('#deleteVote');btn.disabled=true;btn.textContent='삭제하는 중…';
+    try{
+      const r=await fetch(new URL('/api/meeting',window.APP_CONFIG.authServer),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',sid:id})});
+      const result=await r.json();if(!r.ok)throw new Error(result.error||'삭제하지 못했어요.');
+      delete myProfile.meetings[id];cacheMyProfile();LS.del('wmd:me:'+id);SS.del('wmd:new');
+      if(sid!==id)return;
+      sessionLoad++;stopMeetingStatusWatch();detachVoteDrag?.();detachVoteDrag=null;
+      (S.unsub||[]).forEach(f=>f());S.unsub=[];sid=null;shown=null;
+      history.replaceState(null,'',location.pathname);viewCreate();window.scrollTo(0,0);toast('투표를 삭제했어요');
+    }catch(e){if(sid===id&&$('#deleteVote')===btn){btn.disabled=false;renderDeleteControl();toast(e.message||'삭제하지 못했어요. 잠시 후 다시 시도해 주세요.')}}
+  };
+}
+
 function listIcon(){
   return '<svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>';
 }
@@ -510,6 +556,7 @@ function meetingSticker(level=1){
 }
 
 function viewCreate(){
+  stopMeetingStatusWatch();
   detachVoteDrag?.();detachVoteDrag=null;
   document.title='언제봐?';
   const now=new Date();
@@ -606,7 +653,10 @@ function viewCreate(){
     let id;
     try{
       id=await meetingIdFor(kakaoUser.id,title);
-      if(await store.get(`sessions/${id}/meta`)){showExistingMeeting(id);return}
+      if(await store.get(`sessions/${id}/meta`)){
+        if(await isMeetingDeleted(id))throw Object.assign(new Error('Deleted meeting'),{code:'DELETED_MEETING'});
+        showExistingMeeting(id);return
+      }
       await store.set(`sessions/${id}/meta`,{title,start,end,expectedCount,createdAt:Date.now()});
       SS.del('wmd:createDraft');
       SS.set('wmd:new',id);
@@ -621,7 +671,9 @@ function viewCreate(){
         try{duplicate=Boolean(await store.get(`sessions/${id}/meta`))}catch(readError){}
       }
       if(duplicate&&id){showExistingMeeting(id);return}
-      const message=denied
+      const message=code==='DELETED_MEETING'
+        ?'삭제한 투표와 같은 이름이에요. 다른 모임 이름을 입력해 주세요.'
+        :denied
         ?'모임 저장 권한이 없습니다. Firebase Realtime Database 규칙을 확인해 주세요. (PERMISSION_DENIED)'
         :'모임을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'+(/^[a-z0-9_/-]{1,80}$/i.test(code)?' ('+code+')':'');
       const error=$('#createError');error.textContent=message;error.hidden=false;
@@ -639,12 +691,20 @@ const meKey=()=>`wmd:me:${sid}`;
 
 let sessionLoad=0;
 async function bootSession(){
+  stopMeetingStatusWatch();
   detachVoteDrag?.();detachVoteDrag=null;
   const id=sid,request=++sessionLoad;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];
   shown=null;S.me=null;S.members={};S.votes={};S.tab='mine';
   $('#app').innerHTML='<p class="empty">불러오는 중…</p>';
-  let data;try{data=await store.get(`sessions/${id}`)}catch(e){}
+  let data;
+  try{
+    if(await isMeetingDeleted(id)){if(request===sessionLoad)showDeletedMeeting();return}
+    data=await store.get(`sessions/${id}`);
+  }catch(e){
+    if(request===sessionLoad)$('#app').innerHTML='<p class="empty">투표를 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p><a class="btn blue block" href="'+esc(shareUrl(id))+'">다시 불러오기</a>';
+    return;
+  }
   if(request!==sessionLoad)return;
   S.meta=data?.meta||null;
   if(!S.meta){
@@ -668,6 +728,7 @@ async function bootSession(){
   if(request!==sessionLoad)return;
   document.title=`${S.meta.title} · 언제봐?`;
   route();
+  watchMeetingStatus(id,request);
   S.unsub=[store.on(`sessions/${id}/meta`,v=>{if(request!==sessionLoad)return;if(v){S.meta=v;refresh()}}),store.on(`sessions/${id}/members`,v=>{
     if(request!==sessionLoad)return;
     S.members=v||{};
@@ -707,7 +768,9 @@ function viewEntry(){
       <div class="join-row"><input class="inp" id="nick" maxlength="10" autocomplete="off" placeholder="친구들이 알아볼 이름" value="${esc([...typed].slice(0,10).join(''))}" ${myProfile.nickname?'readonly':''}>
       <button class="btn blue" id="join">참여하기</button></div>`}
     </section>
-    ${kakaoUser?'<div class="account-switch"><button class="btn ghost" id="otherAccount">다른 카카오 계정으로 로그인</button></div>':''}`;
+    ${kakaoUser?'<div class="account-switch"><button class="btn ghost" id="otherAccount">다른 카카오 계정으로 로그인</button></div>':''}
+    <div class="vote-delete-footer" id="deleteControl"></div>`;
+  renderDeleteControl();
   if(!kakaoUser){$('#kakaoLogin').onclick=loginKakao;return}
   $('#otherAccount').onclick=async()=>{
     try{
@@ -745,7 +808,9 @@ function viewMain(){
       <button class="tab" role="tab" data-t="mine">스티커 붙이기</button>
       <button class="tab" role="tab" data-t="rank">날짜 순위<span class="live" aria-hidden="true"></span></button>
     </div>
-    <div id="body"></div>`;
+    <div id="body"></div>
+    <div class="vote-delete-footer" id="deleteControl"></div>`;
+  renderDeleteControl();
   $('#myMeetings').onclick=openMyMeetings;
   $('.tabs').onclick=e=>{const b=e.target.closest('.tab');if(b){S.tab=b.dataset.t;renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'})}};
   renderMe();renderTab();
@@ -794,7 +859,7 @@ async function openMyMeetings(){
     await loadMyProfile();
     if(!el.isConnected||kakaoUser?.id!==userId)return;
     const ids=Object.keys(myProfile.meetings);
-    const results=await Promise.allSettled(ids.map(async id=>meetingPreview(id,await store.get(`sessions/${id}`),userId)));
+    const results=await Promise.allSettled(ids.map(async id=>await isMeetingDeleted(id)?null:meetingPreview(id,await store.get(`sessions/${id}`),userId)));
     if(!el.isConnected||kakaoUser?.id!==userId)return;
     const meetings=results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value).sort((a,b)=>b.createdAt-a.createdAt||a.title.localeCompare(b.title));
     const failed=results.some(r=>r.status==='rejected');
@@ -1207,4 +1272,5 @@ window.addEventListener('popstate',()=>{
 </script>
 </body>
 </html>
+
 

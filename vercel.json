@@ -3,6 +3,9 @@
   "functions": {
     "api/kakao.js": {
       "maxDuration": 30
+    },
+    "api/meeting.js": {
+      "maxDuration": 30
     }
   }
 }
