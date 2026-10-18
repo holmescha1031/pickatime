@@ -118,6 +118,9 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .wk div{text-align:center;font-size:12px;font-weight:600;color:var(--sub);padding-bottom:6px}
 .wk div:first-child,.day.sun .n{color:var(--sun)}
 .wk div:last-child,.day.sat .n{color:var(--sat)}
+.day.holiday .n{color:var(--sun)}
+.day.today.holiday .n{background:var(--sun);color:white}
+.half{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .day{display:flex;flex-direction:column;gap:3px;padding:3px 2px;min-width:0}
 .day .n{text-align:center;font-size:13px;font-weight:700;line-height:1.2;position:relative}
 .day.past .n{color:#C3CBDA!important;font-weight:500}
@@ -229,6 +232,8 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="./config.js"></script>
+<script src="./assets/kr-holidays.js"></script>
+<script src="./assets/vote-drag.js"></script>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -420,6 +425,7 @@ const ymOf = d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
 const ymdOf = d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const parseYmd = s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
 const todayStr = ()=>ymdOf(new Date());
+const holidayName = date=>window.KR_HOLIDAYS?.[date]||'';
 const esc = s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hash = s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)};
 const colorOf = name=>COLORS[hash(name)%COLORS.length];
@@ -504,6 +510,7 @@ function meetingSticker(level=1){
 }
 
 function viewCreate(){
+  detachVoteDrag?.();detachVoteDrag=null;
   document.title='언제봐?';
   const now=new Date();
   const months=[...Array(12)].map((_,i)=>ymOf(new Date(now.getFullYear(),now.getMonth()+i,1)));
@@ -632,6 +639,7 @@ const meKey=()=>`wmd:me:${sid}`;
 
 let sessionLoad=0;
 async function bootSession(){
+  detachVoteDrag?.();detachVoteDrag=null;
   const id=sid,request=++sessionLoad;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];
   shown=null;S.me=null;S.members={};S.votes={};S.tab='mine';
@@ -675,17 +683,23 @@ function route(){
   else refresh();
 }
 function refresh(){
-  if(shown==='entry')viewEntry();
+  if(shown==='entry'){
+    // Realtime snapshots must not replace an input being edited (including Korean IME).
+    const title=$('#entryTitle'),period=$('#entryPeriod');
+    if(title)title.textContent=S.meta.title;
+    if(period)period.textContent=periodLabel(S.meta.start,S.meta.end)+' 중에 골라요';
+  }
   if(shown==='main'){renderMe();S.tab==='mine'?syncCalendar():renderRank()}
 }
 
 /* ----- 닉네임 선택 ----- */
 function viewEntry(){
+  detachVoteDrag?.();detachVoteDrag=null;
   const typed=myProfile.nickname||$('#nick')?.value||kakaoUser?.name||'';
   $('#app').innerHTML=`
     <a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a>
-    <h1 class="stitle">${esc(S.meta.title)}</h1>
-    <p class="speriod">${periodLabel(S.meta.start,S.meta.end)} 중에 골라요</p>
+    <h1 class="stitle" id="entryTitle">${esc(S.meta.title)}</h1>
+    <p class="speriod" id="entryPeriod">${periodLabel(S.meta.start,S.meta.end)} 중에 골라요</p>
     <section class="panel">
       ${!kakaoUser?`<p>카카오로 로그인하고 되는 시간에 스티커를 붙여 주세요.</p>
       <button class="btn block" id="kakaoLogin" style="background:#FEE500;color:#191919">카카오 로그인</button>`:
@@ -834,7 +848,9 @@ function renderMe(){
     }catch(e){toast('계정 닉네임을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')}
   };
 }
+let detachVoteDrag=null;
 function renderTab(){
+  detachVoteDrag?.();detachVoteDrag=null;
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.t===S.tab));
   S.tab==='mine'?renderCalendar():renderRank();
 }
@@ -860,6 +876,7 @@ const SLOT_NAME={L:'점심',D:'저녁'};
 function myVotes(){return S.votes?.[S.me]||{}}
 const lvOf=(v,d,sl)=>(v&&typeof v[d]==='object'&&v[d])?(v[d][sl]||0):0;
 function renderCalendar(){
+  detachVoteDrag?.();detachVoteDrag=null;
   const today=todayStr(),mv=myVotes(),idx=calDays();
   const html=monthsBetween(S.meta.start,S.meta.end).map(ym=>{
     const [y,m]=ym.split('-').map(Number);
@@ -867,12 +884,13 @@ function renderCalendar(){
     const cells=Array(first).fill({h:'<div></div>',past:true});
     for(let d=1;d<=days;d++){
       const ds=`${ym}-${pad(d)}`,dow=(first+d-1)%7,past=ds<today;
+      const holiday=holidayName(ds);
       const dayEv=past?[]:(idx[ds]||[]);
       const halves=SLOTS.map(([sl,name])=>{
         const l=past?0:lvOf(mv,ds,sl),r=(hash(ds+sl)%9)-4,busy=dayEv.some(e=>e[sl]);
         return `<button class="half${busy?' busy':''}" data-d="${ds}" data-s="${sl}" data-l="${l}" ${past?'disabled':''}
-          aria-label="${m}월 ${d}일 ${WD[dow]}요일 ${name}${busy?', 내 일정 있음':''}${l?', '+LEVEL_TEXT[l]:''}"><i class="stk" style="--r:${r}deg" aria-hidden="true">${meetingSticker()}</i><span class="lb">${name}</span></button>`}).join('');
-      cells.push({past,ds,dow,m,d,h:`<div class="day${dow===0?' sun':''}${dow===6?' sat':''}${ds===today?' today':''}${past?' past':''}"><span class="n">${d}</span>${halves}</div>`});
+          aria-label="${m}월 ${d}일 ${WD[dow]}요일${holiday?', '+holiday:''} ${name}${busy?', 내 일정 있음':''}${l?', '+LEVEL_TEXT[l]:''}"><i class="stk" style="--r:${r}deg" aria-hidden="true">${meetingSticker()}</i><span class="lb">${name}</span></button>`}).join('');
+      cells.push({past,ds,dow,m,d,h:`<div title="${esc(holiday)}" class="day${holiday?' holiday':''}${dow===0?' sun':''}${dow===6?' sat':''}${ds===today?' today':''}${past?' past':''}"><span class="n">${d}</span>${halves}</div>`});
     }
     let rows='';
     for(let i=0;i<cells.length;i+=7){const wk=cells.slice(i,i+7);if(wk.every(c=>c.past))continue;rows+=wk.map(c=>c.h).join('');rows+=weekStrip(wk,idx)}
@@ -889,9 +907,11 @@ function renderCalendar(){
       <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>세 번 클릭: 되긴 하는데…</span>
       <span>(네 번 누르면 떼져요)</span>
     </div>
+    <p class="hint" style="margin:0 2px 12px">드래그하면 같은 스티커를 이어 붙여요. 휴대폰에서는 길게 누른 뒤 움직여 보세요.</p>
     ${html}
     <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
+  detachVoteDrag=window.attachVoteDrag($('#body'),setVoteLevel);
   $('#icsFile').onchange=importIcs;
 }
 function onDayTap(e){
@@ -905,7 +925,12 @@ function onDayTap(e){
     return;
   }
   const b=e.target.closest('.half');if(!b||b.disabled)return;
-  const d=b.dataset.d,sl=b.dataset.s,next=((+b.dataset.l||0)+1)%4;
+  setVoteLevel(b,((Number(b.dataset.l)||0)+1)%4);
+}
+function setVoteLevel(b,next){
+  if(!b||b.disabled||!S.me)return;
+  if(Number(b.dataset.l)===next)return;
+  const d=b.dataset.d,sl=b.dataset.s;
   b.dataset.l=next;
   const mv={...myVotes()};const day={...(typeof mv[d]==='object'&&mv[d]?mv[d]:{})};
   if(next)day[sl]=next;else delete day[sl];
@@ -1150,7 +1175,7 @@ function renderRank(){
       const notes=[miss.length?`아직 선택 안 함: ${miss.map(esc).join(', ')}`:'',vague.length?`애매해요: ${vague.map(esc).join(', ')}`:''].filter(Boolean).join('<br>');
       return `<li class="rk${isAll?' all':''}">
         <div class="pos">${i+1}</div>
-        <div><div class="rdate">${dt.getMonth()+1}월 ${dt.getDate()}일<small class="${dow===0?'sun':dow===6?'sat':''}">${WD[dow]}</small><span class="slot ${r.sl}">${SLOT_NAME[r.sl]}</span></div>
+        <div><div class="rdate">${dt.getMonth()+1}월 ${dt.getDate()}일<small class="${dow===0||holidayName(r.d)?'sun':dow===6?'sat':''}" title="${esc(holidayName(r.d))}">${WD[dow]}</small><span class="slot ${r.sl}">${SLOT_NAME[r.sl]}</span></div>
           <div class="bar">${segs}</div>${notes?`<div class="missing">${notes}</div>`:''}</div>
         <div>${isAll?`<span class="allstk">${expected?'다 되는<br>시간!':'현재 참여자<br>모두 가능'}</span>`:`<div class="cnt">${r.count}<small>/${total}명</small></div>`}</div>
       </li>`}).join('')}</ol>
@@ -1182,3 +1207,4 @@ window.addEventListener('popstate',()=>{
 </script>
 </body>
 </html>
+
