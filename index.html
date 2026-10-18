@@ -126,10 +126,10 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .day .n{text-align:center;font-size:13px;font-weight:700;line-height:1.2;position:relative}
 .day.past .n{color:#C3CBDA!important;font-weight:500}
 .day.today .n{background:var(--ink);color:#fff!important;border-radius:99px;margin:0 auto;padding:0 7px}
-.half{position:relative;border:0;padding:0;height:48px;border-radius:11px;background:#EFF1FA;display:grid;place-items:center;overflow:visible}
+.half{position:relative;border:0;padding:0;height:48px;border-radius:11px;background:var(--vote-bg,#EFF1FA);display:grid;place-items:center;overflow:visible}
 .half:disabled{background:transparent;cursor:default}
 .half:disabled .lb{opacity:0}
-.half .lb{position:relative;z-index:2;font-size:10px;font-weight:600;color:#8C9B92;white-space:nowrap}
+.half .lb{position:relative;z-index:2;font-size:10px;font-weight:600;color:#14132B;white-space:nowrap}
 .half[data-l]:not([data-l="0"]) .lb{display:none}
 .stk{position:absolute;z-index:1;inset:0;border:0;padding:1px 3px;background:transparent;
   box-shadow:none;
@@ -167,8 +167,6 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .clear{display:block;margin:4px auto 0}
 
 /* ranking */
-.status-share-panel{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:14px;margin:12px 0 16px}
-.status-share-panel p{margin:0 0 10px;font-size:14px;line-height:1.5;font-weight:600}
 .vote-results-ready{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:12px;padding-top:12px;font-size:13px;color:var(--s1)}
 .sum{font-family:var(--display);font-size:22px;line-height:1.35;margin:4px 2px 12px;word-break:keep-all}
 .people{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
@@ -922,7 +920,7 @@ function renderAttendance(){
     <div class="member-stickers">${sorted.map(id=>{const c=COLORS[hash(id)%COLORS.length];return `<span class="name-sticker" style="--member-color:${c};--member-bg:${c}12">${esc(members[id].name)}${id===S.me?' <small>(나)</small>':''}</span>`}).join('')||'<span class="hint">참여한 친구들이 여기에 표시돼요.</span>'}</div>
     <p class="hint">${voted}명이 스티커를 붙였어요.${expected?'':' 예정 인원이 아직 정해지지 않았어요.'}</p>
     ${expected?'':'<button class="btn ghost" id="setExpected">예정 인원 설정</button>'}
-    ${shareStatus.complete?'<div class="vote-results-ready"><b>모두 참여했어요! 상위 5개 날짜를 공유해 보세요.</b><button class="btn blue invite-btn" id="shareAllResults">'+shareIcon()+'결과 공유하기</button></div>':''}`;
+    <div class="vote-results-ready"><b>${esc(shareStatus.complete?'모두 참여했어요! 상위 5개 날짜를 공유해 보세요.':shareStatus.headline)}</b><button class="btn blue invite-btn" id="shareAllResults">${shareIcon()}${shareStatus.complete?'결과 공유하기':'현재 상황 공유하기'}</button></div>`;
   if($('#shareAllResults'))$('#shareAllResults').onclick=shareRankStatus;
   $('#inviteVote').onclick=()=>share(sid,S.meta.title);
   if($('#setExpected'))$('#setExpected').onclick=async()=>{
@@ -981,9 +979,34 @@ const SLOTS=[['L','점심'],['D','저녁']];
 const SLOT_NAME={L:'점심',D:'저녁'};
 function myVotes(){return S.votes?.[S.me]||{}}
 const lvOf=(v,d,sl)=>(v&&typeof v[d]==='object'&&v[d])?normalizeVoteLevel(v[d][sl]):0;
+function calendarVoteTotal(data=S){
+  const expected=data.meta?.expectedCount;
+  return Math.max(Number.isSafeInteger(expected)&&expected>=2&&expected<=100?expected:0,Object.keys(data.members||{}).length,1);
+}
+function calendarVoteHeat(data=S){
+  const counts={};
+  for(const row of computeRank(data).list)counts[row.d+'|'+row.sl]=row.count;
+  return {counts,total:calendarVoteTotal(data)};
+}
+function calendarHeatColor(count,total){
+  const t=Math.pow(Math.max(0,Math.min(1,count/Math.max(1,total))),0.8);
+  const from=[239,241,250],to=[129,121,202];
+  return 'rgb('+from.map((v,i)=>Math.round(v+(to[i]-v)*t)).join(', ')+')';
+}
+function calendarVoteLabel(date,slot,level,count,total,busy=false){
+  const d=parseYmd(date),holiday=holidayName(date);
+  return d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+WD[d.getDay()]+'요일'+(holiday?', '+holiday:'')+' '+SLOT_NAME[slot]+(busy?', 내 일정 있음':'')+(level?', 내 선택: '+LEVEL_TEXT[level]:'')+', '+count+'/'+total+'명 가능';
+}
+function applyCalendarHeat(button,count,total){
+  button.style.setProperty('--vote-bg',calendarHeatColor(count,total));
+  button.dataset.votes=String(count);button.dataset.voteTotal=String(total);
+  const label=calendarVoteLabel(button.dataset.d,button.dataset.s,Number(button.dataset.l)||0,count,total,button.classList.contains('busy'));
+  button.title=label;button.setAttribute('aria-label',label);
+}
+
 function renderCalendar(){
   detachVoteDrag?.();detachVoteDrag=null;
-  const today=todayStr(),mv=myVotes(),idx=calDays();
+  const today=todayStr(),mv=myVotes(),idx=calDays(),heat=calendarVoteHeat();
   const html=monthsBetween(S.meta.start,S.meta.end).map(ym=>{
     const [y,m]=ym.split('-').map(Number);
     const first=new Date(y,m-1,1).getDay(),days=new Date(y,m,0).getDate();
@@ -993,9 +1016,10 @@ function renderCalendar(){
       const holiday=holidayName(ds);
       const dayEv=past?[]:(idx[ds]||[]);
       const halves=SLOTS.map(([sl,name])=>{
-        const l=past?0:lvOf(mv,ds,sl),r=(hash(ds+sl)%9)-4,busy=dayEv.some(e=>e[sl]);
-        return `<button class="half${busy?' busy':''}" data-d="${ds}" data-s="${sl}" data-l="${l}" ${past?'disabled':''}
-          aria-label="${m}월 ${d}일 ${WD[dow]}요일${holiday?', '+holiday:''} ${name}${busy?', 내 일정 있음':''}${l?', '+LEVEL_TEXT[l]:''}"><i class="stk" style="--r:${r}deg" aria-hidden="true">${meetingSticker()}</i><span class="lb">${name}</span></button>`}).join('');
+        const l=past?0:lvOf(mv,ds,sl),r=(hash(ds+sl)%9)-4,busy=dayEv.some(e=>e[sl]),count=heat.counts[ds+'|'+sl]||0;
+        const voteLabel=calendarVoteLabel(ds,sl,l,count,heat.total,busy);
+        return `<button class="half${busy?' busy':''}" data-d="${ds}" data-s="${sl}" data-l="${l}" data-votes="${count}" data-vote-total="${heat.total}" style="--vote-bg:${calendarHeatColor(count,heat.total)}" ${past?'disabled':''}
+          title="${esc(voteLabel)}" aria-label="${esc(voteLabel)}"><i class="stk" style="--r:${r}deg" aria-hidden="true">${meetingSticker()}</i><span class="lb">${name}</span></button>`}).join('');
       cells.push({past,ds,dow,m,d,h:`<div title="${esc(holiday)}" class="day${holiday?' holiday':''}${dow===0?' sun':''}${dow===6?' sat':''}${ds===today?' today':''}${past?' past':''}"><span class="n">${d}</span>${halves}</div>`});
     }
     let rows='';
@@ -1040,13 +1064,18 @@ function setVoteLevel(b,next){
   if(next)day[sl]=next;else delete day[sl];
   if(Object.keys(day).length)mv[d]=day;else delete mv[d];
   S.votes={...S.votes,[S.me]:mv};
+  const count=Object.keys(S.members||{}).filter(id=>normalizeVoteLevel(S.votes?.[id]?.[d]?.[sl])>0).length;
+  applyCalendarHeat(b,count,calendarVoteTotal());
   navigator.vibrate?.(8);
   store.set(`sessions/${sid}/votes/${S.me}/${d}/${sl}`,next||null).catch(async()=>{toast('저장하지 못했어요. 인터넷 연결과 DB 규칙을 확인해 주세요.');try{S.votes=await store.get(`sessions/${sid}/votes`)||{};refresh()}catch(e){}});
 }
 function syncCalendar(){
   if(!$('.month'))return;
-  const mv=myVotes();
-  document.querySelectorAll('.half:not(:disabled)').forEach(b=>{const l=String(lvOf(mv,b.dataset.d,b.dataset.s));if(b.dataset.l!==l)b.dataset.l=l});
+  const mv=myVotes(),heat=calendarVoteHeat();
+  document.querySelectorAll('.half:not(:disabled)').forEach(b=>{
+    const l=String(lvOf(mv,b.dataset.d,b.dataset.s));if(b.dataset.l!==l)b.dataset.l=l;
+    applyCalendarHeat(b,heat.counts[b.dataset.d+'|'+b.dataset.s]||0,heat.total);
+  });
 }
 function myCount(id){
   const t=todayStr();let n=0;
@@ -1254,7 +1283,6 @@ function computeRank(data=S){
 }
 function renderRank(){
   const {ids,list}=computeRank();
-  const shareStatus=rankShareState(S,list);
   const {target:total,expected,remaining}=attendanceInfo();
   const members=S.members||{};
   const sorted=[...ids].sort((a,b)=>members[a].joinedAt-members[b].joinedAt);
@@ -1272,7 +1300,6 @@ function renderRank(){
   const shownList=S.showAll?list:list.slice(0,10);
   $('#body').innerHTML=`
     <p class="sum">${esc(sum)}</p>
-    <section class="status-share-panel" aria-label="현재 투표 상황 공유"><p>${esc(shareStatus.headline)}</p><button class="btn blue block" id="shareVoteStatus">${shareIcon()}${shareStatus.complete?'상위 5일 결과 공유하기':'현재 상황 공유하기'}</button></section>
     <div class="people">${sorted.map(id=>{const c=cnt(id);return `<span class="pp${c?'':' wait'}">${avatar(members[id].name)}${esc(members[id].name)} <em>${c?c+'칸':'아직'}</em></span>`}).join('')}</div>
     ${list.length?`<ol class="rank">${shownList.map((r,i)=>{
       const dt=parseYmd(r.d),dow=dt.getDay(),isAll=r.count===total&&total>0;
@@ -1289,7 +1316,6 @@ function renderRank(){
       ${list.length>10?`<button class="btn ghost more" id="more">${S.showAll?'상위 10개만 보기':`전체 ${list.length}개 보기`}</button>`:''}`
     :`<div class="empty">‘스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}
     <p class="hint" style="text-align:center;margin-top:14px">가능하다고 표시한 사람 수가 많은 순, 같으면 스티커 가중치 합계가 높은 순이에요. 아마 가능 2점 · 되긴 하는데… 1점</p>`;
-  $('#shareVoteStatus').onclick=shareRankStatus;
   const more=$('#more');if(more)more.onclick=()=>{S.showAll=!S.showAll;renderRank()};
 }
 
@@ -1315,6 +1341,7 @@ window.addEventListener('popstate',()=>{
 </script>
 </body>
 </html>
+
 
 
 
