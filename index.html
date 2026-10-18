@@ -1238,7 +1238,7 @@ function renderRank(){
       const segs=sorted.map(id=>`<i class="b${r.lv[id]||0}"></i>`).join('')+'<i class="b0"></i>'.repeat(Math.max(0,total-ids.length));
       const miss=sorted.filter(id=>!r.lv[id]).map(id=>members[id].name);
       const vague=sorted.filter(id=>r.lv[id]===3).map(id=>members[id].name);
-      const notes=[miss.length?`아직 선택 안 함: ${miss.map(esc).join(', ')}`:'',vague.length?`애매해요: ${vague.map(esc).join(', ')}`:''].filter(Boolean).join('<br>');
+      const notes=[miss.length?`불가능: ${miss.map(esc).join(', ')}`:'',vague.length?`애매해요: ${vague.map(esc).join(', ')}`:''].filter(Boolean).join('<br>');
       return `<li class="rk${isAll?' all':''}">
         <div class="pos">${i+1}</div>
         <div><div class="rdate">${dt.getMonth()+1}월 ${dt.getDate()}일<small class="${dow===0||holidayName(r.d)?'sun':dow===6?'sat':''}" title="${esc(holidayName(r.d))}">${WD[dow]}</small><span class="slot ${r.sl}">${SLOT_NAME[r.sl]}</span></div>
