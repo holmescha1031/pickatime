@@ -43,11 +43,16 @@ module.exports=async function handler(req,res){
     if(!origin)return res.status(403).json({error:'허용되지 않은 요청입니다.'});
     const user=sessionUser(req,secret);
     if(!user)return res.status(401).json({error:'다시 로그인한 뒤 삭제해 주세요.'});
-    if(body?.action!=='delete')return res.status(400).json({error:'잘못된 요청입니다.'});
+    if(!['delete','register'].includes(body?.action))return res.status(400).json({error:'잘못된 요청입니다.'});
     const meta=await db(`sessions/${id}/meta`);
     if(!meta||typeof meta.title!=='string')return res.status(404).json({error:'투표를 찾을 수 없습니다.'});
     const ownerId='m_'+crypto.createHash('sha256').update(JSON.stringify([user.id,(meta.originalTitle||meta.title).trim().normalize('NFC')])).digest('hex');
     if(ownerId!==id)return res.status(403).json({error:'투표를 만든 사람만 삭제할 수 있어요.'});
+    if(body.action==='register'){
+      if(await db(marker)===true)return res.status(409).json({error:'삭제된 투표입니다.'});
+      await require('../lib/admin-index').registerMeeting(id);
+      return res.status(200).json({indexed:true});
+    }
     await db(marker,{method:'PUT',headers:{'Content-Type':'application/json'},body:'true'});
     const profileKey='u_'+crypto.createHmac('sha256',secret).update('pickatime:profile:v1:'+user.id.slice(6)).digest('hex');
     // Index cleanup is best effort; the deleted marker always filters stale indexes.

@@ -279,6 +279,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 <script src="./assets/vote-drag-v2.js"></script>
 <script src="./assets/vote-import-v2.js"></script>
 <script src="./assets/vote-save-state.js"></script>
+<script src="./assets/analytics.js"></script>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -296,6 +297,7 @@ const KAKAO_JS_KEY = "7ba374d1017c27f710651513590c4e0a";
 let kakaoUser = null;
 let resumeCreate = false;
 let resumeMeetings = false;
+let resumeAdmin = false;
 const PUBLIC_SITE_URL = window.APP_CONFIG?.publicSite || 'https://pickatime-phi.vercel.app/';
 const loginRedirectUri = ()=>location.origin===new URL(PUBLIC_SITE_URL).origin
   ? PUBLIC_SITE_URL : location.origin+location.pathname;
@@ -304,7 +306,7 @@ function loginKakao(intent='join'){
   if(!window.Kakao?.Auth?.authorize){toast('카카오 SDK를 불러오지 못했어요. 새로고침해 주세요.');return}
   if(!window.APP_CONFIG?.authServer){toast('config.js에 Vercel 서버 주소를 먼저 설정해 주세요.');return}
   const state=randId(32);
-  try{sessionStorage.setItem('wmd:oauth',JSON.stringify({state,sid,tab:new URLSearchParams(location.search).get('tab')==='rank'?'rank':'mine',action:['create','meetings'].includes(intent)?intent:'join',at:Date.now()}))}
+  try{sessionStorage.setItem('wmd:oauth',JSON.stringify({state,sid,tab:new URLSearchParams(location.search).get('tab')==='rank'?'rank':'mine',action:['create','meetings','admin'].includes(intent)?intent:'join',at:Date.now()}))}
   catch(e){toast('로그인에 필요한 브라우저 저장소를 허용해 주세요.');return}
   Kakao.Auth.authorize({redirectUri:loginRedirectUri(),state});
 }
@@ -328,7 +330,8 @@ async function completeKakaoLogin(){
   if(!pending||q.get('state')!==pending.state||Date.now()-pending.at>10*60*1000){toast('로그인 요청이 만료됐어요. 다시 시도해 주세요.');return}
   resumeCreate=pending.action==='create';
   resumeMeetings=pending.action==='meetings';
-  if(q.has('error')){toast('카카오 로그인이 취소되었어요.');return}
+  resumeAdmin=pending.action==='admin';
+  if(q.has('error')){resumeAdmin=false;toast('카카오 로그인이 취소되었어요.');return}
   $('#app').innerHTML=loadingIndicator('카카오 로그인 확인 중…');
   try{
     const base=new URL(window.APP_CONFIG.authServer);
@@ -339,7 +342,7 @@ async function completeKakaoLogin(){
     if(!/^kakao_[0-9]+$/.test(user.id))throw new Error('회원 정보 오류');
     kakaoUser={id:user.id,name:user.name||'',profileKey:/^u_[a-f0-9]{64}$/.test(user.profileKey||'')?user.profileKey:null};
     await loadMyProfile();
-  }catch(e){toast('로그인 실패: '+e.message)}
+  }catch(e){resumeAdmin=false;toast('로그인 실패: '+e.message)}
 }
 
 /* ---------- 안전한 브라우저 저장소 ---------- */
@@ -455,6 +458,7 @@ async function joinWithNickname(id,name){
   await store.set(`sessions/${id}/members/${kakaoUser.id}`,member);
   if(myProfile.nickname!==name)await saveMyNickname(name);
   await rememberMeeting(id);
+  if(!old)usage('meeting_join');
   return member;
 }
 async function renameMyNickname(name){
@@ -505,6 +509,19 @@ function shareContent(sid,title,options={}){
   const description=options.description||'가능한 시간에 스티커만 붙여주세요';
   return {url,title:heading,description,buttonTitle:options.buttonTitle||'모임투표 참여하기',copyText:options.copyMessage?[heading,description,url].join('\n'):url};
 }
+function usage(name,params={}){window.appAnalytics?.event(name,params)}
+function usagePage(kind){window.appAnalytics?.page(kind,sid||'')}
+function shareUsageType(options){return options.analyticsType||'invitation'}
+async function registerAdminMeeting(id,meta){
+  const user=kakaoUser?.id;if(!user||!meta?.title||LS.get('wmd:stats-index:'+id)===todayStr())return;
+  if(await meetingIdFor(user,meta.originalTitle||meta.title)!==id)return;
+  try{const r=await fetch(new URL('/api/meeting',window.APP_CONFIG.authServer),{method:'POST',credentials:'include',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'register',sid:id})});if(r.ok)LS.set('wmd:stats-index:'+id,todayStr())}catch{}
+}
+async function renderAdminLink(){
+  const host=$('#adminLinkHost'),user=kakaoUser?.id;if(!host||!user)return;
+  try{const r=await fetch('/api/admin?mode=access',{credentials:'include',cache:'no-store'});if(r.ok&&$('#adminLinkHost')===host&&kakaoUser?.id===user)host.innerHTML='<a href="./admin.html" style="font-size:13px;color:var(--sub)">관리자 통계</a>'}catch{}
+}
+
 function canShareToKakao(){
   return Boolean(window.Kakao?.isInitialized?.()&&window.Kakao?.Share?.sendDefault);
 }
@@ -552,8 +569,9 @@ async function share(sid,title,options={}){
     busy(true);
     try{
       // Invoke directly inside this click, before awaiting, to preserve activation.
+      usage('share_start',{channel:'kakao',content_type:shareUsageType(options)});
       const request=shareToKakao(sid,title,options);
-      await request;close();
+      await request;usage('share_handoff',{channel:'kakao',content_type:shareUsageType(options)});close();
     }catch(e){showError('카카오톡 공유를 열지 못했어요. 다시 시도해 주세요.')}
     finally{busy(false)}
   };
@@ -567,18 +585,20 @@ async function share(sid,title,options={}){
       // Keep the whole message in one text field so receiving apps cannot drop the title.
       const message=options.kakaoText||[payload.title,payload.description].join('\n\n');
       const data={text:[message,url].join('\n\n')};
+      usage('share_start',{channel:'native',content_type:shareUsageType(options)});
       const request=navigator.share(data);
-      await request;close();
-    }catch(e){if(e.name!=='AbortError')showError('공유창을 열지 못했어요. 다시 시도하거나 Chrome 또는 Safari에서 열어 주세요.')}
+      await request;usage('share_handoff',{channel:'native',content_type:shareUsageType(options)});close();
+    }catch(e){usage(e.name==='AbortError'?'share_cancel':'share_error',{channel:'native',content_type:shareUsageType(options),reason:'failed'});if(e.name!=='AbortError')showError('공유창을 열지 못했어요. 다시 시도하거나 Chrome 또는 Safari에서 열어 주세요.')}
     finally{busy(false)}
   };
   el.querySelector('[data-copy]').onclick=async()=>{
     error.hidden=true;
     try{
-      await navigator.clipboard.writeText(payload.copyText);close();toast(options.copyMessage?'투표 상황과 링크를 복사했어요':'링크를 복사했어요');
+      await navigator.clipboard.writeText(payload.copyText);usage('share_handoff',{channel:'copy',content_type:shareUsageType(options)});close();toast(options.copyMessage?'투표 상황과 링크를 복사했어요':'링크를 복사했어요');
     }catch(e){prompt('공유할 내용을 복사해 주세요',payload.copyText)}
   };
   document.body.appendChild(el);el.showModal();
+  usage('share_open',{content_type:shareUsageType(options)});
 }
 
 
@@ -654,6 +674,7 @@ function meetingSticker(level=2){
 }
 
 function viewCreate(){
+  usagePage('home');
   closeMeetingRename();
   closeVoteImport();
   stopMeetingStatusWatch();
@@ -708,8 +729,10 @@ function viewCreate(){
     <button class="btn blue block" id="create">모임 만들고 링크 공유</button>
     <p class="hint" id="createError" role="alert" hidden></p>
     <button class="btn block home-meetings" id="homeMyMeetings">투표중인 모임 보기</button>
+    <div id="adminLinkHost" style="text-align:center;margin-top:24px"></div>
     <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog>`;
   $('#homeMyMeetings').onclick=()=>openMyMeetings();
+  void renderAdminLink();
   const countInput=$('#expectedCount');
   const validateCountLimit=()=>{
     const exceeded=Number(countInput.value)>100;
@@ -808,6 +831,8 @@ function viewCreate(){
         showExistingMeeting(id);return
       }
       await store.set(`sessions/${id}/meta`,{title,...selected,expectedCount,createdAt:Date.now()});
+      usage('meeting_create',{period_mode:periodMode,month_count:monthsBetween(selected.start,selected.end).length,expected_count:expectedCount});
+      void registerAdminMeeting(id,{title});
       SS.del('wmd:createDraft');
       SS.set('wmd:new',id);
       try{history.pushState(null,'',`?s=${id}`)}catch(e){}
@@ -930,6 +955,7 @@ async function bootSession(){
     }
   }
   if(request!==sessionLoad)return;
+  void registerAdminMeeting(id,S.meta);
   document.title=`${S.meta.title} · 언제봐?`;
   route();
   watchMeetingStatus(id,request);
@@ -959,6 +985,7 @@ function refresh(){
 
 /* ----- 닉네임 선택 ----- */
 function viewEntry(){
+  usagePage('join');
   closeVoteImport();
   detachVoteDrag?.();detachVoteDrag=null;
   const typed=myProfile.nickname||$('#nick')?.value||kakaoUser?.name||'';
@@ -1046,6 +1073,7 @@ function navigateToMeeting(id){
 }
 async function openMyMeetings(){
   if(!kakaoUser){loginKakao('meetings');return}
+  usage('meeting_list_view');
   const userId=kakaoUser.id,previousFocus=document.activeElement;
   const el=document.createElement('div');el.className='sheet my-meetings';
   el.innerHTML=`<section class="panel" role="dialog" aria-modal="true" aria-labelledby="myMeetingsTitle" tabindex="-1">
@@ -1113,7 +1141,7 @@ function rankKakaoText(title,status){
 }
 function shareRankStatus(){
   const status=rankShareState();
-  return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+(status.complete?' 투표 결과':' 투표 상황'),description:status.description,buttonTitle:'투표 보기',copyMessage:true,kakaoText:rankKakaoText(S.meta.title,status)});
+  return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+(status.complete?' 투표 결과':' 투표 상황'),description:status.description,buttonTitle:'투표 보기',copyMessage:true,kakaoText:rankKakaoText(S.meta.title,status),analyticsType:status.complete?'result':'status'});
 }
 
 function attendanceInfo(){
@@ -1166,6 +1194,7 @@ function renderMe(){
 }
 let detachVoteDrag=null;
 function renderTab(){
+  usagePage(S.tab==='rank'?'rank':'vote');
   if(S.tab!=='mine')closeVoteImport();
   detachVoteDrag?.();detachVoteDrag=null;
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.t===S.tab));
@@ -1261,7 +1290,7 @@ function showVoteImport(c,sources){
       try{const fresh=await store.get(`sessions/${c.id}/votes/${c.user}`);if(voteImportActive(c))S.votes={...S.votes,[c.user]:fresh||{}}}catch{}
       if(!voteImportActive(c)){close();return}refresh();
       if(result.failed){status.textContent=`${result.added}칸을 가져왔어요. 저장하지 못한 칸은 다시 시도해 주세요.`}
-      else{close();toast(result.added?`${result.added}칸을 불러왔어요`:'이미 붙인 스티커를 유지했어요')}
+      else{if(result.added)usage('vote_import',{cell_count:result.added});close();toast(result.added?`${result.added}칸을 불러왔어요`:'이미 붙인 스티커를 유지했어요')}
     }catch(e){if(voteImportActive(c)&&el.isConnected)status.textContent=e.message==='TARGET_DELETED'?'삭제된 투표에는 스티커를 가져올 수 없어요.':'스티커를 가져오지 못했어요. 다시 시도해 주세요.'}
     finally{if(el.isConnected)el.querySelectorAll('button,input').forEach(b=>b.disabled=false)}
   };
@@ -1315,6 +1344,7 @@ async function finishVote(){
     if(sid!==id||S.me!==user||sessionLoad!==request||shown!=='main'||S.tab!=='mine')return;
     if(result.failed){toast('저장하지 못한 선택이 있어요. 다시 저장한 뒤 마쳐 주세요.');return}
     if(!myCount(user)){toast('가능한 날짜에 스티커를 먼저 붙여 주세요');return}
+    usage('vote_confirm',{confirmation_mode:voteConfirmationState().confirmed?'edit':'first',cell_count:myCount(user)});
     LS.set(voteConfirmationKey(),voteFingerprint());
     S.tab='rank';const url=new URL(location.href);url.searchParams.set('tab','rank');history.replaceState(null,'',url.pathname+url.search);
     renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'});
@@ -1404,7 +1434,7 @@ function renderCalendar(){
     </section>
     <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
-  detachVoteDrag=window.attachVoteDrag($('#body'),setVoteLevel,nextVoteLevel);
+  detachVoteDrag=window.attachVoteDrag($('#body'),(b,l)=>setVoteLevel(b,l,'drag'),nextVoteLevel);
   $('#icsFile').onchange=importIcs;
   $('#reuseVotes').onclick=()=>offerVoteImport(true);
   $('#finishVote').onclick=finishVote;
@@ -1422,14 +1452,14 @@ function onDayTap(e){
     const state=voteSaves.info(voteSaveKey());if(state.pending||state.failed||voteFinishBusy)return;
     if(confirm('내가 붙인 스티커를 모두 뗄까요?')){
       const path=`sessions/${sid}/votes/${S.me}`;
-      void voteSaves.save(voteSaveKey(),path,()=>store.set(path,null),{root:true});
+      void voteSaves.save(voteSaveKey(),path,()=>store.set(path,null),{root:true}).then(r=>{if(r.ok)usage('vote_clear')});
     }
     return;
   }
   const b=e.target.closest('.half');if(!b||b.disabled)return;
   setVoteLevel(b,nextVoteLevel(b.dataset.l));
 }
-function setVoteLevel(b,next){
+function setVoteLevel(b,next,inputMethod='tap'){
   if(!b||b.disabled||!S.me||!inMeetingRange(b.dataset.d))return;
   if(voteSaves.info(voteSaveKey()).rootBlocked||voteFinishBusy===voteSaveKey())return;
   if(Number(b.dataset.l)===next)return;
@@ -1443,7 +1473,7 @@ function setVoteLevel(b,next){
   applyCalendarHeat(b,count,calendarVoteTotal());
   navigator.vibrate?.(8);
   const path=`sessions/${sid}/votes/${S.me}/${d}/${sl}`;
-  void voteSaves.save(voteSaveKey(),path,()=>store.set(path,next||null));
+  void voteSaves.save(voteSaveKey(),path,()=>store.set(path,next||null)).then(r=>{if(r.ok)usage('vote_change',{input_method:inputMethod,selection:next===2?'normal':next===3?'uncertain':'remove'})});
 }
 function syncCalendar(){
   if(!$('.month'))return;
@@ -1706,6 +1736,7 @@ function renderRank(){
   $('#app').innerHTML=loadingIndicator();
   await restoreKakaoSession();
   await completeKakaoLogin();
+  if(resumeAdmin||new URLSearchParams(location.search).get('admin')==='1'){if(kakaoUser)location.replace('/admin.html');else loginKakao('admin');return}
   if(sid)bootSession();
   else await viewCreate();
   if(resumeMeetings&&kakaoUser){resumeMeetings=false;await openMyMeetings()}
