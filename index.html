@@ -65,6 +65,21 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .btn:disabled{opacity:.4}
 .row{display:flex;gap:8px;align-items:center}
 
+/* Small branded walker for data-loading states. */
+.loading-indicator{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:28px 16px;color:var(--sub);text-align:center}
+.loading-label{margin:0;font-size:14px;line-height:1.5}
+.loading-walker{position:relative;display:block;width:88px;height:78px;flex:none}
+.walker-shadow{position:absolute;left:18px;bottom:3px;width:52px;height:7px;border-radius:50%;background:rgba(77,80,186,.12);animation:walker-shadow .68s ease-in-out infinite}
+.walker-body{position:absolute;inset:0;animation:walker-sway 1.36s ease-in-out infinite}
+.walker-eyes{position:absolute;z-index:2;left:8px;top:3px;width:72px;height:50px;background-image:url('./assets/loading-eyes.png');background-repeat:no-repeat;background-size:120% auto;background-position:center 65%;animation:walker-bob .68s ease-in-out infinite}
+.walker-leg{position:absolute;z-index:1;top:45px;width:22px;height:27px;overflow:visible;transform-origin:10px 2px;animation:walker-step .68s ease-in-out infinite}
+.walker-leg.left{left:23px}.walker-leg.right{left:45px;animation-delay:-.34s}
+@keyframes walker-step{0%,100%{transform:rotate(23deg) translateY(-1px)}50%{transform:rotate(-23deg) translateY(-2px)}}
+@keyframes walker-bob{0%,50%,100%{transform:translateY(0) rotate(-1deg)}25%,75%{transform:translateY(-3px) rotate(1deg)}}
+@keyframes walker-sway{0%,100%{transform:translateX(-2px)}50%{transform:translateX(2px)}}
+@keyframes walker-shadow{0%,50%,100%{transform:scaleX(1);opacity:.8}25%,75%{transform:scaleX(.88);opacity:.55}}
+@media(prefers-reduced-motion:reduce){.loading-walker,.loading-walker *{animation:none!important}.walker-leg.left{transform:rotate(10deg)}.walker-leg.right{transform:rotate(-10deg)}}
+
 /* month picker */
 .months{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .mo{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 0;font-weight:600;font-size:14px;line-height:1.2}
@@ -314,7 +329,7 @@ async function completeKakaoLogin(){
   resumeCreate=pending.action==='create';
   resumeMeetings=pending.action==='meetings';
   if(q.has('error')){toast('카카오 로그인이 취소되었어요.');return}
-  $('#app').innerHTML='<p class="empty">카카오 로그인 확인 중…</p>';
+  $('#app').innerHTML=loadingIndicator('카카오 로그인 확인 중…');
   try{
     const base=new URL(window.APP_CONFIG.authServer);
     if(base.protocol!=='https:')throw new Error('서버 주소는 HTTPS여야 합니다.');
@@ -629,6 +644,11 @@ function shareIcon(){
   return '<svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/></svg>';
 }
 
+function loadingIndicator(message='불러오는 중…'){
+  const leg='<svg class="walker-leg left" viewBox="0 0 22 27" fill="none" aria-hidden="true"><path d="M10 2v16q0 5 6 5h3" stroke="#031238" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  return `<div class="loading-indicator" role="status" aria-live="polite" aria-busy="true"><span class="loading-walker" aria-hidden="true"><span class="walker-shadow"></span><span class="walker-body">${leg}${leg.replace('walker-leg left','walker-leg right')}<span class="walker-eyes"></span></span></span><p class="loading-label">${esc(message)}</p></div>`;
+}
+
 function meetingSticker(level=2){
   return `<span class="meeting-mark eye-sticker level-${level}" aria-hidden="true"></span>`;
 }
@@ -878,7 +898,7 @@ async function bootSession(){
   const id=sid,request=++sessionLoad;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];
   shown=null;S.me=null;S.members={};S.votes={};S.tab=new URLSearchParams(location.search).get('tab')==='rank'?'rank':'mine';
-  $('#app').innerHTML='<p class="empty">불러오는 중…</p>';
+  $('#app').innerHTML=loadingIndicator('투표를 불러오는 중…');
   let data;
   try{
     if(await isMeetingDeleted(id)){if(request===sessionLoad)showDeletedMeeting();return}
@@ -1030,7 +1050,7 @@ async function openMyMeetings(){
   const el=document.createElement('div');el.className='sheet my-meetings';
   el.innerHTML=`<section class="panel" role="dialog" aria-modal="true" aria-labelledby="myMeetingsTitle" tabindex="-1">
     <div class="list-heading"><h2 id="myMeetingsTitle">내가 참여한 모임투표</h2><button class="btn ghost icon-btn" data-close aria-label="목록 닫기">✕</button></div>
-    <div class="meeting-list" aria-live="polite"><p class="empty">모임을 불러오는 중…</p></div></section>`;
+    <div class="meeting-list" aria-live="polite">${loadingIndicator('모임을 불러오는 중…')}</div></section>`;
   const panel=el.querySelector('.panel'),body=el.querySelector('.meeting-list');
   const close=()=>{document.removeEventListener('keydown',onKey);el.remove();previousFocus?.focus()};
   const onKey=e=>{
@@ -1683,6 +1703,7 @@ function renderRank(){
     publicUrl.search=location.search;publicUrl.hash=location.hash;
     location.replace(publicUrl.href);return;
   }
+  $('#app').innerHTML=loadingIndicator();
   await restoreKakaoSession();
   await completeKakaoLogin();
   if(sid)bootSession();
