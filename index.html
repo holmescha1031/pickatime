@@ -564,9 +564,9 @@ async function share(sid,title,options={}){
     }
     busy(true);
     try{
-      // Some receiving apps ignore title, so include it in the shared text too.
-      let data={title:payload.title,text:[payload.title,payload.description].join('\n\n'),url};
-      if(typeof navigator.canShare==='function'&&!navigator.canShare(data))data={text:[payload.title,payload.description,url].join('\n\n')};
+      // Keep the whole message in one text field so receiving apps cannot drop the title.
+      const message=options.kakaoText||[payload.title,payload.description].join('\n\n');
+      const data={text:[message,url].join('\n\n')};
       const request=navigator.share(data);
       await request;close();
     }catch(e){if(e.name!=='AbortError')showError('공유창을 열지 못했어요. 다시 시도하거나 Chrome 또는 Safari에서 열어 주세요.')}
