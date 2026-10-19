@@ -178,6 +178,13 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .slot{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:2px}
 .slot.L{background:#FFF1C9;color:#8A6300}.slot.D{background:#E3E8FF;color:#3340A0}
 .clear{display:block;margin:4px auto 0}
+.vote-save-status{font-size:13px;color:var(--sub);margin:8px 0 14px;text-align:center;min-height:20px}
+.vote-save-status.save-error{color:var(--sun)}
+.vote-finish{margin:20px 0 16px;padding:18px;background:var(--card);border:1.5px solid var(--line);border-radius:20px}
+.vote-finish .vote-save-status{margin:10px 0 0}
+.vote-finish .btn:disabled{opacity:.65}
+#retryVoteSave{display:block;margin:8px auto 0;color:var(--sun)}
+#retryVoteSave[hidden]{display:none}
 
 /* ranking */
 .vote-results-ready{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:12px;padding-top:12px;font-size:13px;color:var(--s1)}
@@ -252,6 +259,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 <script src="./assets/kr-holidays.js"></script>
 <script src="./assets/vote-drag-v2.js"></script>
 <script src="./assets/vote-import-v2.js"></script>
+<script src="./assets/vote-save-state.js"></script>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1097,6 +1105,7 @@ async function voteImportSource(id,c,current){
 }
 async function offerVoteImport(manual=false){
   if(!window.VoteTransfer||!S.me||S.me!==kakaoUser?.id||!S.meta||S.tab!=='mine'||shown!=='main')return;
+  const saveState=voteSaves.info(voteSaveKey());if(saveState.pending||saveState.failed)return;
   const c=voteImportContext(),key=[c.user,c.id].join(':'),seenKey='wmd:vote-import-seen:'+key,token=key+':'+c.request;
   if(voteImportDialog||voteImportLoading===token||(!manual&&(voteImportSeen.has(key)||LS.get(seenKey)==='1')))return;
   if(document.querySelector('.sheet,dialog[open]'))return;
@@ -1147,7 +1156,7 @@ function showVoteImport(c,sources){
       if(!source){close();toast('지금 불러올 스티커가 없어요. 기존 선택은 유지했어요.');return}
       const result=await window.VoteTransfer.run(source.plan.cells,{
         isActive:()=>voteImportActive(c)&&el.isConnected,
-        saveIfEmpty:cell=>store.putVoteIfEmpty(`sessions/${c.id}/votes/${c.user}/${cell.date}/${cell.slot}`,cell.level),
+        saveIfEmpty:cell=>trackedVoteTransaction(c,cell),
         onProgress:p=>status.textContent=`${p.processed}/${p.total}칸 확인 중…`
       });
       if(!voteImportActive(c)||!el.isConnected){close();return}
@@ -1158,6 +1167,50 @@ function showVoteImport(c,sources){
     }catch(e){if(voteImportActive(c)&&el.isConnected)status.textContent=e.message==='TARGET_DELETED'?'삭제된 투표에는 스티커를 가져올 수 없어요.':'스티커를 가져오지 못했어요. 다시 시도해 주세요.'}
     finally{if(el.isConnected)el.querySelectorAll('button,input').forEach(b=>b.disabled=false)}
   };
+}
+
+const voteSaves=window.createVoteSaveTracker(()=>renderVoteSaveState());
+let voteFinishBusy=null;
+const voteSaveKey=(id=sid,user=S.me)=>id+':'+user;
+function renderVoteSaveState(){
+  if(!S.me||shown!=='main'||S.tab!=='mine')return;
+  const state=voteSaves.info(voteSaveKey()),finishing=voteFinishBusy===voteSaveKey();
+  const text=state.pending?'저장 중…':state.failed?'저장하지 못했어요. 다시 저장해 주세요.':state.saved||myCount(S.me)>0?'저장됨 ✓':'스티커를 붙이면 자동으로 저장돼요';
+  document.querySelectorAll('[data-vote-save-status]').forEach(el=>{el.textContent=text;el.classList.toggle('save-error',state.failed>0&&!state.pending)});
+  const retry=$('#retryVoteSave');if(retry){retry.hidden=!state.failed;retry.disabled=state.pending>0||finishing}
+  const finish=$('#finishVote');if(finish){finish.disabled=finishing;finish.textContent=finishing?'저장 확인 중…':'투표 마치기'}
+  const clear=$('#clearAll');if(clear)clear.disabled=state.pending>0||state.failed>0||finishing;
+  const reuse=$('#reuseVotes');if(reuse)reuse.disabled=state.pending>0||state.failed>0||finishing;
+  document.querySelectorAll('.half').forEach(b=>{if(!b.hasAttribute('data-save-disabled')&&b.disabled)return;if(state.rootBlocked||finishing){b.setAttribute('data-save-disabled','');b.disabled=true}else if(b.hasAttribute('data-save-disabled')){b.removeAttribute('data-save-disabled');b.disabled=false}});
+}
+async function retryVoteSaves(){
+  const id=sid,user=S.me,request=sessionLoad,key=voteSaveKey(id,user);
+  const result=await voteSaves.retry(key);
+  if(sid!==id||S.me!==user||sessionLoad!==request)return;
+  if(!result.failed){
+    try{const votes=await store.get(`sessions/${id}/votes/${user}`);if(sid===id&&S.me===user&&sessionLoad===request){S.votes={...S.votes,[user]:votes||{}};refresh()}}catch{}
+    toast('투표를 저장했어요');
+  }else toast('아직 저장하지 못했어요. 연결을 확인하고 다시 시도해 주세요.');
+  renderVoteSaveState();
+}
+async function finishVote(){
+  if(!S.me||voteFinishBusy===voteSaveKey())return;
+  const id=sid,user=S.me,request=sessionLoad,key=voteSaveKey(id,user);
+  voteFinishBusy=key;renderVoteSaveState();
+  try{
+    const result=await voteSaves.settle(key);
+    if(sid!==id||S.me!==user||sessionLoad!==request||shown!=='main'||S.tab!=='mine')return;
+    if(result.failed){toast('저장하지 못한 선택이 있어요. 다시 저장한 뒤 마쳐 주세요.');return}
+    if(!myCount(user)){toast('가능한 날짜에 스티커를 먼저 붙여 주세요');return}
+    S.tab='rank';const url=new URL(location.href);url.searchParams.set('tab','rank');history.replaceState(null,'',url.pathname+url.search);
+    renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'});
+    toast('투표를 저장했어요. 나중에 언제든 바꿀 수 있어요.');
+  }finally{if(voteFinishBusy===key)voteFinishBusy=null;renderVoteSaveState()}
+}
+async function trackedVoteTransaction(c,cell){
+  const path=`sessions/${c.id}/votes/${c.user}/${cell.date}/${cell.slot}`;
+  const result=await voteSaves.save(voteSaveKey(c.id,c.user),path,()=>store.putVoteIfEmpty(path,cell.level));
+  if(!result.ok)throw result.error;return result.result;
 }
 
 /* ----- 내 스티커 달력 ----- */
@@ -1228,12 +1281,21 @@ function renderCalendar(){
       <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>두 번 클릭: 되긴 하는데…</span>
       <span>(세 번 누르면 떼져요)</span>
     </div>
+    <p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p>
     ${html}
+    <section class="vote-finish" aria-label="투표 완료">
+      <button type="button" class="btn blue block" id="finishVote">투표 마치기</button>
+      <p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p>
+      <button type="button" class="btn ghost" id="retryVoteSave" hidden>다시 저장하기</button>
+    </section>
     <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
   detachVoteDrag=window.attachVoteDrag($('#body'),setVoteLevel,nextVoteLevel);
   $('#icsFile').onchange=importIcs;
   $('#reuseVotes').onclick=()=>offerVoteImport(true);
+  $('#finishVote').onclick=finishVote;
+  $('#retryVoteSave').onclick=retryVoteSaves;
+  renderVoteSaveState();
   void offerVoteImport();
 }
 function onDayTap(e){
@@ -1243,7 +1305,11 @@ function onDayTap(e){
   if(act==='open')return openCalSheet();
   if(e.target.id==='clearAll'){
     if(!Object.keys(myVotes()).length){toast('붙인 스티커가 없어요');return}
-    if(confirm('내가 붙인 스티커를 모두 뗄까요?'))store.set(`sessions/${sid}/votes/${S.me}`,null).catch(()=>toast('스티커를 지우지 못했어요. 다시 시도해 주세요.'));
+    const state=voteSaves.info(voteSaveKey());if(state.pending||state.failed||voteFinishBusy)return;
+    if(confirm('내가 붙인 스티커를 모두 뗄까요?')){
+      const path=`sessions/${sid}/votes/${S.me}`;
+      void voteSaves.save(voteSaveKey(),path,()=>store.set(path,null),{root:true});
+    }
     return;
   }
   const b=e.target.closest('.half');if(!b||b.disabled)return;
@@ -1251,6 +1317,7 @@ function onDayTap(e){
 }
 function setVoteLevel(b,next){
   if(!b||b.disabled||!S.me||!inMeetingRange(b.dataset.d))return;
+  if(voteSaves.info(voteSaveKey()).rootBlocked||voteFinishBusy===voteSaveKey())return;
   if(Number(b.dataset.l)===next)return;
   const d=b.dataset.d,sl=b.dataset.s;
   b.dataset.l=next;
@@ -1261,7 +1328,8 @@ function setVoteLevel(b,next){
   const count=Object.keys(S.members||{}).filter(id=>normalizeVoteLevel(S.votes?.[id]?.[d]?.[sl])>0).length;
   applyCalendarHeat(b,count,calendarVoteTotal());
   navigator.vibrate?.(8);
-  store.set(`sessions/${sid}/votes/${S.me}/${d}/${sl}`,next||null).catch(async()=>{toast('저장하지 못했어요. 인터넷 연결과 DB 규칙을 확인해 주세요.');try{S.votes=await store.get(`sessions/${sid}/votes`)||{};refresh()}catch(e){}});
+  const path=`sessions/${sid}/votes/${S.me}/${d}/${sl}`;
+  void voteSaves.save(voteSaveKey(),path,()=>store.set(path,next||null));
 }
 function syncCalendar(){
   if(!$('.month'))return;
