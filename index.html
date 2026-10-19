@@ -218,7 +218,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .more{width:100%;margin-top:4px}
 
 /* toast & sheet */
-.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;transition:.2s;pointer-events:none;z-index:30;max-width:90vw}
+.toast{white-space:pre-line;position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;transition:.2s;pointer-events:none;z-index:30;max-width:90vw}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 .sheet{position:fixed;inset:0;background:rgba(20,33,61,.4);display:flex;align-items:flex-end;justify-content:center;z-index:20}
 .existing-meeting{width:calc(100% - 32px);max-width:480px;max-height:calc(100dvh - 40px);margin:auto;padding:22px 18px;border:1.5px solid var(--line);border-radius:22px;background:var(--card);color:var(--ink);overflow:auto}
@@ -496,14 +496,13 @@ function canShareToKakao(){
 function shareToKakao(sid,title,options={}){
   const payload=shareContent(sid,title,options),url=payload.url;
   if(options.kakaoText){
-    window.Kakao.Share.sendDefault({
+    return window.Kakao.Share.sendDefault({
       objectType:'text',text:options.kakaoText,
       link:{mobileWebUrl:url,webUrl:url},
       buttons:[{title:payload.buttonTitle,link:{mobileWebUrl:url,webUrl:url}}]
     });
-    return;
   }
-  window.Kakao.Share.sendDefault({
+  return window.Kakao.Share.sendDefault({
     objectType:'feed',
     content:{
       title:payload.title,
@@ -517,37 +516,57 @@ function shareToKakao(sid,title,options={}){
 }
 async function share(sid,title,options={}){
   const payload=shareContent(sid,title,options),url=payload.url;
-  const supported=typeof navigator.share==='function';
-  const kakaoAvailable=canShareToKakao();
-  const inKakao=/KAKAOTALK/i.test(navigator.userAgent||'');
-  // Keep the Kakao SDK call in the original tap handler for app/webview navigation.
-  if(kakaoAvailable&&(inKakao||!supported)){
-    try{shareToKakao(sid,title,options);return}catch(e){}
-  }
-  if(supported){
-    try{await navigator.share({title:payload.title,text:payload.description,url});return}
-    catch(e){if(e.name==='AbortError')return}
-  }
   document.querySelector('#shareFallback')?.remove();
   const el=document.createElement('dialog');el.id='shareFallback';el.className='existing-meeting';
   el.setAttribute('aria-labelledby','shareFallbackTitle');
-  el.innerHTML=`<div class="dialog-heading"><h2 id="shareFallbackTitle">투표 링크 공유하기</h2><button class="btn ghost icon-btn dialog-close" data-close aria-label="공유 안내 닫기">✕</button></div>
-    <p class="hint">${kakaoAvailable?'카카오톡으로 친구나 단톡방에 투표 링크를 보내세요.':'공유 기능을 불러오지 못했어요. 새로고침 후 다시 시도하거나 링크를 복사해 주세요.'}</p>
-    <div class="linkbox">${esc(url)}</div>
-    ${kakaoAvailable?'<button class="btn block" style="background:#FEE500;color:#191919" data-kakao>카카오톡으로 공유</button>':''}
-    <button class="btn ${kakaoAvailable?'ghost':'blue'} block" data-copy>링크 복사</button>`;
+  el.innerHTML=`<div class="dialog-heading"><h2 id="shareFallbackTitle">공유하기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="공유 닫기">✕</button></div>
+    <p class="hint">공유할 방법을 선택해 주세요.</p>
+    <button type="button" class="btn block" style="background:#FEE500;color:#191919;margin-top:18px" data-kakao>카카오톡으로 공유</button>
+    <button type="button" class="btn blue block" style="margin-top:10px" data-native>다른 앱으로 공유</button>
+    <button type="button" class="btn ghost block" style="margin-top:10px" data-copy>${options.copyMessage?'내용과 링크 복사':'링크 복사'}</button>
+    <p class="count-error" data-error role="status" hidden></p>`;
   const close=()=>{el.close();el.remove()};
+  const error=el.querySelector('[data-error]');
+  const showError=text=>{error.textContent=text;error.hidden=false};
+  const controls=[...el.querySelectorAll('[data-kakao],[data-native],[data-copy]')];
+  const busy=value=>controls.forEach(b=>b.disabled=value);
   el.querySelector('[data-close]').onclick=close;
   el.addEventListener('cancel',e=>{e.preventDefault();close()});
-  if(kakaoAvailable)el.querySelector('[data-kakao]').onclick=()=>{
-    try{shareToKakao(sid,title,options);close()}catch(e){toast('카카오톡 공유를 열지 못했어요. 잠시 후 다시 시도해 주세요.')}
+  el.querySelector('[data-kakao]').onclick=async()=>{
+    error.hidden=true;
+    if(!canShareToKakao()){showError('카카오톡 공유를 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.');return}
+    busy(true);
+    try{
+      // Invoke directly inside this click, before awaiting, to preserve activation.
+      const request=shareToKakao(sid,title,options);
+      await request;close();
+    }catch(e){showError('카카오톡 공유를 열지 못했어요. 다시 시도해 주세요.')}
+    finally{busy(false)}
+  };
+  el.querySelector('[data-native]').onclick=async()=>{
+    error.hidden=true;
+    if(typeof navigator.share!=='function'){
+      showError('이 브라우저에서는 다른 앱 공유를 지원하지 않아요. Chrome 또는 Safari에서 열거나 링크를 복사해 주세요.');return;
+    }
+    busy(true);
+    try{
+      // Some receiving apps ignore title, so include it in the shared text too.
+      let data={title:payload.title,text:[payload.title,payload.description].join('\n\n'),url};
+      if(typeof navigator.canShare==='function'&&!navigator.canShare(data))data={text:[payload.title,payload.description,url].join('\n\n')};
+      const request=navigator.share(data);
+      await request;close();
+    }catch(e){if(e.name!=='AbortError')showError('공유창을 열지 못했어요. 다시 시도하거나 Chrome 또는 Safari에서 열어 주세요.')}
+    finally{busy(false)}
   };
   el.querySelector('[data-copy]').onclick=async()=>{
-    try{await navigator.clipboard.writeText(payload.copyText);close();toast(options.copyMessage?'투표 상황과 링크를 복사했어요':'링크를 복사했어요')}
-    catch(e){prompt('공유할 내용을 복사해 주세요',payload.copyText)}
+    error.hidden=true;
+    try{
+      await navigator.clipboard.writeText(payload.copyText);close();toast(options.copyMessage?'투표 상황과 링크를 복사했어요':'링크를 복사했어요');
+    }catch(e){prompt('공유할 내용을 복사해 주세요',payload.copyText)}
   };
   document.body.appendChild(el);el.showModal();
 }
+
 
 /* ---------- 라우팅 ---------- */
 let sid = new URLSearchParams(location.search).get('s');
@@ -1280,7 +1299,7 @@ async function finishVote(){
     LS.set(voteConfirmationKey(),voteFingerprint());
     S.tab='rank';const url=new URL(location.href);url.searchParams.set('tab','rank');history.replaceState(null,'',url.pathname+url.search);
     renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'});
-    toast('투표를 저장했어요. 나중에 언제든 바꿀 수 있어요.');
+    toast('투표를 저장했어요.\n나중에 언제든 바꿀 수 있어요.');
   }finally{if(voteFinishBusy===key)voteFinishBusy=null;renderVoteSaveState()}
 }
 async function trackedVoteTransaction(c,cell){
