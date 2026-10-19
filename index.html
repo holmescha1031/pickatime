@@ -84,6 +84,10 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 
 /* session header */
 .top{display:flex;justify-content:space-between;align-items:center}
+.meeting-title-row{display:flex;align-items:center;gap:8px;margin:14px 0 4px}
+.meeting-title-row .stitle{margin:0;min-width:0;overflow-wrap:anywhere}
+.edit-meeting-title{display:grid;place-items:center;flex:none;width:32px;height:36px;padding:5px;border:0;border-radius:8px;background:transparent;color:var(--sub);cursor:pointer}
+.edit-meeting-title svg{width:18px;height:18px}.edit-meeting-title:hover{background:#E9EBFA;color:var(--s1)}
 .stitle{font-size:30px;line-height:1.2;margin:14px 0 4px;word-break:keep-all}
 .speriod{color:var(--sub);font-size:14px;margin:0 0 14px}
 .mebar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:6px 6px 6px 12px;margin-bottom:12px;font-size:14px}
@@ -184,7 +188,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .vote-finish .vote-save-status{margin:10px 0 0}
 .vote-finish .btn:disabled{opacity:.65}
 #retryVoteSave{display:block;margin:8px auto 0;color:var(--sun)}
-#retryVoteSave[hidden]{display:none}
+#retryVoteSave[hidden],#finishVote[hidden],#voteFinishPanel[hidden]{display:none}
 
 /* ranking */
 .vote-results-ready{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:12px;padding-top:12px;font-size:13px;color:var(--s1)}
@@ -564,6 +568,7 @@ async function isMeetingDeleted(id){
   return data.deleted===true;
 }
 function showDeletedMeeting(){
+  closeMeetingRename();
   closeVoteImport();
   stopMeetingStatusWatch();detachVoteDrag?.();detachVoteDrag=null;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];shown=null;
@@ -582,7 +587,7 @@ async function renderDeleteControl(){
   const id=sid,title=S.meta?.title,host=$('#deleteControl');
   if(!host||!kakaoUser||!title)return;
   const userId=kakaoUser.id;
-  if(await meetingIdFor(userId,title)!==id||sid!==id||kakaoUser?.id!==userId||$('#deleteControl')!==host)return;
+  if(await meetingIdFor(userId,S.meta.originalTitle||title)!==id||sid!==id||kakaoUser?.id!==userId||$('#deleteControl')!==host)return;
   host.innerHTML='<button class="btn delete-vote" id="deleteVote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>이 투표 삭제하기</button>';
   $('#deleteVote').onclick=async()=>{
     if(!confirm('이 투표를 삭제할까요?\n삭제하면 참여자 목록에서 사라지고 공유 링크로도 열 수 없어요.'))return;
@@ -611,6 +616,7 @@ function meetingSticker(level=2){
 }
 
 function viewCreate(){
+  closeMeetingRename();
   closeVoteImport();
   stopMeetingStatusWatch();
   detachVoteDrag?.();detachVoteDrag=null;
@@ -758,7 +764,8 @@ function viewCreate(){
     let id;
     try{
       id=await meetingIdFor(kakaoUser.id,title);
-      if(await store.get(`sessions/${id}/meta`)){
+      const existing=await store.get(`sessions/${id}/meta`)?id:await findMyMeetingByTitle(title);
+      if(existing){id=existing;
         if(await isMeetingDeleted(id))throw Object.assign(new Error('Deleted meeting'),{code:'DELETED_MEETING'});
         showExistingMeeting(id);return
       }
@@ -790,12 +797,63 @@ function viewCreate(){
   resumeCreate=false;
 }
 
+let meetingRenameDialog=null;
+function closeMeetingRename(){meetingRenameDialog?.close();meetingRenameDialog?.remove();meetingRenameDialog=null}
+function meetingTitleMarkup(id){
+  return `<div class="meeting-title-row"><h1 class="stitle" id="${id}">${esc(S.meta.title)}</h1><button type="button" class="edit-meeting-title" aria-label="투표 이름 수정" title="투표 이름 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg></button></div>`;
+}
+function bindMeetingTitleEdit(){const button=$('.edit-meeting-title');if(button)button.onclick=openMeetingRename}
+async function findMyMeetingByTitle(title,except=null){
+  if(!kakaoUser)return null;
+  const canonical=title.trim().normalize('NFC');
+  for(const id of Object.keys(myProfile.meetings||{})){
+    if(id===except||!validMeetingId(id))continue;
+    const meta=await store.get(`sessions/${id}/meta`);
+    if(meta?.title?.trim().normalize('NFC')===canonical&&await meetingIdFor(kakaoUser.id,meta.originalTitle||meta.title)===id&&!await isMeetingDeleted(id))return id;
+  }
+  return null;
+}
+function openMeetingRename(){
+  if(!sid||!S.meta||meetingRenameDialog)return;
+  const id=sid,request=sessionLoad,el=document.createElement('dialog');
+  el.className='existing-meeting';el.setAttribute('aria-labelledby','renameMeetingHeading');
+  el.innerHTML=`<div class="dialog-heading"><h2 id="renameMeetingHeading">투표 이름 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">✕</button></div><label class="f" for="renameMeetingInput">모임 이름</label><input class="inp" id="renameMeetingInput" maxlength="30" value="${esc(S.meta.title)}" autocomplete="off"><p class="hint">변경한 이름은 참여한 모두에게 보여요.</p><p class="count-error" data-error role="alert" hidden></p><button type="button" class="btn blue block" data-save>수정하기</button>`;
+  document.body.appendChild(el);meetingRenameDialog=el;
+  const active=()=>sid===id&&sessionLoad===request&&el.isConnected;
+  const close=()=>{if(meetingRenameDialog===el)closeMeetingRename()};
+  el.querySelector('[data-close]').onclick=close;el.addEventListener('cancel',e=>{e.preventDefault();close()});el.showModal();
+  const input=el.querySelector('input'),button=el.querySelector('[data-save]'),error=el.querySelector('[data-error]');
+  button.onclick=async()=>{
+    const title=input.value.trim().normalize('NFC');
+    if(!title){error.textContent='모임 이름을 입력해 주세요.';error.hidden=false;input.focus();return}
+    if(!active())return;button.disabled=true;input.disabled=true;error.hidden=true;
+    try{
+      if(await isMeetingDeleted(id))throw new Error('DELETED_MEETING');
+      let meta=await store.get(`sessions/${id}/meta`);
+      if(!active())return;if(!meta)throw new Error('MISSING_MEETING');
+      if(title===meta.title){close();return}
+      if(kakaoUser&&await meetingIdFor(kakaoUser.id,meta.originalTitle||meta.title)===id&&await findMyMeetingByTitle(title,id))throw new Error('DUPLICATE_TITLE');
+      if(!meta.originalTitle){
+        try{await store.set(`sessions/${id}/meta/originalTitle`,meta.title)}
+        catch(e){meta=await store.get(`sessions/${id}/meta`);if(!meta?.originalTitle)throw e}
+      }
+      if(!active())return;
+      await store.set(`sessions/${id}/meta/title`,title);
+      if(!active())return;
+      S.meta={...S.meta,originalTitle:meta.originalTitle||meta.title,title};document.title=title+' · 언제봐?';refresh();renderDeleteControl();close();toast('투표 이름을 수정했어요');
+    }catch(e){if(active()){error.textContent=e.message==='DUPLICATE_TITLE'?'이미 같은 이름으로 만든 투표가 있어요. 다른 이름을 입력해 주세요.':e.message==='DELETED_MEETING'?'삭제된 투표는 수정할 수 없어요.':'이름을 수정하지 못했어요. 잠시 후 다시 시도해 주세요.';error.hidden=false}}
+    finally{if(el.isConnected){button.disabled=false;input.disabled=false}}
+  };
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();button.click()}});
+}
+
 /* ---------- 2. 세션 ---------- */
 const S={meta:null,me:null,members:null,votes:{},tab:'mine',showAll:false};
 const meKey=()=>`wmd:me:${sid}`;
 
 let sessionLoad=0;
 async function bootSession(){
+  closeMeetingRename();
   closeVoteImport();
   stopMeetingStatusWatch();
   detachVoteDrag?.();detachVoteDrag=null;
@@ -858,7 +916,7 @@ function refresh(){
     if(title)title.textContent=S.meta.title;
     if(period)period.textContent=periodLabel(S.meta.start,S.meta.end)+' 중에 골라요';
   }
-  if(shown==='main'){renderMe();S.tab==='mine'?syncCalendar():renderRank()}
+  if(shown==='main'){const title=$('#meetingTitle');if(title)title.textContent=S.meta.title;document.title=S.meta.title+' · 언제봐?';renderMe();S.tab==='mine'?syncCalendar():renderRank();renderVoteSaveState()}
 }
 
 /* ----- 닉네임 선택 ----- */
@@ -868,7 +926,7 @@ function viewEntry(){
   const typed=myProfile.nickname||$('#nick')?.value||kakaoUser?.name||'';
   $('#app').innerHTML=`
     <a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a>
-    <h1 class="stitle" id="entryTitle">${esc(S.meta.title)}</h1>
+    ${meetingTitleMarkup('entryTitle')}
     <p class="speriod" id="entryPeriod">${periodLabel(S.meta.start,S.meta.end)} 중에 골라요</p>
     <section class="panel">
       ${!kakaoUser?`<p>카카오로 로그인하고 되는 시간에 스티커를 붙여 주세요.</p>
@@ -879,6 +937,7 @@ function viewEntry(){
     </section>
     ${kakaoUser?'<div class="account-switch"><button class="btn ghost" id="otherAccount">다른 카카오 계정으로 로그인</button></div>':''}
     <div class="vote-delete-footer" id="deleteControl"></div>`;
+  bindMeetingTitleEdit();
   renderDeleteControl();
   if(!kakaoUser){$('#kakaoLogin').onclick=loginKakao;return}
   $('#otherAccount').onclick=async()=>{
@@ -908,7 +967,7 @@ function viewMain(){
       <a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a>
       <div class="top-actions"><button class="btn ghost icon-btn" id="myMeetings" aria-label="내가 참여한 모임투표 목록" title="내 모임투표">${listIcon()}</button></div>
     </div>
-    <h1 class="stitle">${esc(S.meta.title)}</h1>
+    ${meetingTitleMarkup('meetingTitle')}
     <p class="speriod">${periodLabel(S.meta.start,S.meta.end)}</p>
     ${store.demo?`<div class="demo">체험 모드예요. 지금은 이 브라우저에만 저장돼서 친구에게 보이지 않아요. 새 탭에서 같은 링크를 열어 다른 닉네임으로 테스트해 볼 수 있어요.</div>`:''}
     <section class="attendance" id="attendance" aria-label="모임 참여 현황"></section>
@@ -920,6 +979,7 @@ function viewMain(){
     <div id="body"></div>
     <div class="vote-delete-footer" id="deleteControl"></div>`;
   renderDeleteControl();
+  bindMeetingTitleEdit();
   $('#myMeetings').onclick=openMyMeetings;
   $('.tabs').onclick=e=>{const b=e.target.closest('.tab');if(b){
     S.tab=b.dataset.t;const url=new URL(location.href);
@@ -1172,13 +1232,28 @@ function showVoteImport(c,sources){
 const voteSaves=window.createVoteSaveTracker(()=>renderVoteSaveState());
 let voteFinishBusy=null;
 const voteSaveKey=(id=sid,user=S.me)=>id+':'+user;
+const voteConfirmationKey=()=>`wmd:vote-confirmed:${sid}:${S.me}`;
+function voteFingerprint(votes=myVotes()){
+  const cells=[];
+  for(const date of Object.keys(votes||{}).sort()){
+    if(!inMeetingRange(date)||!votes[date]||typeof votes[date]!=='object')continue;
+    for(const slot of ['L','D']){const level=normalizeVoteLevel(votes[date][slot]);if(level)cells.push([date,slot,level])}
+  }
+  return JSON.stringify(cells);
+}
+function voteConfirmationState(){
+  const previous=LS.get(voteConfirmationKey()),confirmed=previous!==null&&previous!==undefined;
+  return {confirmed,changed:confirmed&&previous!==voteFingerprint()};
+}
 function renderVoteSaveState(){
   if(!S.me||shown!=='main'||S.tab!=='mine')return;
   const state=voteSaves.info(voteSaveKey()),finishing=voteFinishBusy===voteSaveKey();
   const text=state.pending?'저장 중…':state.failed?'저장하지 못했어요. 다시 저장해 주세요.':state.saved||myCount(S.me)>0?'저장됨 ✓':'스티커를 붙이면 자동으로 저장돼요';
   document.querySelectorAll('[data-vote-save-status]').forEach(el=>{el.textContent=text;el.classList.toggle('save-error',state.failed>0&&!state.pending)});
   const retry=$('#retryVoteSave');if(retry){retry.hidden=!state.failed;retry.disabled=state.pending>0||finishing}
-  const finish=$('#finishVote');if(finish){finish.disabled=finishing;finish.textContent=finishing?'저장 확인 중…':'투표 마치기'}
+  const confirmation=voteConfirmationState(),showFinish=!confirmation.confirmed||confirmation.changed;
+  const panel=$('#voteFinishPanel');if(panel)panel.hidden=!showFinish&&!state.failed;
+  const finish=$('#finishVote');if(finish){finish.hidden=!showFinish;finish.disabled=finishing;finish.textContent=finishing?'저장 확인 중…':confirmation.confirmed?'투표 수정하기':'이대로 투표하기'}
   const clear=$('#clearAll');if(clear)clear.disabled=state.pending>0||state.failed>0||finishing;
   const reuse=$('#reuseVotes');if(reuse)reuse.disabled=state.pending>0||state.failed>0||finishing;
   document.querySelectorAll('.half').forEach(b=>{if(!b.hasAttribute('data-save-disabled')&&b.disabled)return;if(state.rootBlocked||finishing){b.setAttribute('data-save-disabled','');b.disabled=true}else if(b.hasAttribute('data-save-disabled')){b.removeAttribute('data-save-disabled');b.disabled=false}});
@@ -1202,6 +1277,7 @@ async function finishVote(){
     if(sid!==id||S.me!==user||sessionLoad!==request||shown!=='main'||S.tab!=='mine')return;
     if(result.failed){toast('저장하지 못한 선택이 있어요. 다시 저장한 뒤 마쳐 주세요.');return}
     if(!myCount(user)){toast('가능한 날짜에 스티커를 먼저 붙여 주세요');return}
+    LS.set(voteConfirmationKey(),voteFingerprint());
     S.tab='rank';const url=new URL(location.href);url.searchParams.set('tab','rank');history.replaceState(null,'',url.pathname+url.search);
     renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'});
     toast('투표를 저장했어요. 나중에 언제든 바꿀 수 있어요.');
@@ -1283,8 +1359,8 @@ function renderCalendar(){
     </div>
     <p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p>
     ${html}
-    <section class="vote-finish" aria-label="투표 완료">
-      <button type="button" class="btn blue block" id="finishVote">투표 마치기</button>
+    <section class="vote-finish" id="voteFinishPanel" aria-label="투표 완료">
+      <button type="button" class="btn blue block" id="finishVote">이대로 투표하기</button>
       <p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p>
       <button type="button" class="btn ghost" id="retryVoteSave" hidden>다시 저장하기</button>
     </section>

@@ -7,7 +7,8 @@
           ".write": "!data.exists()",
           ".validate": "newData.hasChildren(['title','start','end','createdAt'])",
           "title": {
-            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100",
+            ".write": "data.exists() && root.child('sessions').child($sid).child('meta').child('originalTitle').exists()"
           },
           "start": {
             ".validate": "newData.isString()"
@@ -24,6 +25,10 @@
           "expectedCount": {
             ".write": "!data.exists() && root.child('sessions').child($sid).child('meta').exists()",
             ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 100 && newData.val() % 1 === 0"
+          },
+          "originalTitle": {
+            ".write": "!data.exists() && root.child('sessions').child($sid).child('meta').child('title').exists()",
+            ".validate": "newData.isString() && newData.val() === root.child('sessions').child($sid).child('meta').child('title').val()"
           }
         },
         "members": {
