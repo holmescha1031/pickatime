@@ -1072,10 +1072,11 @@ async function voteImportSource(id,c,current){
 }
 async function offerVoteImport(manual=false){
   if(!window.VoteTransfer||!S.me||S.me!==kakaoUser?.id||!S.meta||S.tab!=='mine'||shown!=='main')return;
-  const c=voteImportContext(),key=[c.user,c.id,c.request].join(':');
-  if(voteImportDialog||voteImportLoading===key||(!manual&&voteImportSeen.has(key)))return;
+  const c=voteImportContext(),key=[c.user,c.id].join(':'),seenKey='wmd:vote-import-seen:'+key,token=key+':'+c.request;
+  if(voteImportDialog||voteImportLoading===token||(!manual&&(voteImportSeen.has(key)||LS.get(seenKey)==='1')))return;
   if(document.querySelector('.sheet,dialog[open]'))return;
-  voteImportLoading=key;voteImportSeen.add(key);
+  voteImportLoading=token;
+  const remember=()=>{voteImportSeen.add(key);LS.set(seenKey,'1')};
   try{
     const meetings={...myProfile.meetings};
     if(c.key){try{Object.assign(meetings,await store.get(`profiles/${c.key}/meetings`)||{})}catch{}}
@@ -1088,12 +1089,13 @@ async function offerVoteImport(manual=false){
       }
     }));
     if(!voteImportActive(c))return;
-    if(document.querySelector('.sheet,dialog[open]')){voteImportSeen.delete(key);return}
+    if(document.querySelector('.sheet,dialog[open]'))return;
     sources.sort((a,b)=>(Number(b.meta.createdAt)||0)-(Number(a.meta.createdAt)||0)||a.meta.title.localeCompare(b.meta.title));
-    if(!sources.length){if(failed)voteImportSeen.delete(key);if(manual)toast(failed?'스티커를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.':'겹치는 기간에 불러올 내 스티커가 없어요');return}
+    if(!sources.length){if(!failed)remember();if(manual)toast(failed?'스티커를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.':'겹치는 기간에 불러올 내 스티커가 없어요');return}
     showVoteImport(c,sources);
-  }catch{voteImportSeen.delete(key);if(manual)toast('스티커를 불러오지 못했어요. 다시 시도해 주세요.')}
-  finally{if(voteImportLoading===key)voteImportLoading=null}
+    remember();
+  }catch{if(manual)toast('스티커를 불러오지 못했어요. 다시 시도해 주세요.')}
+  finally{if(voteImportLoading===token)voteImportLoading=null}
 }
 function showVoteImport(c,sources){
   const el=document.createElement('dialog');el.className='existing-meeting vote-import';el.setAttribute('aria-labelledby','voteImportTitle');
