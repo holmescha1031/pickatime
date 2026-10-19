@@ -999,12 +999,12 @@ function renderAttendance(){
   el.innerHTML=`
     <div class="attendance-head">
       <span class="attendance-count" aria-live="polite">참여 <b>${joined}${expected?'/'+expected:''}</b>명</span>
-      <button class="btn blue invite-btn" id="inviteVote">${shareIcon()}투표링크 공유하기</button>
+      <button class="btn blue invite-btn" id="inviteVote">투표링크 공유하기</button>
     </div>
     <div class="member-stickers">${sorted.map(id=>{const c=COLORS[hash(id)%COLORS.length];return `<span class="name-sticker" style="--member-color:${c};--member-bg:${c}12">${esc(members[id].name)}${id===S.me?' <small>(나)</small>':''}</span>`}).join('')||'<span class="hint">참여한 친구들이 여기에 표시돼요.</span>'}</div>
     <p class="hint">${voted}명이 스티커를 붙였어요.${expected?'':' 예정 인원이 아직 정해지지 않았어요.'}</p>
     ${expected?'':'<button class="btn ghost" id="setExpected">예정 인원 설정</button>'}
-    <div class="vote-results-ready"><b>${esc(shareStatus.complete?'모두 참여했어요! 상위 5개 날짜를 공유해 보세요.':shareStatus.headline)}</b><button class="btn blue invite-btn" id="shareAllResults">${shareStatus.complete?'':shareIcon()}${shareStatus.complete?'결과 공유하기':'현재 상황 공유하기'}</button></div>`;
+    <div class="vote-results-ready"><b>${esc(shareStatus.complete?'모두 참여했어요! 상위 5개 날짜를 공유해 보세요.':shareStatus.headline)}</b><button class="btn blue invite-btn" id="shareAllResults">${shareStatus.complete?'결과 공유하기':'현재 상황 공유하기'}</button></div>`;
   if($('#shareAllResults'))$('#shareAllResults').onclick=shareRankStatus;
   $('#inviteVote').onclick=()=>share(sid,S.meta.title);
   if($('#setExpected'))$('#setExpected').onclick=async()=>{
