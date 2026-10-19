@@ -238,6 +238,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 <script src="./config.js"></script>
 <script src="./assets/kr-holidays.js"></script>
 <script src="./assets/vote-drag-v2.js"></script>
+<script src="./assets/vote-import-v1.js"></script>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -319,6 +320,7 @@ function makeStore(){
       demo:false,
       get:p=>db.ref(p).once('value').then(s=>s.val()),
       set:(p,v)=>db.ref(p).set(v),
+      putVoteIfEmpty:(p,v)=>db.ref(p).transaction(current=>current===null||current===0?v:undefined,undefined,false),
       on:(p,cb)=>{const r=db.ref(p),h=s=>cb(s.val());r.on('value',h,()=>toast('실시간 데이터를 읽지 못했어요. DB 규칙과 연결을 확인해 주세요.'));return()=>r.off('value',h)}
     };
   }
@@ -345,6 +347,11 @@ function makeStore(){
   };
 }
 const store = makeStore();
+if(!store.putVoteIfEmpty)store.putVoteIfEmpty=async(p,v)=>{
+  const current=await store.get(p);
+  if(current!==null&&current!==undefined&&current!==0)return {committed:false};
+  await store.set(p,v);return {committed:true};
+};
 
 /* ---------- 계정별 닉네임 · 참여 모임 ---------- */
 let myProfile={nickname:'',meetings:{}};
@@ -517,6 +524,7 @@ async function isMeetingDeleted(id){
   return data.deleted===true;
 }
 function showDeletedMeeting(){
+  closeVoteImport();
   stopMeetingStatusWatch();detachVoteDrag?.();detachVoteDrag=null;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];shown=null;
   $('#app').innerHTML='<div class="hero"><a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a><h1>삭제된 투표예요</h1><p>모임을 만든 사람이 삭제한 투표입니다.</p></div><a class="btn blue block" href="./">홈으로 돌아가기</a>';
@@ -563,6 +571,7 @@ function meetingSticker(level=2){
 }
 
 function viewCreate(){
+  closeVoteImport();
   stopMeetingStatusWatch();
   detachVoteDrag?.();detachVoteDrag=null;
   document.title='언제봐?';
@@ -698,6 +707,7 @@ const meKey=()=>`wmd:me:${sid}`;
 
 let sessionLoad=0;
 async function bootSession(){
+  closeVoteImport();
   stopMeetingStatusWatch();
   detachVoteDrag?.();detachVoteDrag=null;
   const id=sid,request=++sessionLoad;
@@ -764,6 +774,7 @@ function refresh(){
 
 /* ----- 닉네임 선택 ----- */
 function viewEntry(){
+  closeVoteImport();
   detachVoteDrag?.();detachVoteDrag=null;
   const typed=myProfile.nickname||$('#nick')?.value||kakaoUser?.name||'';
   $('#app').innerHTML=`
@@ -951,6 +962,7 @@ function renderMe(){
 }
 let detachVoteDrag=null;
 function renderTab(){
+  if(S.tab!=='mine')closeVoteImport();
   detachVoteDrag?.();detachVoteDrag=null;
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.t===S.tab));
   S.tab==='mine'?renderCalendar():renderRank();
@@ -964,10 +976,88 @@ function openShareSheet(){
     <button class="btn blue block" id="sh">링크 공유하기</button>
     <button class="btn ghost block" id="cl" style="margin-top:6px">나중에 할게요</button></div>`;
   document.body.appendChild(el);
-  const close=()=>el.remove();
+  const close=()=>{el.remove();void offerVoteImport()};
   el.onclick=e=>{if(e.target===el)close()};
   el.querySelector('#cl').onclick=close;
   el.querySelector('#sh').onclick=async()=>{await share(sid,S.meta.title);close()};
+}
+
+/* Reuse only this account's votes, with consent and empty-slot transactions. */
+let voteImportDialog=null,voteImportLoading=null;
+const voteImportSeen=new Set();
+function closeVoteImport(){voteImportDialog?.close();voteImportDialog?.remove();voteImportDialog=null}
+function voteImportContext(){return {id:sid,user:S.me,request:sessionLoad,start:S.meta?.start,end:S.meta?.end,key:kakaoUser?.profileKey}}
+function voteImportActive(c){return sid===c.id&&sessionLoad===c.request&&kakaoUser?.id===c.user&&S.me===c.user&&shown==='main'&&S.tab==='mine'&&S.meta?.start===c.start&&S.meta?.end===c.end}
+async function voteImportSource(id,c,current){
+  const meta=await store.get(`sessions/${id}/meta`);
+  if(!meta||!window.VoteTransfer.plan(meta,c,{},current,todayStr()).start)return null;
+  if(meta.end<c.start||meta.start>c.end)return null;
+  const [deleted,member,votes]=await Promise.all([isMeetingDeleted(id),store.get(`sessions/${id}/members/${c.user}`),store.get(`sessions/${id}/votes/${c.user}`)]);
+  if(deleted||!member)return null;
+  const plan=window.VoteTransfer.plan(meta,c,votes,current,todayStr());
+  return plan.cells.length?{id,meta,plan}:null;
+}
+async function offerVoteImport(manual=false){
+  if(!window.VoteTransfer||!S.me||S.me!==kakaoUser?.id||!S.meta||S.tab!=='mine'||shown!=='main')return;
+  const c=voteImportContext(),key=[c.user,c.id,c.request].join(':');
+  if(voteImportDialog||voteImportLoading===key||(!manual&&voteImportSeen.has(key)))return;
+  if(document.querySelector('.sheet,dialog[open]'))return;
+  voteImportLoading=key;voteImportSeen.add(key);
+  try{
+    const meetings={...myProfile.meetings};
+    if(c.key){try{Object.assign(meetings,await store.get(`profiles/${c.key}/meetings`)||{})}catch{}}
+    if(!voteImportActive(c))return;
+    const ids=Object.keys(meetings).filter(id=>meetings[id]===true&&id!==c.id&&validMeetingId(id));
+    const sources=[];let next=0,failed=false;
+    await Promise.all(Array.from({length:Math.min(4,ids.length)},async()=>{
+      while(next<ids.length&&voteImportActive(c)){
+        const id=ids[next++];try{const source=await voteImportSource(id,c,myVotes());if(source)sources.push(source)}catch{failed=true}
+      }
+    }));
+    if(!voteImportActive(c))return;
+    if(document.querySelector('.sheet,dialog[open]')){voteImportSeen.delete(key);return}
+    sources.sort((a,b)=>(Number(b.meta.createdAt)||0)-(Number(a.meta.createdAt)||0)||a.meta.title.localeCompare(b.meta.title));
+    if(!sources.length){if(failed)voteImportSeen.delete(key);if(manual)toast(failed?'스티커를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.':'겹치는 기간에 불러올 내 스티커가 없어요');return}
+    showVoteImport(c,sources);
+  }catch{voteImportSeen.delete(key);if(manual)toast('스티커를 불러오지 못했어요. 다시 시도해 주세요.')}
+  finally{if(voteImportLoading===key)voteImportLoading=null}
+}
+function showVoteImport(c,sources){
+  const el=document.createElement('dialog');el.className='existing-meeting vote-import';el.setAttribute('aria-labelledby','voteImportTitle');
+  el.innerHTML=`<div class="dialog-heading"><h2 id="voteImportTitle">스티커 불러오기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-dismiss aria-label="닫기">✕</button></div>
+    <p>${sources.length===1?esc('‘'+sources[0].meta.title+'’ 모임 투표에서 붙인 스티커를 불러올까요?'):'다른 모임 투표에서 붙인 스티커를 불러올까요? 가져올 모임을 선택해 주세요.'}</p>
+    <div style="display:grid;gap:8px">${sources.map((s,i)=>`<label style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:14px;cursor:pointer"><input type="radio" name="voteImportSource" value="${i}" ${i===0?'checked':''} style="width:20px;flex:none;accent-color:var(--s1)"><span><strong>${esc(s.meta.title)}</strong><br><span class="hint">${esc(periodLabel(s.plan.start,s.plan.end))} · ${s.plan.cells.length}칸</span></span></label>`).join('')}</div>
+    <p class="hint">겹치는 기간의 내 스티커만 가져와요. 이미 붙인 스티커는 유지하고 빈칸에만 추가해요.</p>
+    <p data-status role="status" class="hint"></p><button type="button" class="btn blue block" data-import></button><button type="button" class="btn ghost block" data-dismiss>나중에 할게요</button>`;
+  document.body.appendChild(el);voteImportDialog=el;
+  const close=()=>{if(voteImportDialog===el)closeVoteImport()};
+  el.querySelectorAll('[data-dismiss]').forEach(b=>b.onclick=close);
+  el.addEventListener('cancel',e=>{e.preventDefault();close()});
+  const selected=()=>sources[Number(el.querySelector('input:checked').value)],button=el.querySelector('[data-import]'),status=el.querySelector('[data-status]');
+  const update=()=>button.textContent=selected().plan.cells.length+'칸 불러오기';
+  el.querySelectorAll('input').forEach(input=>input.onchange=update);update();el.showModal();
+  button.onclick=async()=>{
+    if(!voteImportActive(c)){close();return}
+    el.querySelectorAll('button,input').forEach(b=>b.disabled=true);status.textContent='스티커를 확인하고 있어요…';
+    try{
+      if(await isMeetingDeleted(c.id))throw new Error('TARGET_DELETED');
+      const current=await store.get(`sessions/${c.id}/votes/${c.user}`)||{};
+      const source=await voteImportSource(selected().id,c,current);
+      if(!voteImportActive(c)||!el.isConnected){close();return}
+      if(!source){close();toast('지금 불러올 스티커가 없어요. 기존 선택은 유지했어요.');return}
+      const result=await window.VoteTransfer.run(source.plan.cells,{
+        isActive:()=>voteImportActive(c)&&el.isConnected,
+        saveIfEmpty:cell=>store.putVoteIfEmpty(`sessions/${c.id}/votes/${c.user}/${cell.date}/${cell.slot}`,cell.level),
+        onProgress:p=>status.textContent=`${p.processed}/${p.total}칸 확인 중…`
+      });
+      if(!voteImportActive(c)||!el.isConnected){close();return}
+      try{const fresh=await store.get(`sessions/${c.id}/votes/${c.user}`);if(voteImportActive(c))S.votes={...S.votes,[c.user]:fresh||{}}}catch{}
+      if(!voteImportActive(c)){close();return}refresh();
+      if(result.failed){status.textContent=`${result.added}칸을 가져왔어요. 저장하지 못한 칸은 다시 시도해 주세요.`}
+      else{close();toast(result.added?`${result.added}칸을 불러왔어요`:'이미 붙인 스티커를 유지했어요')}
+    }catch(e){if(voteImportActive(c)&&el.isConnected)status.textContent=e.message==='TARGET_DELETED'?'삭제된 투표에는 스티커를 가져올 수 없어요.':'스티커를 가져오지 못했어요. 다시 시도해 주세요.'}
+    finally{if(el.isConnected)el.querySelectorAll('button,input').forEach(b=>b.disabled=false)}
+  };
 }
 
 /* ----- 내 스티커 달력 ----- */
@@ -1037,10 +1127,13 @@ function renderCalendar(){
       <span>(세 번 누르면 떼져요)</span>
     </div>
     ${html}
+    <button class="btn ghost block" id="reuseVotes">다른 모임 스티커 불러오기</button>
     <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
   detachVoteDrag=window.attachVoteDrag($('#body'),setVoteLevel,nextVoteLevel);
   $('#icsFile').onchange=importIcs;
+  $('#reuseVotes').onclick=()=>offerVoteImport(true);
+  void offerVoteImport();
 }
 function onDayTap(e){
   const w=e.target.closest('.wkplan');
@@ -1341,8 +1434,3 @@ window.addEventListener('popstate',()=>{
 </script>
 </body>
 </html>
-
-
-
-
-
