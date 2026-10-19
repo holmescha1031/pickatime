@@ -520,7 +520,6 @@ async function share(sid,title,options={}){
   const el=document.createElement('dialog');el.id='shareFallback';el.className='existing-meeting';
   el.setAttribute('aria-labelledby','shareFallbackTitle');
   el.innerHTML=`<div class="dialog-heading"><h2 id="shareFallbackTitle">공유하기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="공유 닫기">✕</button></div>
-    <p class="hint">공유할 방법을 선택해 주세요.</p>
     <button type="button" class="btn block" style="background:#FEE500;color:#191919;margin-top:18px" data-kakao>카카오톡으로 공유</button>
     <button type="button" class="btn blue block" style="margin-top:10px" data-native>다른 앱으로 공유</button>
     <button type="button" class="btn ghost block" style="margin-top:10px" data-copy>${options.copyMessage?'내용과 링크 복사':'링크 복사'}</button>
@@ -836,7 +835,7 @@ function openMeetingRename(){
   if(!sid||!S.meta||meetingRenameDialog)return;
   const id=sid,request=sessionLoad,el=document.createElement('dialog');
   el.className='existing-meeting';el.setAttribute('aria-labelledby','renameMeetingHeading');
-  el.innerHTML=`<div class="dialog-heading"><h2 id="renameMeetingHeading">모임 이름 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">✕</button></div><label class="f" for="renameMeetingInput">모임 이름</label><input class="inp" id="renameMeetingInput" maxlength="30" value="${esc(S.meta.title)}" autocomplete="off"><p class="hint">변경한 이름은 참여한 모두에게 보여요.</p><p class="count-error" data-error role="alert" hidden></p><button type="button" class="btn blue block" data-save style="margin-top:20px">수정하기</button>`;
+  el.innerHTML=`<div class="dialog-heading"><h2 id="renameMeetingHeading">모임 이름 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">✕</button></div><input class="inp" id="renameMeetingInput" aria-label="모임 이름" maxlength="30" value="${esc(S.meta.title)}" autocomplete="off"><p class="hint">변경한 이름은 참여한 모두에게 보여요.</p><p class="count-error" data-error role="alert" hidden></p><button type="button" class="btn blue block" data-save style="margin-top:20px">수정하기</button>`;
   document.body.appendChild(el);meetingRenameDialog=el;
   const active=()=>sid===id&&sessionLoad===request&&el.isConnected;
   const close=()=>{if(meetingRenameDialog===el)closeMeetingRename()};
