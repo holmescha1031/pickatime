@@ -800,7 +800,7 @@ function viewCreate(){
 let meetingRenameDialog=null;
 function closeMeetingRename(){meetingRenameDialog?.close();meetingRenameDialog?.remove();meetingRenameDialog=null}
 function meetingTitleMarkup(id){
-  return `<div class="meeting-title-row"><h1 class="stitle" id="${id}">${esc(S.meta.title)}</h1><button type="button" class="edit-meeting-title" aria-label="투표 이름 수정" title="투표 이름 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg></button></div>`;
+  return `<div class="meeting-title-row"><h1 class="stitle" id="${id}">${esc(S.meta.title)}</h1><button type="button" class="edit-meeting-title" aria-label="모임 이름 수정" title="모임 이름 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg></button></div>`;
 }
 function bindMeetingTitleEdit(){const button=$('.edit-meeting-title');if(button)button.onclick=openMeetingRename}
 async function findMyMeetingByTitle(title,except=null){
@@ -817,7 +817,7 @@ function openMeetingRename(){
   if(!sid||!S.meta||meetingRenameDialog)return;
   const id=sid,request=sessionLoad,el=document.createElement('dialog');
   el.className='existing-meeting';el.setAttribute('aria-labelledby','renameMeetingHeading');
-  el.innerHTML=`<div class="dialog-heading"><h2 id="renameMeetingHeading">투표 이름 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">✕</button></div><label class="f" for="renameMeetingInput">모임 이름</label><input class="inp" id="renameMeetingInput" maxlength="30" value="${esc(S.meta.title)}" autocomplete="off"><p class="hint">변경한 이름은 참여한 모두에게 보여요.</p><p class="count-error" data-error role="alert" hidden></p><button type="button" class="btn blue block" data-save>수정하기</button>`;
+  el.innerHTML=`<div class="dialog-heading"><h2 id="renameMeetingHeading">모임 이름 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">✕</button></div><label class="f" for="renameMeetingInput">모임 이름</label><input class="inp" id="renameMeetingInput" maxlength="30" value="${esc(S.meta.title)}" autocomplete="off"><p class="hint">변경한 이름은 참여한 모두에게 보여요.</p><p class="count-error" data-error role="alert" hidden></p><button type="button" class="btn blue block" data-save style="margin-top:20px">수정하기</button>`;
   document.body.appendChild(el);meetingRenameDialog=el;
   const active=()=>sid===id&&sessionLoad===request&&el.isConnected;
   const close=()=>{if(meetingRenameDialog===el)closeMeetingRename()};
