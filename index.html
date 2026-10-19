@@ -104,6 +104,10 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 @keyframes blink{50%{opacity:.25}}
 .demo{background:#FFF4C2;border:1.5px dashed #E8C640;border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px;line-height:1.5}
 
+.date-range-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.date-range-fields>div,.date-range-fields input{min-width:0;width:100%}
+.date-range-fields input{font-size:16px;padding:12px 8px;box-sizing:border-box}
+@media(max-width:350px){.date-range-fields{grid-template-columns:1fr}}
 /* legend */
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--sub);margin:2px 2px 12px}
 .legend>span{display:inline-flex;align-items:center;gap:6px}
@@ -238,7 +242,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 <script src="./config.js"></script>
 <script src="./assets/kr-holidays.js"></script>
 <script src="./assets/vote-drag-v2.js"></script>
-<script src="./assets/vote-import-v1.js"></script>
+<script src="./assets/vote-import-v2.js"></script>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -444,7 +448,18 @@ const avatar = name=>`<span class="av" style="background:${colorOf(name)}">${esc
 const ro = name=>{const c=name.charCodeAt(name.length-1);if(c<0xAC00||c>0xD7A3)return'로';const j=(c-0xAC00)%28;return(j===0||j===8)?'로':'으로'};
 const randId = n=>{const a='abcdefghjkmnpqrstuvwxyz23456789';let s='';const r=crypto.getRandomValues(new Uint8Array(n));for(const x of r)s+=a[x%a.length];return s};
 const monthLabel = ym=>{const[y,m]=ym.split('-').map(Number);return `${y}년 ${m}월`};
-const periodLabel = (a,b)=>a===b?monthLabel(a):`${monthLabel(a)} ~ ${b.slice(0,4)===a.slice(0,4)?Number(b.slice(5))+'월':monthLabel(b)}`;
+const periodLabel = (a,b)=>{
+  if(a.length===10||b.length===10){
+    const bounds=window.VoteTransfer.bounds({start:a,end:b});if(!bounds)return '';
+    const label=d=>`${monthLabel(d)} ${Number(d.slice(8))}일`;
+    return bounds.start===bounds.end?label(bounds.start):`${label(bounds.start)} ~ ${bounds.end.slice(0,4)===bounds.start.slice(0,4)?Number(bounds.end.slice(5,7))+'월 '+Number(bounds.end.slice(8))+'일':label(bounds.end)}`;
+  }
+  return a===b?monthLabel(a):`${monthLabel(a)} ~ ${b.slice(0,4)===a.slice(0,4)?Number(b.slice(5))+'월':monthLabel(b)}`;
+};
+function inMeetingRange(date,meta=S.meta){
+  const bounds=window.VoteTransfer.bounds(meta);
+  return Boolean(bounds&&/^\d{4}-\d{2}-\d{2}$/.test(date)&&date>=bounds.start&&date<=bounds.end);
+}
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2000)}
 function monthsBetween(a,b){const out=[];let [y,m]=a.split('-').map(Number);const[ey,em]=b.split('-').map(Number);while(y<ey||(y===ey&&m<=em)){out.push(`${y}-${pad(m)}`);m++;if(m>12){m=1;y++}}return out}
 const shareUrl = (sid,tab='mine')=>{const url=new URL(PUBLIC_SITE_URL);url.searchParams.set('s',sid);if(tab==='rank')url.searchParams.set('tab','rank');return url.href};
@@ -578,8 +593,12 @@ function viewCreate(){
   const now=new Date();
   const months=[...Array(12)].map((_,i)=>ymOf(new Date(now.getFullYear(),now.getMonth()+i,1)));
   let draft;try{draft=JSON.parse(SS.get('wmd:createDraft'))}catch(e){}
-  const validDraft=draft&&typeof draft.title==='string'&&draft.title.trim()&&months.includes(draft.start)&&months.includes(draft.end)&&draft.start<=draft.end&&monthsBetween(draft.start,draft.end).length<=6;
-  let start=validDraft?draft.start:months[0],end=validDraft?draft.end:months[0],picking=false;
+  const validDraft=draft&&typeof draft.title==='string'&&draft.title.trim()&&months.includes(draft.start?.slice(0,7))&&months.includes(draft.end?.slice(0,7))&&Boolean(window.VoteTransfer.bounds(draft))&&draft.start<=draft.end&&monthsBetween(draft.start,draft.end).length<=6;
+  let start=validDraft?draft.start.slice(0,7):months[0],end=validDraft?draft.end.slice(0,7):months[0],picking=false;
+  let periodMode=validDraft&&draft.start.length===10?'dates':'months';
+  const minDate=todayStr(),maxDate=window.VoteTransfer.bounds({start:months[0],end:months.at(-1)}).end;
+  const savedStart=validDraft&&draft.start.length===10?draft.start:minDate;
+  const savedEnd=validDraft&&draft.end.length===10?draft.end:minDate;
   $('#app').innerHTML=`
     <div class="hero">
       <span class="brand brand--hero" aria-label="언제봐?"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></span>
@@ -598,8 +617,19 @@ function viewCreate(){
     </section>
     <section class="panel">
       <label class="f">언제 중에 고를까요?</label>
-      <div class="months" id="months"></div>
-      <p class="hint" id="phint"></p>
+      <div style="display:flex;gap:8px;margin-bottom:16px" role="group" aria-label="투표 기간 선택 방식">
+        <button type="button" class="btn" id="chooseMonths" style="flex:1">월로 선택</button>
+        <button type="button" class="btn" id="chooseDates" style="flex:1">날짜로 선택</button>
+      </div>
+      <div id="monthChoice"><div class="months" id="months"></div><p class="hint" id="phint"></p></div>
+      <div id="dateChoice" hidden>
+        <div class="date-range-fields">
+          <div><label class="f" for="startDate">시작일</label><input class="inp" type="date" id="startDate" min="${minDate}" max="${maxDate}" value="${savedStart}"></div>
+          <div><label class="f" for="endDate">종료일</label><input class="inp" type="date" id="endDate" min="${savedStart}" max="${maxDate}" value="${savedEnd}"></div>
+        </div>
+        <p class="hint">시작일과 종료일을 포함해 투표해요. 하루만 선택할 수도 있어요.</p>
+        <p class="count-error" id="dateError" role="alert" hidden></p>
+      </div>
     </section>
     <button class="btn blue block" id="create">모임 만들고 링크 공유</button>
     <p class="hint" id="createError" role="alert" hidden></p>
@@ -629,6 +659,33 @@ function viewCreate(){
       if(monthsBetween(start,end).length>6){end=monthsBetween(start,end)[5];toast('최대 6개월까지 고를 수 있어요')}}
     paint();
   };
+  const paintPeriodMode=()=>{
+    $('#monthChoice').hidden=periodMode!=='months';$('#dateChoice').hidden=periodMode!=='dates';
+    for(const [id,mode] of [['chooseMonths','months'],['chooseDates','dates']]){
+      const button=$('#'+id),active=periodMode===mode;
+      button.classList.toggle('blue',active);button.setAttribute('aria-pressed',String(active));
+    }
+  };
+  $('#chooseMonths').onclick=()=>{periodMode='months';paintPeriodMode()};
+  $('#chooseDates').onclick=()=>{periodMode='dates';paintPeriodMode()};
+  const selectedPeriod=()=>periodMode==='dates'?{start:$('#startDate').value,end:$('#endDate').value}:{start,end};
+  const validateDates=()=>{
+    const range=selectedPeriod();let message='';
+    if(periodMode==='dates'){
+      if(!range.start||!range.end)message='시작일과 종료일을 선택해 주세요.';
+      else if(range.end<range.start)message='종료일은 시작일과 같거나 이후여야 해요.';
+      else if(!window.VoteTransfer.bounds(range)||range.start<minDate||range.end>maxDate)message='선택할 수 있는 기간 안에서 날짜를 골라 주세요.';
+      else if(monthsBetween(range.start,range.end).length>6)message='최대 6개월까지 고를 수 있어요.';
+    }
+    $('#dateError').textContent=message;$('#dateError').hidden=!message;
+    return !message;
+  };
+  $('#startDate').onchange=()=>{
+    $('#endDate').min=$('#startDate').value||minDate;
+    if($('#endDate').value&&$('#endDate').value<$('#startDate').value)$('#endDate').value=$('#startDate').value;
+    validateDates();
+  };
+  $('#endDate').onchange=validateDates;paintPeriodMode();
   const t=$('#title');
   t.oninput=()=>{
     $('#existingMeeting').close();
@@ -660,10 +717,12 @@ function viewCreate(){
     const expectedCount=Number(countInput.value);
     if(!validateCountLimit()){countInput.focus();return}
     if(!Number.isSafeInteger(expectedCount)||expectedCount<2){$('#expectedCount').focus();toast('참여 예정 인원을 2명 이상의 정수로 입력해 주세요.');return}
+    if(!validateDates()){(document.querySelector('#dateChoice input:invalid')||$('#startDate')).focus();return}
+    const selected=selectedPeriod();
     const btn=$('#create');if(btn.disabled)return;
     $('#createError').hidden=true;
     $('#existingMeeting').close();
-    SS.set('wmd:createDraft',JSON.stringify({title,start,end,expectedCount}));
+    SS.set('wmd:createDraft',JSON.stringify({title,...selected,expectedCount}));
     if(!kakaoUser){loginKakao('create');return}
     btn.disabled=true;btn.textContent='만드는 중…';
     let id;
@@ -673,7 +732,7 @@ function viewCreate(){
         if(await isMeetingDeleted(id))throw Object.assign(new Error('Deleted meeting'),{code:'DELETED_MEETING'});
         showExistingMeeting(id);return
       }
-      await store.set(`sessions/${id}/meta`,{title,start,end,expectedCount,createdAt:Date.now()});
+      await store.set(`sessions/${id}/meta`,{title,...selected,expectedCount,createdAt:Date.now()});
       SS.del('wmd:createDraft');
       SS.set('wmd:new',id);
       try{history.pushState(null,'',`?s=${id}`)}catch(e){}
@@ -990,8 +1049,8 @@ function voteImportContext(){return {id:sid,user:S.me,request:sessionLoad,start:
 function voteImportActive(c){return sid===c.id&&sessionLoad===c.request&&kakaoUser?.id===c.user&&S.me===c.user&&shown==='main'&&S.tab==='mine'&&S.meta?.start===c.start&&S.meta?.end===c.end}
 async function voteImportSource(id,c,current){
   const meta=await store.get(`sessions/${id}/meta`);
-  if(!meta||!window.VoteTransfer.plan(meta,c,{},current,todayStr()).start)return null;
-  if(meta.end<c.start||meta.start>c.end)return null;
+  const overlap=window.VoteTransfer.plan(meta,c,{},current,todayStr());
+  if(!overlap.start||overlap.start>overlap.end)return null;
   const [deleted,member,votes]=await Promise.all([isMeetingDeleted(id),store.get(`sessions/${id}/members/${c.user}`),store.get(`sessions/${id}/votes/${c.user}`)]);
   if(deleted||!member)return null;
   const plan=window.VoteTransfer.plan(meta,c,votes,current,todayStr());
@@ -1103,6 +1162,7 @@ function renderCalendar(){
     const cells=Array(first).fill({h:'<div></div>',past:true});
     for(let d=1;d<=days;d++){
       const ds=`${ym}-${pad(d)}`,dow=(first+d-1)%7,past=ds<today;
+      if(!inMeetingRange(ds)){cells.push({h:'<div aria-hidden="true"></div>',past:true});continue}
       const holiday=holidayName(ds);
       const dayEv=past?[]:(idx[ds]||[]);
       const halves=SLOTS.map(([sl,name])=>{
@@ -1149,7 +1209,7 @@ function onDayTap(e){
   setVoteLevel(b,nextVoteLevel(b.dataset.l));
 }
 function setVoteLevel(b,next){
-  if(!b||b.disabled||!S.me)return;
+  if(!b||b.disabled||!S.me||!inMeetingRange(b.dataset.d))return;
   if(Number(b.dataset.l)===next)return;
   const d=b.dataset.d,sl=b.dataset.s;
   b.dataset.l=next;
@@ -1172,7 +1232,7 @@ function syncCalendar(){
 }
 function myCount(id){
   const t=todayStr();let n=0;
-  for(const[d,v] of Object.entries(S.votes?.[id]||{}))if(d>=t&&v&&typeof v==='object')n+=Object.keys(v).length;
+  for(const[d,v] of Object.entries(S.votes?.[id]||{}))if(d>=t&&inMeetingRange(d)&&v&&typeof v==='object')n+=['L','D'].filter(slot=>normalizeVoteLevel(v[slot])>0).length;
   return n;
 }
 
@@ -1363,7 +1423,7 @@ function computeRank(data=S){
   const ids=Object.keys(data.members||{}),today=todayStr(),map={};
   for(const id of ids){
     for(const [d,v] of Object.entries(data.votes?.[id]||{})){
-      if(!v||typeof v!=='object'||d<today||d.slice(0,7)<data.meta.start||d.slice(0,7)>data.meta.end)continue;
+      if(!v||typeof v!=='object'||d<today||!inMeetingRange(d,data.meta))continue;
       for(const [sl,storedLevel] of Object.entries(v)){
         const l=normalizeVoteLevel(storedLevel);
         if(!SLOT_NAME[sl]||!l)continue;
