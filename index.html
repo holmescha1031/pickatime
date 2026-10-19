@@ -1120,6 +1120,7 @@ function renderCalendar(){
   }).join('');
   $('#body').innerHTML=`
     <div class="calbar" id="calbar">${calBarHtml()}</div>
+    <button type="button" class="btn block" id="reuseVotes" style="margin-bottom:16px;background:var(--paper);color:var(--s1);border:1.5px solid var(--line)">다른 투표에서 가져오기</button>
     <input type="file" id="icsFile" accept=".ics,text/calendar" hidden>
     <div class="legend">
       <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>한 번 클릭: 아마 가능</span>
@@ -1127,7 +1128,6 @@ function renderCalendar(){
       <span>(세 번 누르면 떼져요)</span>
     </div>
     ${html}
-    <button class="btn ghost block" id="reuseVotes">다른 모임 스티커 불러오기</button>
     <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
   detachVoteDrag=window.attachVoteDrag($('#body'),setVoteLevel,nextVoteLevel);
