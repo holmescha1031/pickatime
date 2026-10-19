@@ -985,16 +985,16 @@ function rankShareState(data=S,ranked=computeRank(data).list){
   const dates=[],seen=new Set();
   for(const row of ranked){if(seen.has(row.d))continue;seen.add(row.d);dates.push(row);if(dates.length===5)break}
   const lines=dates.map((row,i)=>{const d=parseYmd(row.d);return (i+1)+'. '+d.getFullYear()+'.'+pad(d.getMonth()+1)+'.'+pad(d.getDate())+' ('+WD[d.getDay()]+') '+SLOT_NAME[row.sl]+' · '+row.count+'/'+total+'명'});
-  const description=[headline,dates.length?(complete?'상위 '+dates.length+'개 날짜':'현재 유력 날짜'):'아직 유력 날짜가 없어요.',...lines].join('\n');
+  const description=[headline,'',dates.length?(complete?'상위 '+dates.length+'개 날짜':'유력 날짜'):'아직 유력 날짜가 없어요.',...lines].join('\n');
   return {total,voted,remaining,complete,headline,dates,description};
 }
 function rankKakaoText(title,status){
-  const heading='📅 '+title+(status.complete?' 투표 결과':' 현재 투표 상황');
+  const heading='📅 '+title+(status.complete?' 투표 결과':' 투표 상황');
   const lines=status.dates.map((row,i)=>{
     const d=parseYmd(row.d);
     return (i+1)+'. '+String(d.getFullYear()).slice(-2)+'.'+pad(d.getMonth()+1)+'.'+pad(d.getDate())+'('+WD[d.getDay()]+') '+SLOT_NAME[row.sl]+' '+row.count+'/'+status.total+'명';
   });
-  const body=[status.headline,lines.length?(status.complete?'상위 '+lines.length+'개 날짜':'현재 유력 날짜'):'아직 유력 날짜가 없어요.',...lines].join('\n');
+  const body=[status.headline,'',lines.length?(status.complete?'상위 '+lines.length+'개 날짜':'유력 날짜'):'아직 유력 날짜가 없어요.',...lines].join('\n');
   // Kakao's text template displays up to 200 characters. Keep every ranked date.
   const budget=200-body.length-2;
   let shortHeading=heading;
@@ -1007,7 +1007,7 @@ function rankKakaoText(title,status){
 }
 function shareRankStatus(){
   const status=rankShareState();
-  return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+(status.complete?' 투표 결과':' 현재 투표 상황'),description:status.description,buttonTitle:'날짜 순위 보기',copyMessage:true,kakaoText:rankKakaoText(S.meta.title,status)});
+  return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+(status.complete?' 투표 결과':' 투표 상황'),description:status.description,buttonTitle:'투표 보기',copyMessage:true,kakaoText:rankKakaoText(S.meta.title,status)});
 }
 
 function attendanceInfo(){
