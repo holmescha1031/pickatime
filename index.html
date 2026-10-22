@@ -40,8 +40,7 @@ h1,h2,.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 .brand img{display:block;width:158px;max-width:100%;height:auto;object-fit:contain}
 .brand--hero{display:flex;margin:0 0 2px;width:clamp(180px,60vw,250px);max-width:100%}
 .brand--hero img{width:100%;height:auto}
-.admin-home-logo,.admin-home-logo img{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:pan-y}
-.admin-home-logo{cursor:pointer;border-radius:8px}
+.admin-entry{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 14px;margin:8px;color:#4d50ba;background:#fff;border:1px solid #dfe2f4;border-radius:12px;font-size:14px;text-decoration:none;white-space:nowrap}
 .btn.home-meetings{margin-top:16px;background:#E3DFF5;color:#484177}
 .hero h1{font-size:40px;line-height:1.15;margin:18px 0 10px}
 .hero p{color:var(--sub);margin:0 0 22px;line-height:1.6}
@@ -282,7 +281,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 <script src="./assets/vote-import-v2.js"></script>
 <script src="./assets/vote-save-state.js"></script>
 <script src="./assets/analytics.js"></script>
-<script src="./assets/admin-logo.js?v=2"></script>
+
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -524,13 +523,13 @@ let detachAdminLogo=null;
 function clearAdminLogo(){detachAdminLogo?.();detachAdminLogo=null}
 function bindAdminLogo(){
   clearAdminLogo();
-  const logo=$('#app .brand'),user=kakaoUser?.id;
-  if(!logo||user!=='kakao_5136916326')return;
-  // The destination verifies the signed server session. Do not silently disable
-  // the gesture when a preliminary access request fails.
-  detachAdminLogo=window.attachAdminLogo(logo,()=>{
-    if(kakaoUser?.id===user&&logo.isConnected)location.assign('/admin.html');
-  });
+  const logo=$('#app .brand');
+  if(!logo||kakaoUser?.id!=='kakao_5136916326')return;
+  const link=document.createElement('a');
+  link.className='admin-entry';link.href='/admin';link.textContent='관리자';
+  link.setAttribute('aria-label','관리자 통계 페이지 열기');
+  logo.insertAdjacentElement('afterend',link);
+  detachAdminLogo=()=>link.remove();
 }
 function canShareToKakao(){
   return Boolean(window.Kakao?.isInitialized?.()&&window.Kakao?.Share?.sendDefault);
