@@ -282,7 +282,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 <script src="./assets/vote-import-v2.js"></script>
 <script src="./assets/vote-save-state.js"></script>
 <script src="./assets/analytics.js"></script>
-<script src="./assets/admin-logo.js"></script>
+<script src="./assets/admin-logo.js?v=2"></script>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -522,14 +522,15 @@ async function registerAdminMeeting(id,meta){
 }
 let detachAdminLogo=null;
 function clearAdminLogo(){detachAdminLogo?.();detachAdminLogo=null}
-async function bindAdminLogo(){
-  const logo=$('#homeLogo'),user=kakaoUser?.id;
+function bindAdminLogo(){
+  clearAdminLogo();
+  const logo=$('#app .brand'),user=kakaoUser?.id;
   if(!logo||user!=='kakao_5136916326')return;
-  try{
-    const r=await fetch('/api/admin?mode=access',{credentials:'include',cache:'no-store'});
-    if(!r.ok||$('#homeLogo')!==logo||kakaoUser?.id!==user||!logo.isConnected)return;
-    detachAdminLogo=window.attachAdminLogo(logo,()=>{if(kakaoUser?.id===user&&$('#homeLogo')===logo)location.assign('/admin.html')});
-  }catch{}
+  // The destination verifies the signed server session. Do not silently disable
+  // the gesture when a preliminary access request fails.
+  detachAdminLogo=window.attachAdminLogo(logo,()=>{
+    if(kakaoUser?.id===user&&logo.isConnected)location.assign('/admin.html');
+  });
 }
 function canShareToKakao(){
   return Boolean(window.Kakao?.isInitialized?.()&&window.Kakao?.Share?.sendDefault);
@@ -1016,6 +1017,7 @@ function viewEntry(){
     <div class="vote-delete-footer" id="deleteControl"></div>`;
   bindMeetingTitleEdit();
   renderDeleteControl();
+  bindAdminLogo();
   if(!kakaoUser){$('#kakaoLogin').onclick=loginKakao;return}
   $('#otherAccount').onclick=async()=>{
     try{
@@ -1039,6 +1041,7 @@ function enter(id){LS.set(meKey(),id);S.me=id;route()}
 
 /* ----- 메인 ----- */
 function viewMain(){
+  clearAdminLogo();
   $('#app').innerHTML=`
     <div class="top">
       <a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a>
@@ -1065,6 +1068,7 @@ function viewMain(){
     if(!S.me&&S.tab==='mine'){route();return}
     renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'})
   }};
+  bindAdminLogo();
   renderMe();renderTab();
   if(SS.get('wmd:new')===sid){SS.del('wmd:new');openShareSheet()}
 }
