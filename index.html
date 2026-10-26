@@ -269,6 +269,14 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .meeting-card b{display:block;font-size:17px;margin-bottom:9px;overflow-wrap:anywhere}
 .meeting-card small{display:block;color:var(--sub);font-size:13px;line-height:1.6}
 .meeting-card .meeting-attendance{display:inline-block;color:var(--s1);font-weight:700;background:#F1EAFB;border-radius:8px;padding:3px 8px;margin-top:9px;font-size:13px}
+.day-agenda{height:80px;min-width:0;padding:4px 2px;border:0;border-radius:7px;background:#F5F6FC;display:flex;flex-direction:column;align-items:stretch;gap:3px;text-align:left;overflow:hidden}
+.agenda-label{font-size:9px;color:var(--sub);text-align:center}
+.agenda-event{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:17px;background:#E2E7FA;color:#353F83;padding:0 2px;border-radius:3px}
+.agenda-more,.agenda-empty{font-size:9px;line-height:12px;color:var(--sub);text-align:center}
+.calendar-dialog{max-height:85dvh;overflow-y:auto}.calendar-file-btn{margin-top:10px;border:1px solid var(--line);background:var(--paper);color:var(--s1)}
+.calendar-choice{display:flex;align-items:center;gap:12px;padding:12px 0;min-height:44px}.calendar-choice input{width:20px;height:20px;accent-color:var(--s1)}
+.calendar-preview{max-height:220px;overflow-y:auto;margin-bottom:18px}.calendar-preview>div{padding:10px 0;border-bottom:1px solid var(--line)}.calendar-preview small,.calendar-preview span{display:block;overflow-wrap:anywhere;line-height:1.5}.calendar-preview small{color:var(--sub)}
+.agenda-details>div{padding:12px 0;border-bottom:1px solid var(--line)}.agenda-details small,.agenda-details b{display:block;overflow-wrap:anywhere;line-height:1.5}.agenda-details small{color:var(--sub)}
 </style>
 </head>
 <body>
@@ -294,7 +302,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 const FIREBASE_CONFIG = {"apiKey": "AIzaSyCp7rXgx6fnAGJQtayQ67OgDHxWrNhkSUs", "authDomain": "pickatime-meet.firebaseapp.com", "databaseURL": "https://pickatime-meet-default-rtdb.asia-southeast1.firebasedatabase.app", "projectId": "pickatime-meet", "appId": "1:413887331614:web:74a4f0f54189e989f01d0f"};
 
 /* ② Google 캘린더 불러오기용 OAuth 클라이언트 ID (README 3단계). 비워두면 버튼이 안내만 띄워요. */
-const GOOGLE_CLIENT_ID = "";
+
 const KAKAO_JS_KEY = "7ba374d1017c27f710651513590c4e0a";
 let kakaoUser = null;
 let resumeCreate = false;
@@ -630,6 +638,7 @@ async function isMeetingDeleted(id){
   return data.deleted===true;
 }
 function showDeletedMeeting(){
+  closeCalSheet();
   clearAdminLogo();
   closeMeetingRename();
   closeVoteImport();
@@ -684,6 +693,7 @@ function meetingSticker(level=2){
 }
 
 function viewCreate(){
+  closeCalSheet();
   clearAdminLogo();
   usagePage('home');
   closeMeetingRename();
@@ -926,6 +936,7 @@ const meKey=()=>`wmd:me:${sid}`;
 
 let sessionLoad=0;
 async function bootSession(){
+  closeCalSheet();
   clearAdminLogo();
   closeMeetingRename();
   closeVoteImport();
@@ -996,6 +1007,7 @@ function refresh(){
 
 /* ----- 닉네임 선택 ----- */
 function viewEntry(){
+  closeCalSheet();
   clearAdminLogo();
   usagePage('join');
   closeVoteImport();
@@ -1210,7 +1222,7 @@ function renderMe(){
 let detachVoteDrag=null;
 function renderTab(){
   usagePage(S.tab==='rank'?'rank':'vote');
-  if(S.tab!=='mine')closeVoteImport();
+  if(S.tab!=='mine'){closeVoteImport();closeCalSheet();}
   detachVoteDrag?.();detachVoteDrag=null;
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.t===S.tab));
   S.tab==='mine'?renderCalendar():renderRank();
@@ -1423,10 +1435,10 @@ function renderCalendar(){
         const voteLabel=calendarVoteLabel(ds,sl,l,count,heat.total,busy);
         return `<button class="half${busy?' busy':''}" data-d="${ds}" data-s="${sl}" data-l="${l}" data-votes="${count}" data-vote-total="${heat.total}" style="--vote-bg:${calendarHeatColor(count,heat.total)}" ${past?'disabled':''}
           title="${esc(voteLabel)}" aria-label="${esc(voteLabel)}"><i class="stk" style="--r:${r}deg" aria-hidden="true">${meetingSticker()}</i><span class="lb">${name}</span></button>`}).join('');
-      cells.push({past,ds,dow,m,d,h:`<div title="${esc(holiday)}" class="day${holiday?' holiday':''}${dow===0?' sun':''}${dow===6?' sat':''}${ds===today?' today':''}${past?' past':''}"><span class="n">${d}</span>${halves}</div>`});
+      cells.push({past,ds,dow,m,d,h:`<div title="${esc(holiday)}" class="day${holiday?' holiday':''}${dow===0?' sun':''}${dow===6?' sat':''}${ds===today?' today':''}${past?' past':''}"><span class="n">${d}</span>${calendarDayHtml(ds,dayEv)}${halves}</div>`});
     }
     let rows='';
-    for(let i=0;i<cells.length;i+=7){const wk=cells.slice(i,i+7);if(wk.every(c=>c.past))continue;rows+=wk.map(c=>c.h).join('');rows+=weekStrip(wk,idx)}
+    for(let i=0;i<cells.length;i+=7){const wk=cells.slice(i,i+7);if(wk.every(c=>c.past))continue;rows+=wk.map(c=>c.h).join('')}
     if(!rows)return '';
     return `<section class="month"><h2>${y===new Date().getFullYear()?'':y+'년 '}${m}월</h2>
       <div class="wk">${WD.map(w=>`<div>${w}</div>`).join('')}</div><div class="grid" style="row-gap:6px">${rows}</div></section>`;
@@ -1434,7 +1446,6 @@ function renderCalendar(){
   $('#body').innerHTML=`
     <div class="calbar" id="calbar">${calBarHtml()}</div>
     <button type="button" class="btn block" id="reuseVotes" style="margin-bottom:16px;background:var(--paper);color:var(--s1);border:1.5px solid var(--line)">다른 투표에서 가져오기</button>
-    <input type="file" id="icsFile" accept=".ics,text/calendar" hidden>
     <div class="legend">
       <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>한 번 클릭: 아마 가능</span>
       <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>두 번 클릭: 되긴 하는데…</span>
@@ -1450,14 +1461,14 @@ function renderCalendar(){
     <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
   detachVoteDrag=window.attachVoteDrag($('#body'),(b,l)=>setVoteLevel(b,l,'drag'),nextVoteLevel);
-  $('#icsFile').onchange=importIcs;
   $('#reuseVotes').onclick=()=>offerVoteImport(true);
   $('#finishVote').onclick=finishVote;
   $('#retryVoteSave').onclick=retryVoteSaves;
   renderVoteSaveState();
-  void offerVoteImport();
+  if(!calDialog)void offerVoteImport();
 }
 function onDayTap(e){
+  const agenda=e.target.closest('[data-agenda]');if(agenda)return openCalendarDay(agenda.dataset.agenda);
   const w=e.target.closest('.wkplan');
   if(w){const d=w.nextElementSibling;d.hidden=!d.hidden;w.setAttribute('aria-expanded',String(!d.hidden));return}
   const act=e.target.closest('[data-cal]')?.dataset.cal;
@@ -1504,187 +1515,92 @@ function myCount(id){
   return n;
 }
 
-/* ----- 내 캘린더 불러오기 (이 기기에만 저장, 친구에게 안 보임) ----- */
-const CAL_KEY='wmd:cal';
-const LUNCH=[11*60,15*60], DINNER=[17*60,24*60];
-let CAL=(()=>{try{return JSON.parse(LS.get(CAL_KEY))}catch(e){return null}})();
-let calIndex=null;
-function calWindow(){const n=new Date();return{from:new Date(n.getFullYear(),n.getMonth(),n.getDate()),to:new Date(n.getFullYear(),n.getMonth()+13,1)}}
-function saveCal(source,events){
-  const seen=new Set();
-  events=events.filter(e=>{const k=e.t+'|'+e.s;if(seen.has(k))return false;seen.add(k);return true});
-  CAL={source,at:Date.now(),events};LS.set(CAL_KEY,JSON.stringify(CAL));calIndex=null;
+/* Personal calendar details remain in memory; only explicit sticker edits are shared. */
+let CAL=null,calIndex=null,calDialog=null,calendarModulePromise=null,calendarConfigPromise=null;
+LS.del('wmd:cal'); // Remove the old, unscoped prototype cache.
+function calendarModule(){return calendarModulePromise??=import('./assets/calendar-data.mjs').catch(e=>{calendarModulePromise=null;throw e})}
+function calendarConfig(){return calendarConfigPromise??=fetch('/api/calendar-config',{cache:'no-store'}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error);return d}).catch(e=>{calendarConfigPromise=null;throw e})}
+function personalCalendar(){if(CAL&&(CAL.user!==kakaoUser?.id||CAL.id!==sid)){CAL=null;calIndex=null}return CAL}
+function closeCalSheet(){calDialog?.close();calDialog?.remove();calDialog=null}
+function clearCal(){CAL=null;calIndex=null}
+function calBounds(){const b=window.VoteTransfer.bounds(S.meta);return b?{start:[b.start,todayStr()].sort().at(-1),end:b.end}:null}
+function calDays(){const cal=personalCalendar(),b=calBounds();if(!cal||!b||b.start>b.end)return {};const key=b.start+'|'+b.end;if(calIndex?.key!==key)calIndex={key,days:cal.engine.indexEvents(cal.events,b.start,b.end)};return calIndex.days}
+function calBarHtml(){const cal=personalCalendar();return `<button type="button" class="calbtn${cal?' on':''}" data-cal="open"><span class="ic" aria-hidden="true">📅</span><span class="tx"><b>${cal?'내 캘린더':'내 캘린더 가져오기'}</b>${cal?`<small>${esc(cal.source)} · ${cal.events.length}개 일정 · 나에게만 표시</small>`:''}</span><span class="go">${cal?'관리':'가져오기'}</span></button>`}
+function calendarDayHtml(date,events){
+  if(!personalCalendar())return '';
+  return `<button type="button" class="day-agenda${events.length?' has-events':''}" data-agenda="${date}" aria-label="${date} 내 일정 ${events.length}개"><span class="agenda-label">내 일정</span>${events.length?events.slice(0,2).map(e=>`<span class="agenda-event" title="${esc(e.tm+' '+e.t)}">${esc(e.t)}</span>`).join('')+(events.length>2?`<span class="agenda-more">+${events.length-2}</span>`:''):'<span class="agenda-empty">—</span>'}</button>`;
 }
-function clearCal(){CAL=null;LS.del(CAL_KEY);calIndex=null}
-const hm=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
-function calDays(){
-  if(calIndex)return calIndex;
-  calIndex={};
-  const push=(ds,x)=>(calIndex[ds]??=[]).push(x);
-  for(const ev of CAL?.events||[]){
-    if(ev.a){
-      const d=parseYmd(ev.s),end=parseYmd(ev.e&&ev.e>ev.s?ev.e:ev.s);
-      if(!(end>d))end.setDate(d.getDate()+1);
-      for(let g=0;d<end&&g<62;g++){push(ymdOf(d),{t:ev.t,a:true,L:true,D:true,tm:'종일',k:-1});d.setDate(d.getDate()+1)}
-    }else{
-      const st=new Date(ev.s);let en=new Date(ev.e);if(!(en>st))en=new Date(ev.s+36e5);
-      const day=new Date(st.getFullYear(),st.getMonth(),st.getDate());
-      for(let g=0;day<en&&g<62;g++){
-        const base=day.getTime(),a=Math.max(0,(st-base)/6e4),b=Math.min(1440,(en-base)/6e4);
-        const ov=([x,y])=>a<y&&b>x,first=g===0;
-        push(ymdOf(day),{t:ev.t,L:ov(LUNCH),D:ov(DINNER),tm:first?hm(st):'이어서',k:first?a:0});
-        day.setDate(day.getDate()+1);
-      }
-    }
-  }
-  for(const k in calIndex)calIndex[k].sort((x,y)=>x.k-y.k);
-  return calIndex;
+function openCalendarDay(date){
+  const list=calDays()[date]||[];closeCalSheet();
+  const el=document.createElement('dialog');el.className='existing-meeting calendar-dialog';calDialog=el;
+  el.innerHTML=`<div class="dialog-heading"><h2 id="calendarDayTitle">${esc(date)} 내 일정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div><p class="hint">나에게만 표시돼요.</p><div class="agenda-details">${list.length?list.map(e=>`<div><small>${esc(e.tm)}</small><b>${esc(e.t)}</b></div>`).join(''):'<p>가져온 일정이 없는 날이에요.</p>'}</div>`;
+  el.setAttribute('aria-labelledby','calendarDayTitle');document.body.appendChild(el);el.querySelector('[data-close]').onclick=closeCalSheet;el.addEventListener('close',()=>{if(calDialog===el)calDialog=null;el.remove()});el.showModal();
 }
-function weekStrip(wk,idx){
-  const evs=wk.map(c=>c.ds&&!c.past?(idx[c.ds]||[]):[]);
-  if(!evs.some(a=>a.length))return'';
-  const cls=e=>e.a?'a':e.D?'d':e.L?'l':'';
-  const cols=evs.map(list=>`<div class="wp-col">${list.slice(0,2).map(e=>`<span class="ev ${cls(e)}">${esc(e.t)}</span>`).join('')}${list.length>2?`<span class="ev more">+${list.length-2}</span>`:''}</div>`).join('');
-  const detail=wk.map((c,i)=>evs[i].map(e=>`<div><b>${c.m}/${c.d}(${WD[c.dow]})</b> <span class="tm">${e.tm}</span>${esc(e.t)}${e.a?'':e.D?'<span class="slot D">저녁</span>':e.L?'<span class="slot L">점심</span>':''}</div>`).join('')).join('');
-  return `<button class="wkplan" aria-expanded="false" aria-label="이번 주 내 일정 펼치기">${cols}</button><div class="wkdetail" hidden>${detail}</div>`;
-}
-function calBarHtml(){
-  return '<button class="calbtn" data-cal="open"><span class="ic" aria-hidden="true">📅</span><span class="tx"><b>내 캘린더 가져오기</b></span><span class="go">준비중인 기능입니다</span></button>';
-}
-function openCalSheet(){toast('준비 중인 기능입니다')}
-function setCalMsg(msg){const b=$('#calbar .calbtn b');if(b)b.textContent=msg}
-
-/* Google */
-async function gget(url,tok){const r=await fetch(url,{headers:{Authorization:'Bearer '+tok}});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
-async function fetchGoogle(tok){
-  const {from,to}=calWindow();
-  const cl=await gget('https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader&maxResults=250',tok);
-  const cals=(cl.items||[]).filter(c=>c.selected!==false&&!/#(holiday|contacts)@/.test(c.id));
-  const out=[];
-  await Promise.allSettled(cals.map(async c=>{
-    let pageToken='';
-    do{
-      const q=new URLSearchParams({singleEvents:'true',orderBy:'startTime',maxResults:'2500',timeMin:from.toISOString(),timeMax:to.toISOString(),
-        fields:'nextPageToken,items(summary,start,end,status,transparency,attendees(self,responseStatus))'});
-      if(pageToken)q.set('pageToken',pageToken);
-      const j=await gget(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(c.id)}/events?${q}`,tok);
-      for(const e of j.items||[]){
-        if(e.status==='cancelled'||e.transparency==='transparent')continue;
-        if(e.attendees?.some(a=>a.self&&a.responseStatus==='declined'))continue;
-        const t=e.summary||'(제목 없음)';
-        if(e.start?.date)out.push({t,a:true,s:e.start.date,e:e.end?.date||e.start.date});
-        else if(e.start?.dateTime)out.push({t,s:Date.parse(e.start.dateTime),e:Date.parse(e.end?.dateTime||e.start.dateTime)});
-      }
-      pageToken=j.nextPageToken;
-    }while(pageToken);
-  }));
-  return out;
-}
-function connectGoogle(){
-  if(!GOOGLE_CLIENT_ID){toast('Google 연결 설정이 아직 안 돼 있어요. README 3단계를 확인해 주세요.');return}
-  if(!window.google?.accounts?.oauth2){toast('Google 로그인을 준비하는 중이에요. 잠시 후 다시 눌러 주세요.');return}
-  google.accounts.oauth2.initTokenClient({
-    client_id:GOOGLE_CLIENT_ID,
-    scope:'https://www.googleapis.com/auth/calendar.readonly',
-    callback:async res=>{
-      if(res.error||!res.access_token){toast('Google 연결을 취소했어요');return}
-      setCalMsg('Google 캘린더에서 일정을 불러오는 중…');
-      try{const ev=await fetchGoogle(res.access_token);saveCal('Google 캘린더',ev);toast(`일정 ${ev.length}개를 가져왔어요`)}
-      catch(e){toast('일정을 불러오지 못했어요. 다시 시도해 주세요.')}
-      renderCalendar();
-    },
-    error_callback:()=>toast('Google 로그인 창이 닫혔어요')
-  }).requestAccessToken();
+function openCalSheet(){
+  if(!S.me||S.me!==kakaoUser?.id){toast('로그인 후 참여해 주세요.');return}
+  closeVoteImport();closeCalSheet();
+  const c=voteImportContext(),bounds=calBounds();if(!bounds||bounds.start>bounds.end){toast('가져올 수 있는 투표 기간이 없어요.');return}
+  const el=document.createElement('dialog');el.className='existing-meeting calendar-dialog';calDialog=el;
+  const current=personalCalendar();
+  el.innerHTML=`<div class="dialog-heading"><h2 id="calendarImportTitle">내 캘린더 가져오기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div>
+    <p class="hint">일정을 보면서 스티커를 붙여 보세요. 일정은 나에게만 표시돼요.</p>
+    <button type="button" class="btn blue block" id="calGoogle">구글 캘린더 연결</button>
+    <button type="button" class="btn block calendar-file-btn" id="calFile">캘린더 파일 가져오기 (.ics)</button>
+    <input type="file" id="calendarFileInput" accept=".ics,text/calendar" hidden>
+    <p class="hint">아이폰·삼성 캘린더에서 내보낸 파일도 가져올 수 있어요. 구글 연결은 Chrome·Safari에서 이용해 주세요.</p>
+    <div id="calChoices"></div><p id="calStatus" class="hint" role="status" aria-live="polite"></p><div id="calPreview"></div>
+    ${current?'<button type="button" class="btn ghost block" id="calRemove">가져온 일정 지우기</button>':''}`;
+  el.setAttribute('aria-labelledby','calendarImportTitle');document.body.appendChild(el);
+  let token=null,disposed=false,working=false;
+  const active=()=>!disposed&&el.isConnected&&voteImportActive(c);
+  const dispose=()=>{disposed=true;token=null;el.remove();if(calDialog===el)calDialog=null};
+  el.addEventListener('close',dispose);el.addEventListener('cancel',()=>{if(working)token=null});
+  el.querySelector('[data-close]').onclick=()=>el.close();
+  const status=el.querySelector('#calStatus'),preview=el.querySelector('#calPreview'),choices=el.querySelector('#calChoices');
+  const controls=()=>[el.querySelector('#calGoogle'),el.querySelector('#calFile'),el.querySelector('#calRemove')].filter(Boolean);
+  const busy=value=>{working=value;controls().forEach(b=>b.disabled=value)};
+  const showPreview=(engine,events,source)=>{
+    if(!active())return;const index=engine.indexEvents(events,bounds.start,bounds.end),dates=Object.keys(index).sort();
+    status.textContent=events.length?`${events.length}개 일정을 가져왔어요.`:'이 기간에 등록된 일정이 없어요.';
+    choices.innerHTML='';
+    preview.innerHTML=`<p><b>${bounds.start} ~ ${bounds.end}</b></p><div class="calendar-preview">${dates.slice(0,3).map(date=>`<div><small>${date}</small>${index[date].slice(0,3).map(e=>`<span>${esc(e.tm)} ${esc(e.t)}</span>`).join('')}</div>`).join('')||'<p class="hint">일정이 없는 날에도 직접 스티커를 붙일 수 있어요.</p>'}</div><button type="button" class="btn blue block" id="calApply">스티커판에 일정 표시하기</button>`;
+    preview.querySelector('#calApply').onclick=()=>{if(!active())return;CAL={id:c.id,user:c.user,source,events,engine};calIndex=null;closeCalSheet();renderCalendar();toast('내 일정을 표시했어요.\n일정을 보면서 스티커를 붙여 주세요.')};
+  };
+  el.querySelector('#calFile').onclick=()=>el.querySelector('#calendarFileInput').click();
+  el.querySelector('#calendarFileInput').onchange=async e=>{
+    const file=e.target.files?.[0];e.target.value='';if(!file||working)return;busy(true);status.textContent='캘린더 파일을 읽는 중…';preview.innerHTML='';
+    try{if(file.size>2*1024*1024)throw Error('캘린더 파일은 2MB 이하로 선택해 주세요.');const engine=await calendarModule(),text=await file.text();if(!active())return;const events=engine.parseIcs(text,engine.windowFor(bounds.start,bounds.end));showPreview(engine,events,'캘린더 파일')}
+    catch(e){if(active())status.textContent=/[가-힣]/.test(e.message||'')?e.message:'캘린더 파일을 읽지 못했어요. .ics 파일인지 확인해 주세요.'}finally{if(active())busy(false)}
+  };
+  el.querySelector('#calRemove')?.addEventListener('click',()=>{clearCal();closeCalSheet();renderCalendar();toast('가져온 일정을 지웠어요. 스티커는 유지돼요.')});
+  // Fetch public configuration in advance so opening Google remains a user gesture.
+  let config=null;calendarConfig().then(v=>{config=v}).catch(()=>{});
+  el.querySelector('#calGoogle').onclick=()=>{
+    preview.innerHTML='';choices.innerHTML='';
+    if(/KAKAOTALK|Instagram|FBAN|FBAV|NAVER\(/i.test(navigator.userAgent)){status.textContent='이 브라우저에서는 구글 로그인이 제한돼요. 우측 메뉴에서 Chrome 또는 Safari로 열어 주세요. 캘린더 파일 가져오기는 여기서도 사용할 수 있어요.';return}
+    if(!config){status.textContent='구글 연결 설정을 확인하는 중이에요. 잠시 후 다시 눌러 주세요.';calendarConfig().then(v=>{config=v;if(active())status.textContent=v.configured?'준비됐어요. 구글 캘린더 연결을 눌러 주세요.':'구글 연결은 설정 중이에요. 지금은 캘린더 파일로 가져올 수 있어요.'}).catch(e=>{if(active())status.textContent=e.message});return}
+    if(!config.clientId){status.textContent='구글 연결은 설정 중이에요. 지금은 캘린더 파일로 가져올 수 있어요.';return}
+    if(!window.google?.accounts?.oauth2){status.textContent='구글 로그인 기능을 불러오지 못했어요. 페이지를 새로고침하거나 캘린더 파일로 가져와 주세요.';return}
+    busy(true);status.textContent='구글에서 캘린더 읽기를 허용해 주세요.';
+    window.google.accounts.oauth2.initTokenClient({client_id:config.clientId,scope:'https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar.events.readonly',include_granted_scopes:false,
+      callback:async response=>{
+        if(!active())return;
+        if(response.error||!response.access_token){status.textContent='구글 연결을 취소했거나 읽기 권한이 허용되지 않았어요.';busy(false);return}
+        token=response.access_token;status.textContent='캘린더 목록을 불러오는 중…';
+        try{const engine=await calendarModule(),calendars=await engine.listGoogle(token);if(!active())return;if(!calendars.length)throw Error('읽을 수 있는 캘린더가 없어요.');
+          choices.innerHTML=`<p><b>가져올 캘린더</b></p>${calendars.map((cal,i)=>`<label class="calendar-choice"><input type="checkbox" value="${i}" ${cal.selected?'checked':''}><span>${esc(cal.name)}</span></label>`).join('')}<button type="button" class="btn blue block" id="calFetch">선택한 캘린더 가져오기</button>`;status.textContent='표시할 캘린더를 선택해 주세요.';
+          choices.querySelector('#calFetch').onclick=async()=>{
+            const selected=Array.from(choices.querySelectorAll('input:checked')).map(input=>calendars[Number(input.value)]);if(!selected.length){status.textContent='캘린더를 하나 이상 선택해 주세요.';return}
+            busy(true);choices.querySelectorAll('input,button').forEach(input=>input.disabled=true);status.textContent='모임 기간의 일정을 불러오는 중…';
+            try{const events=await engine.fetchGoogle(token,selected,engine.windowFor(bounds.start,bounds.end));if(active()){token=null;showPreview(engine,events,'구글 캘린더')}}catch(e){if(active())status.textContent=e.message}finally{if(active()){busy(false);choices.querySelectorAll('input,button').forEach(input=>input.disabled=false)}}
+          };
+        }catch(e){if(active())status.textContent=e.message}finally{if(active())busy(false)}
+      },error_callback:()=>{if(active()){status.textContent='구글 로그인 창이 닫혔어요. 팝업이 차단되어 있다면 허용 후 다시 눌러 주세요.';busy(false)}}
+    }).requestAccessToken();
+  };
+  el.showModal();
 }
 
-/* .ics 파일 */
-function importIcs(e){
-  const f=e.target.files?.[0];if(!f)return;
-  const rd=new FileReader();
-  rd.onload=()=>{
-    try{
-      const {from,to}=calWindow();const ev=parseICS(String(rd.result),from,to);
-      if(!ev.length){toast('앞으로의 일정이 없는 파일이에요');return}
-      saveCal('.ics 파일',ev);renderCalendar();toast(`일정 ${ev.length}개를 가져왔어요`);
-    }catch(err){toast('캘린더 파일을 읽지 못했어요. .ics 파일인지 확인해 주세요.')}
-  };
-  rd.readAsText(f);e.target.value='';
-}
-function icsDate(v,pm){
-  const m=String(v).match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?/);if(!m)return null;
-  const[,Y,M,D,h,mi,,z]=m;
-  if(!h||pm.VALUE==='DATE')return{a:true,d:new Date(+Y,M-1,+D)};
-  return{a:false,d:z?new Date(Date.UTC(+Y,M-1,+D,+h,+mi)):new Date(+Y,M-1,+D,+h,+mi)};
-}
-function durMs(v){const m=String(v||'').match(/P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?/);if(!m||!m[0].length||m[0]==='P')return null;return(((+m[1]||0)*7+(+m[2]||0))*1440+(+m[3]||0)*60+(+m[4]||0))*6e4}
-function parseICS(text,from,to){
-  const lines=text.replace(/\r?\n[ \t]/g,'').split(/\r?\n/);
-  const out=[];let cur=null;
-  for(const line of lines){
-    if(line==='BEGIN:VEVENT'){cur={ex:[]};continue}
-    if(line==='END:VEVENT'){if(cur)expandIcs(cur,from,to,out);cur=null;continue}
-    if(!cur)continue;
-    const i=line.indexOf(':');if(i<0)continue;
-    const[name,...ps]=line.slice(0,i).split(';');const val=line.slice(i+1);
-    const pm=Object.fromEntries(ps.map(x=>x.split('=')));
-    switch(name.toUpperCase()){
-      case'SUMMARY':cur.t=val.replace(/\\n/gi,' ').replace(/\\([,;\\])/g,'$1');break;
-      case'DTSTART':cur.s=icsDate(val,pm);break;
-      case'DTEND':cur.e=icsDate(val,pm);break;
-      case'DURATION':cur.dur=val;break;
-      case'RRULE':cur.rr=Object.fromEntries(val.split(';').map(x=>x.split('=')));break;
-      case'EXDATE':val.split(',').forEach(x=>{const d=icsDate(x,pm);d&&cur.ex.push(d.d.getTime())});break;
-      case'STATUS':cur.st=val;break;
-      case'TRANSP':cur.tr=val;break;
-    }
-  }
-  return out;
-}
-function expandIcs(ev,from,to,out){
-  if(!ev.s||ev.st==='CANCELLED'||ev.tr==='TRANSPARENT')return;
-  const t=ev.t||'(제목 없음)',allDay=ev.s.a,base=ev.s.d;
-  const len=ev.e?ev.e.d-base:(durMs(ev.dur)??(allDay?864e5:36e5));
-  const ex=new Set(ev.ex);
-  const push=st=>{
-    if(ex.has(st.getTime()))return;
-    const en=new Date(st.getTime()+Math.max(len,0));
-    if(en<from||st>to)return;
-    out.push(allDay?{t,a:true,s:ymdOf(st),e:ymdOf(en)}:{t,s:st.getTime(),e:en.getTime()});
-  };
-  const r=ev.rr;
-  if(!r){push(base);return}
-  const WDS=['SU','MO','TU','WE','TH','FR','SA'];
-  const freq=r.FREQ,iv=+(r.INTERVAL||1)||1,count=r.COUNT?+r.COUNT:Infinity,until=r.UNTIL?icsDate(r.UNTIL,{})?.d:null;
-  const byday=r.BYDAY?r.BYDAY.split(','):null;
-  const at=(y,mo,d)=>new Date(y,mo,d,base.getHours(),base.getMinutes());
-  let n=0;
-  for(let k=0;k<3000&&n<count;k++){
-    let c=[];
-    if(freq==='DAILY')c=[at(base.getFullYear(),base.getMonth(),base.getDate()+k*iv)];
-    else if(freq==='WEEKLY'){
-      const w=at(base.getFullYear(),base.getMonth(),base.getDate()+k*iv*7);
-      c=byday?byday.map(x=>at(w.getFullYear(),w.getMonth(),w.getDate()-w.getDay()+WDS.indexOf(x.slice(-2)))).filter(x=>x>=base).sort((a,b)=>a-b):[w];
-    }else if(freq==='MONTHLY'){
-      const y=base.getFullYear(),mo=base.getMonth()+k*iv,f=new Date(y,mo,1),dim=new Date(f.getFullYear(),f.getMonth()+1,0).getDate();
-      const mm=byday&&byday[0].match(/^([+-]?\d)?([A-Z]{2})$/);
-      let d;
-      if(mm){const wd=WDS.indexOf(mm[2]),nth=+(mm[1]||1);
-        if(nth>0)d=1+((wd-f.getDay()+7)%7)+(nth-1)*7;
-        else{const ld=new Date(f.getFullYear(),f.getMonth(),dim).getDay();d=dim-((ld-wd+7)%7)+(nth+1)*7}
-      }else d=base.getDate();
-      if(d>=1&&d<=dim)c=[at(f.getFullYear(),f.getMonth(),d)];
-    }else if(freq==='YEARLY'){
-      const x=at(base.getFullYear()+k*iv,base.getMonth(),base.getDate());
-      if(x.getDate()===base.getDate())c=[x];
-    }else{push(base);return}
-    let stop=false;
-    for(const x of c){
-      if(n>=count||(until&&x>until)||x>to){stop=true;break}
-      n++;push(x);
-    }
-    if(stop)break;
-  }
-}
 
 /* ----- 순위 ----- */
 function computeRank(data=S){
@@ -1764,3 +1680,4 @@ window.addEventListener('popstate',()=>{
 </script>
 </body>
 </html>
+
