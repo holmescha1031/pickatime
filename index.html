@@ -283,6 +283,12 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .ics-guide details{border-top:1px solid var(--line);padding:6px 0;margin-top:8px}
 .ics-guide p{margin:8px 0}.ics-guide ol{padding-left:20px;margin:8px 0}.ics-guide li{margin:7px 0}
 .ics-guide a{color:var(--s1);text-underline-offset:3px}.ics-guide b{color:var(--ink)}
+.calendar-file-row{display:flex;align-items:center;gap:8px;margin-top:10px}
+.calendar-file-row .calendar-file-btn{margin-top:0;flex:1;min-width:0}
+.cal-help-button{display:grid;place-items:center;flex:none;width:44px;height:44px;padding:10px;border:0;background:transparent;color:var(--sub);border-radius:50%}
+.cal-help-button svg{display:block;width:24px;height:24px}.cal-help-button:hover{color:var(--s1);background:var(--paper)}
+.calendar-help-heading{gap:8px}.calendar-help-heading h2{flex:1;font-size:22px;margin:0}
+.calendar-dialog [hidden]{display:none!important}
 </style>
 <link rel="stylesheet" href="/assets/site-footer.css">
 </head>
@@ -1566,20 +1572,20 @@ function openCalSheet(){
   const c=voteImportContext(),bounds=calBounds();if(!bounds||bounds.start>bounds.end){toast('가져올 수 있는 투표 기간이 없어요.');return}
   const el=document.createElement('dialog');el.className='existing-meeting calendar-dialog';calDialog=el;
   const current=personalCalendar();
-  el.innerHTML=`<div class="dialog-heading"><h2 id="calendarImportTitle">내 캘린더 가져오기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div>
+  el.innerHTML=`<section id="calendarImportPane"><div class="dialog-heading"><h2 id="calendarImportTitle">내 캘린더 가져오기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div>
     <p class="hint">일정을 보면서 스티커를 붙여 보세요. 일정은 나에게만 표시돼요.</p>
     <button type="button" class="btn blue block" id="calGoogle" disabled aria-describedby="calGooglePaused">구글 캘린더 연결 · 준비 중</button>
     <p class="hint" id="calGooglePaused">Google 검증 완료까지 연결을 잠시 중단했어요.</p>
-    <button type="button" class="btn block calendar-file-btn" id="calFile">캘린더 파일 선택 (.ics)</button>
+    <div class="calendar-file-row"><button type="button" class="btn block calendar-file-btn" id="calFile">캘린더 파일 선택 (.ics)</button><button type="button" class="cal-help-button" id="calFileHelp" aria-label=".ics 파일 가져오는 방법" aria-controls="calendarHelpPane" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2-2.4 3.7" stroke-linecap="round"/><circle cx="12" cy="17" r=".8" fill="currentColor" stroke="none"/></svg></button></div>
     <input type="file" id="calendarFileInput" accept=".ics,text/calendar" hidden>
-    <details class="ics-guide" open>
-      <summary>.ics 파일은 어디서 받나요?</summary>
-      <p>캘린더 앱에서 일정을 파일로 내보낸 뒤 선택해 주세요. 앱에 따라 PC가 필요할 수 있어요.</p>
+    <div id="calChoices"></div><p id="calStatus" class="hint" role="status" aria-live="polite"></p><div id="calPreview"></div>
+    ${current?'<button type="button" class="btn ghost block" id="calRemove">가져온 일정 지우기</button>':''}</section>
+    <section id="calendarHelpPane" hidden aria-labelledby="calendarHelpTitle"><div class="dialog-heading calendar-help-heading"><button type="button" class="cal-help-button" id="calHelpBack" aria-label="캘린더 가져오기로 돌아가기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 6-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><h2 id="calendarHelpTitle" tabindex="-1">파일 가져오기 안내</h2><button type="button" class="btn ghost icon-btn dialog-close" data-help-close aria-label="닫기">×</button></div><div class="ics-guide">      <p>캘린더 앱에서 일정을 파일로 내보낸 뒤 선택해 주세요. 앱에 따라 PC가 필요할 수 있어요.</p>
       <details open><summary>구글 캘린더 · PC에서 내보내기</summary>
         <ol><li>PC에서 <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">구글 캘린더</a>를 열고 일정이 있는 계정으로 로그인하세요.</li>
         <li>오른쪽 위 톱니바퀴 → <b>설정 → 가져오기 및 내보내기 → 내보내기</b>를 누르세요.</li>
         <li>다운로드한 <b>.zip 압축을 풀면 캘린더별 .ics 파일</b>이 나와요.</li>
-        <li>이 화면의 <b>캘린더 파일 선택</b>에서 원하는 .ics 파일을 고르세요. 휴대폰에서 이용하려면 파일을 본인에게 보내거나 내 드라이브에 저장한 뒤 내려받으세요.</li></ol>
+        <li>이전 화면의 <b>캘린더 파일 선택</b>에서 원하는 .ics 파일을 고르세요. 휴대폰에서 이용하려면 파일을 본인에게 보내거나 내 드라이브에 저장한 뒤 내려받으세요.</li></ol>
         <p>구글 캘린더 휴대폰 앱에는 내보내기 메뉴가 없어요. 회사·학교 계정은 관리자가 내보내기를 제한할 수 있어요.</p>
         <a href="https://support.google.com/calendar/answer/37111?hl=ko" target="_blank" rel="noopener noreferrer">구글 공식 내보내기 안내 ↗</a>
       </details>
@@ -1587,7 +1593,7 @@ function openCalSheet(){
         <ol><li>삼성 캘린더에서 가져올 <b>일정의 상세 화면</b>을 여세요.</li>
         <li><b>공유 → 캘린더 파일(ICS)</b>을 선택하세요. 메뉴 이름과 위치는 기기·앱 버전에 따라 다를 수 있어요.</li>
         <li>본인 이메일 등으로 파일을 보내고 첨부된 .ics 파일을 휴대폰에 다운로드하세요.</li>
-        <li>이 화면의 <b>캘린더 파일 선택</b>에서 다운로드한 파일을 고르세요.</li></ol>
+        <li>이전 화면의 <b>캘린더 파일 선택</b>에서 다운로드한 파일을 고르세요.</li></ol>
         <p>이 방법은 선택한 일정의 공유이며 캘린더 전체 내보내기가 아니에요. Google 계정에 저장된 일정 전체는 위 PC 구글 캘린더 방법을 사용하세요. ‘내 휴대전화’나 삼성 계정에만 저장된 일정이 구글에 자동으로 나타나는 것은 아니에요.</p>
       </details>
       <details><summary>아이폰·iCloud 캘린더 · Mac에서 내보내기</summary>
@@ -1599,17 +1605,23 @@ function openCalSheet(){
       </details>
       <p><b>파일을 선택한 다음</b> 일정 미리보기를 확인하고 ‘스티커판에 일정 표시하기’를 누르면 돼요. 파일은 2MB 이하의 .ics만 지원하며, ZIP은 먼저 압축을 풀어 주세요.</p>
       <p>파일을 다시 가져오면 기존에 가져온 일정 표시를 새 파일의 일정으로 바꿔요. 실시간 동기화가 아니라 파일을 내보낸 시점의 일정이며, 이미 붙인 스티커는 바뀌지 않아요.</p>
-    </details>
-    <div id="calChoices"></div><p id="calStatus" class="hint" role="status" aria-live="polite"></p><div id="calPreview"></div>
-    ${current?'<button type="button" class="btn ghost block" id="calRemove">가져온 일정 지우기</button>':''}`;
+</div></section>`;
   el.setAttribute('aria-labelledby','calendarImportTitle');document.body.appendChild(el);
   let token=null,disposed=false,working=false;
   const active=()=>!disposed&&el.isConnected&&voteImportActive(c);
   const dispose=()=>{disposed=true;token=null;el.remove();if(calDialog===el)calDialog=null};
   el.addEventListener('close',dispose);el.addEventListener('cancel',()=>{if(working)token=null});
   el.querySelector('[data-close]').onclick=()=>el.close();
+  const mainPane=el.querySelector('#calendarImportPane'),helpPane=el.querySelector('#calendarHelpPane'),helpButton=el.querySelector('#calFileHelp');
+  let importScroll=0;
+  const showHelp=()=>{importScroll=el.scrollTop;mainPane.hidden=true;helpPane.hidden=false;helpButton.setAttribute('aria-expanded','true');el.setAttribute('aria-labelledby','calendarHelpTitle');el.scrollTop=0;el.querySelector('#calendarHelpTitle').focus({preventScroll:true})};
+  const backToImport=()=>{helpPane.hidden=true;mainPane.hidden=false;helpButton.setAttribute('aria-expanded','false');el.setAttribute('aria-labelledby','calendarImportTitle');el.scrollTop=importScroll;helpButton.focus({preventScroll:true})};
+  helpButton.onclick=showHelp;
+  el.querySelector('#calHelpBack').onclick=backToImport;
+  el.querySelector('[data-help-close]').onclick=()=>el.close();
+  el.addEventListener('cancel',e=>{if(!helpPane.hidden){e.preventDefault();backToImport()}});
   const status=el.querySelector('#calStatus'),preview=el.querySelector('#calPreview'),choices=el.querySelector('#calChoices');
-  const controls=()=>[el.querySelector('#calGoogle'),el.querySelector('#calFile'),el.querySelector('#calRemove')].filter(Boolean);
+  const controls=()=>[el.querySelector('#calGoogle'),el.querySelector('#calFile'),el.querySelector('#calFileHelp'),el.querySelector('#calRemove')].filter(Boolean);
   const busy=value=>{working=value;controls().forEach(b=>b.disabled=value||(GOOGLE_CALENDAR_PAUSED&&b.id==='calGoogle'))};
   const showPreview=(engine,events,source)=>{
     if(!active())return;const index=engine.indexEvents(events,bounds.start,bounds.end),dates=Object.keys(index).sort();
