@@ -278,6 +278,11 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .calendar-choice{display:flex;align-items:center;gap:12px;padding:12px 0;min-height:44px}.calendar-choice input{width:20px;height:20px;accent-color:var(--s1)}
 .calendar-preview{max-height:220px;overflow-y:auto;margin-bottom:18px}.calendar-preview>div{padding:10px 0;border-bottom:1px solid var(--line)}.calendar-preview small,.calendar-preview span{display:block;overflow-wrap:anywhere;line-height:1.5}.calendar-preview small{color:var(--sub)}
 .agenda-details>div{padding:12px 0;border-bottom:1px solid var(--line)}.agenda-details small,.agenda-details b{display:block;overflow-wrap:anywhere;line-height:1.5}.agenda-details small{color:var(--sub)}
+.ics-guide{margin:16px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);font-size:13px;line-height:1.65;color:var(--sub)}
+.ics-guide summary{cursor:pointer;color:var(--ink);font-weight:700;padding:6px 0;min-height:32px}
+.ics-guide details{border-top:1px solid var(--line);padding:6px 0;margin-top:8px}
+.ics-guide p{margin:8px 0}.ics-guide ol{padding-left:20px;margin:8px 0}.ics-guide li{margin:7px 0}
+.ics-guide a{color:var(--s1);text-underline-offset:3px}.ics-guide b{color:var(--ink)}
 </style>
 <link rel="stylesheet" href="/assets/site-footer.css">
 </head>
@@ -1565,9 +1570,36 @@ function openCalSheet(){
     <p class="hint">일정을 보면서 스티커를 붙여 보세요. 일정은 나에게만 표시돼요.</p>
     <button type="button" class="btn blue block" id="calGoogle" disabled aria-describedby="calGooglePaused">구글 캘린더 연결 · 준비 중</button>
     <p class="hint" id="calGooglePaused">Google 검증 완료까지 연결을 잠시 중단했어요.</p>
-    <button type="button" class="btn block calendar-file-btn" id="calFile">캘린더 파일 가져오기 (.ics)</button>
+    <button type="button" class="btn block calendar-file-btn" id="calFile">캘린더 파일 선택 (.ics)</button>
     <input type="file" id="calendarFileInput" accept=".ics,text/calendar" hidden>
-    <p class="hint">아이폰·삼성 캘린더에서 내보낸 파일도 가져올 수 있어요.</p>
+    <details class="ics-guide" open>
+      <summary>.ics 파일은 어디서 받나요?</summary>
+      <p>캘린더 앱에서 일정을 파일로 내보낸 뒤 선택해 주세요. 앱에 따라 PC가 필요할 수 있어요.</p>
+      <details open><summary>구글 캘린더 · PC에서 내보내기</summary>
+        <ol><li>PC에서 <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer">구글 캘린더</a>를 열고 일정이 있는 계정으로 로그인하세요.</li>
+        <li>오른쪽 위 톱니바퀴 → <b>설정 → 가져오기 및 내보내기 → 내보내기</b>를 누르세요.</li>
+        <li>다운로드한 <b>.zip 압축을 풀면 캘린더별 .ics 파일</b>이 나와요.</li>
+        <li>이 화면의 <b>캘린더 파일 선택</b>에서 원하는 .ics 파일을 고르세요. 휴대폰에서 이용하려면 파일을 본인에게 보내거나 내 드라이브에 저장한 뒤 내려받으세요.</li></ol>
+        <p>구글 캘린더 휴대폰 앱에는 내보내기 메뉴가 없어요. 회사·학교 계정은 관리자가 내보내기를 제한할 수 있어요.</p>
+        <a href="https://support.google.com/calendar/answer/37111?hl=ko" target="_blank" rel="noopener noreferrer">구글 공식 내보내기 안내 ↗</a>
+      </details>
+      <details><summary>삼성 캘린더 · 개별 일정 공유</summary>
+        <ol><li>삼성 캘린더에서 가져올 <b>일정의 상세 화면</b>을 여세요.</li>
+        <li><b>공유 → 캘린더 파일(ICS)</b>을 선택하세요. 메뉴 이름과 위치는 기기·앱 버전에 따라 다를 수 있어요.</li>
+        <li>본인 이메일 등으로 파일을 보내고 첨부된 .ics 파일을 휴대폰에 다운로드하세요.</li>
+        <li>이 화면의 <b>캘린더 파일 선택</b>에서 다운로드한 파일을 고르세요.</li></ol>
+        <p>이 방법은 선택한 일정의 공유이며 캘린더 전체 내보내기가 아니에요. Google 계정에 저장된 일정 전체는 위 PC 구글 캘린더 방법을 사용하세요. ‘내 휴대전화’나 삼성 계정에만 저장된 일정이 구글에 자동으로 나타나는 것은 아니에요.</p>
+      </details>
+      <details><summary>아이폰·iCloud 캘린더 · Mac에서 내보내기</summary>
+        <ol><li>같은 계정의 일정을 Mac의 <b>캘린더 앱</b>에서 여세요.</li>
+        <li>왼쪽 목록에서 내보낼 캘린더를 선택하고 <b>파일 → 내보내기 → 내보내기</b>를 누르세요.</li>
+        <li>저장한 <b>.ics 파일</b>을 선택하세요. ‘캘린더 아카이브’의 .icbu 파일은 지원하지 않아요.</li></ol>
+        <p>아이폰 앱에서 내보내기 메뉴를 찾기 어렵다면 Mac을 이용해 주세요. 아이폰에서 Google 계정으로 저장한 일정은 PC 구글 캘린더에서도 내보낼 수 있어요.</p>
+        <a href="https://support.apple.com/ko-kr/guide/calendar/icl1023/mac" target="_blank" rel="noopener noreferrer">Apple 공식 내보내기 안내 ↗</a>
+      </details>
+      <p><b>파일을 선택한 다음</b> 일정 미리보기를 확인하고 ‘스티커판에 일정 표시하기’를 누르면 돼요. 파일은 2MB 이하의 .ics만 지원하며, ZIP은 먼저 압축을 풀어 주세요.</p>
+      <p>파일을 다시 가져오면 기존에 가져온 일정 표시를 새 파일의 일정으로 바꿔요. 실시간 동기화가 아니라 파일을 내보낸 시점의 일정이며, 이미 붙인 스티커는 바뀌지 않아요.</p>
+    </details>
     <div id="calChoices"></div><p id="calStatus" class="hint" role="status" aria-live="polite"></p><div id="calPreview"></div>
     ${current?'<button type="button" class="btn ghost block" id="calRemove">가져온 일정 지우기</button>':''}`;
   el.setAttribute('aria-labelledby','calendarImportTitle');document.body.appendChild(el);
