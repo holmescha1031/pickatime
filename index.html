@@ -282,7 +282,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 </head>
 <body>
 <main class="wrap" id="app"></main>
-<footer class="site-footer site-footer--app" aria-label="사이트 정보"><nav aria-label="문의 및 정책"><a href="mailto:hpnpix.locked@gmail.com" aria-label="문의 이메일 hpnpix.locked@gmail.com">문의 이메일</a><a href="/privacy-policy">개인정보처리방침</a><a href="/terms-of-service">이용약관</a></nav><span id="adminFooter"></span></footer>
+<footer id="pageFooter" hidden class="site-footer site-footer--app" aria-label="사이트 정보"><nav aria-label="문의 및 정책"><a href="mailto:hpnpix.locked@gmail.com" aria-label="문의 이메일 hpnpix.locked@gmail.com">문의 이메일</a><a href="/privacy-policy">개인정보처리방침</a><a href="/terms-of-service">이용약관</a></nav><span id="adminFooter"></span></footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="./config.js"></script>
@@ -310,6 +310,7 @@ let kakaoUser = null;
 let resumeCreate = false;
 let resumeMeetings = false;
 let resumeAdmin = false;
+let sessionReady=Promise.resolve();
 const PUBLIC_SITE_URL = window.APP_CONFIG?.publicSite || 'https://pickatime-phi.vercel.app/';
 const loginRedirectUri = ()=>location.origin===new URL(PUBLIC_SITE_URL).origin
   ? PUBLIC_SITE_URL : location.origin+location.pathname;
@@ -325,12 +326,11 @@ function loginKakao(intent='join'){
 async function restoreKakaoSession(){
   if(new URLSearchParams(location.search).has('code'))return;
   try{
-    const r=await fetch(new URL('/api/kakao',window.APP_CONFIG.authServer),{credentials:'include',cache:'no-store'});
+    const r=await fetch(new URL('/api/kakao',window.APP_CONFIG.authServer),{credentials:'include',cache:'no-store',signal:AbortSignal.timeout(8000)});
     if(!r.ok)return;
     const user=await r.json();
     if(!/^kakao_[0-9]+$/.test(user.id)||!/^u_[a-f0-9]{64}$/.test(user.profileKey||''))return;
     kakaoUser={id:user.id,name:user.name||'',profileKey:user.profileKey};
-    await loadMyProfile();
   }catch(e){}
 }
 async function completeKakaoLogin(){
@@ -344,7 +344,7 @@ async function completeKakaoLogin(){
   resumeMeetings=pending.action==='meetings';
   resumeAdmin=pending.action==='admin';
   if(q.has('error')){resumeAdmin=false;toast('카카오 로그인이 취소되었어요.');return}
-  $('#app').innerHTML=loadingIndicator('카카오 로그인 확인 중…');
+  showPageLoading('카카오 로그인 확인 중…');
   try{
     const base=new URL(window.APP_CONFIG.authServer);
     if(base.protocol!=='https:')throw new Error('서버 주소는 HTTPS여야 합니다.');
@@ -353,7 +353,6 @@ async function completeKakaoLogin(){
     const user=await r.json();if(!r.ok)throw new Error(user.error||'로그인 서버 오류');
     if(!/^kakao_[0-9]+$/.test(user.id))throw new Error('회원 정보 오류');
     kakaoUser={id:user.id,name:user.name||'',profileKey:/^u_[a-f0-9]{64}$/.test(user.profileKey||'')?user.profileKey:null};
-    await loadMyProfile();
   }catch(e){resumeAdmin=false;toast('로그인 실패: '+e.message)}
 }
 
@@ -640,6 +639,7 @@ async function isMeetingDeleted(id){
   return data.deleted===true;
 }
 function showDeletedMeeting(){
+  setPageLoading(false);
   closeCalSheet();
   clearAdminLogo();
   closeMeetingRename();
@@ -685,6 +685,11 @@ function shareIcon(){
   return '<svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/></svg>';
 }
 
+function setPageLoading(loading){
+  const footer=$('#pageFooter');if(footer)footer.hidden=loading;
+  $('#app')?.setAttribute('aria-busy',String(loading));
+}
+function showPageLoading(message){setPageLoading(true);$('#app').innerHTML=loadingIndicator(message)}
 function loadingIndicator(message='불러오는 중…'){
   const leg='<svg class="walker-leg left" viewBox="0 0 22 27" fill="none" aria-hidden="true"><path d="M10 2v17" stroke="#031238" stroke-width="3.5" stroke-linecap="round"/><path d="M7 18h7l2.5 3H19a3 3 0 0 1 3 3v1H7a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2Z" fill="#FFD23F" stroke="#031238" stroke-width="1.7" stroke-linejoin="round"/><path d="M6 24h15M10 20h3" stroke="#031238" stroke-width="1.2" stroke-linecap="round"/></svg>';
   return `<div class="loading-indicator" role="status" aria-live="polite" aria-busy="true"><span class="loading-walker" aria-hidden="true"><span class="walker-shadow"></span><span class="walker-body">${leg}${leg.replace('walker-leg left','walker-leg right')}<span class="walker-eyes"></span></span></span><p class="loading-label">${esc(message)}</p></div>`;
@@ -695,6 +700,7 @@ function meetingSticker(level=2){
 }
 
 function viewCreate(){
+  setPageLoading(false);
   closeCalSheet();
   clearAdminLogo();
   usagePage('home');
@@ -842,10 +848,15 @@ function viewCreate(){
     $('#createError').hidden=true;
     $('#existingMeeting').close();
     SS.set('wmd:createDraft',JSON.stringify({title,...selected,expectedCount}));
-    if(!kakaoUser){loginKakao('create');return}
-    btn.disabled=true;btn.textContent='만드는 중…';
+    btn.disabled=true;btn.textContent='로그인 확인 중…';
+    await sessionReady;
+    if($('#create')!==btn||sid)return;
+    if(!kakaoUser){btn.disabled=false;btn.textContent='모임 만들고 링크 공유';loginKakao('create');return}
+    btn.textContent='만드는 중…';
     let id;
     try{
+      await loadMyProfile();
+      if($('#create')!==btn||sid)return;
       id=await meetingIdFor(kakaoUser.id,title);
       const existing=await store.get(`sessions/${id}/meta`)?id:await findMyMeetingByTitle(title);
       if(existing){id=existing;
@@ -947,18 +958,19 @@ async function bootSession(){
   const id=sid,request=++sessionLoad;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];
   shown=null;S.me=null;S.members={};S.votes={};S.tab=new URLSearchParams(location.search).get('tab')==='rank'?'rank':'mine';
-  $('#app').innerHTML=loadingIndicator('투표를 불러오는 중…');
+  showPageLoading('투표를 불러오는 중…');
   let data;
   try{
     if(await isMeetingDeleted(id)){if(request===sessionLoad)showDeletedMeeting();return}
     data=await store.get(`sessions/${id}`);
   }catch(e){
-    if(request===sessionLoad)$('#app').innerHTML='<p class="empty">투표를 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p><a class="btn blue block" href="'+esc(shareUrl(id))+'">다시 불러오기</a>';
+    if(request===sessionLoad){setPageLoading(false);$('#app').innerHTML='<p class="empty">투표를 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p><a class="btn blue block" href="'+esc(shareUrl(id))+'">다시 불러오기</a>';}
     return;
   }
   if(request!==sessionLoad)return;
   S.meta=data?.meta||null;
   if(!S.meta){
+    setPageLoading(false);
     $('#app').innerHTML=`<div class="hero"><a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a><h1>모임을 찾을 수 없어요</h1><p>링크가 잘렸거나 모임을 불러올 수 없어요. 링크를 다시 확인해 주세요.</p></div><a class="btn block" href="./">새 모임 만들기</a>`;
     return;
   }
@@ -1009,6 +1021,7 @@ function refresh(){
 
 /* ----- 닉네임 선택 ----- */
 function viewEntry(){
+  setPageLoading(false);
   closeCalSheet();
   clearAdminLogo();
   usagePage('join');
@@ -1054,6 +1067,7 @@ function enter(id){LS.set(meKey(),id);S.me=id;route()}
 
 /* ----- 메인 ----- */
 function viewMain(){
+  setPageLoading(false);
   clearAdminLogo();
   $('#app').innerHTML=`
     <div class="top">
@@ -1101,6 +1115,7 @@ function navigateToMeeting(id){
   window.scrollTo(0,0);return bootSession();
 }
 async function openMyMeetings(){
+  await sessionReady;
   if(!kakaoUser){loginKakao('meetings');return}
   usage('meeting_list_view');
   const userId=kakaoUser.id,previousFocus=document.activeElement;
@@ -1666,18 +1681,31 @@ function renderRank(){
     publicUrl.search=location.search;publicUrl.hash=location.hash;
     location.replace(publicUrl.href);return;
   }
-  $('#app').innerHTML=loadingIndicator();
-  await restoreKakaoSession();
-  await completeKakaoLogin();
+  const immediateHome=!sid&&!query.has('code')&&!query.has('error')&&!query.has('admin');
+  const initialRoute=sessionLoad;
+  // The creation form needs no account data. Render it once, before network work.
+  if(immediateHome)viewCreate();else showPageLoading();
+  sessionReady=(async()=>{await restoreKakaoSession();await completeKakaoLogin()})();
+  await sessionReady;
+  if(initialRoute!==sessionLoad)return;
   if(resumeAdmin||new URLSearchParams(location.search).get('admin')==='1'){if(kakaoUser)location.replace('/admin.html');else loginKakao('admin');return}
-  if(sid)bootSession();
-  else await viewCreate();
+  if(immediateHome){
+    // Do not replace inputs, scroll position, or keyboard focus after login restores.
+    if(!sid&&$('#homeLogo'))bindAdminLogo();
+  }else if(sid)bootSession();
+  else viewCreate();
   if(resumeMeetings&&kakaoUser){resumeMeetings=false;await openMyMeetings()}
 })();
-window.addEventListener('popstate',()=>{
+window.addEventListener('popstate',async()=>{
   sid=new URLSearchParams(location.search).get('s');
-  if(sid)bootSession();
-  else{sessionLoad++;(S.unsub||[]).forEach(f=>f());S.unsub=[];shown=null;viewCreate()}
+  const target=sid,request=++sessionLoad;
+  (S.unsub||[]).forEach(f=>f());S.unsub=[];shown=null;
+  closeCalSheet();closeVoteImport();
+  if(target){
+    showPageLoading('투표를 불러오는 중…');
+    await sessionReady;
+    if(request===sessionLoad&&sid===target)bootSession();
+  }else viewCreate();
 });
 </script>
 </body>

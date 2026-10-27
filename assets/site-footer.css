@@ -6,3 +6,5 @@
 .site-footer a:hover{color:#4d50ba}
 .site-footer a:focus-visible{outline:3px solid #4d50ba;outline-offset:3px;border-radius:2px}
 @media(max-width:560px){.site-footer--app{margin-left:16px;margin-right:16px}.site-footer{gap:12px}.site-footer nav{gap:6px}}
+
+.site-footer[hidden]{display:none!important}
