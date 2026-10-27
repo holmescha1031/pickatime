@@ -294,7 +294,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 <script src="./assets/analytics.js"></script>
 
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
@@ -1534,6 +1534,7 @@ function myCount(id){
 }
 
 /* Personal calendar details remain in memory; only explicit sticker edits are shared. */
+const GOOGLE_CALENDAR_PAUSED=true;
 let CAL=null,calIndex=null,calDialog=null,calendarModulePromise=null,calendarConfigPromise=null;
 LS.del('wmd:cal'); // Remove the old, unscoped prototype cache.
 function calendarModule(){return calendarModulePromise??=import('./assets/calendar-data.mjs').catch(e=>{calendarModulePromise=null;throw e})}
@@ -1562,10 +1563,11 @@ function openCalSheet(){
   const current=personalCalendar();
   el.innerHTML=`<div class="dialog-heading"><h2 id="calendarImportTitle">내 캘린더 가져오기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div>
     <p class="hint">일정을 보면서 스티커를 붙여 보세요. 일정은 나에게만 표시돼요.</p>
-    <button type="button" class="btn blue block" id="calGoogle">구글 캘린더 연결</button>
+    <button type="button" class="btn blue block" id="calGoogle" disabled aria-describedby="calGooglePaused">구글 캘린더 연결 · 준비 중</button>
+    <p class="hint" id="calGooglePaused">Google 검증 완료까지 연결을 잠시 중단했어요.</p>
     <button type="button" class="btn block calendar-file-btn" id="calFile">캘린더 파일 가져오기 (.ics)</button>
     <input type="file" id="calendarFileInput" accept=".ics,text/calendar" hidden>
-    <p class="hint">아이폰·삼성 캘린더에서 내보낸 파일도 가져올 수 있어요. 구글 연결은 Chrome·Safari에서 이용해 주세요.</p>
+    <p class="hint">아이폰·삼성 캘린더에서 내보낸 파일도 가져올 수 있어요.</p>
     <div id="calChoices"></div><p id="calStatus" class="hint" role="status" aria-live="polite"></p><div id="calPreview"></div>
     ${current?'<button type="button" class="btn ghost block" id="calRemove">가져온 일정 지우기</button>':''}`;
   el.setAttribute('aria-labelledby','calendarImportTitle');document.body.appendChild(el);
@@ -1576,7 +1578,7 @@ function openCalSheet(){
   el.querySelector('[data-close]').onclick=()=>el.close();
   const status=el.querySelector('#calStatus'),preview=el.querySelector('#calPreview'),choices=el.querySelector('#calChoices');
   const controls=()=>[el.querySelector('#calGoogle'),el.querySelector('#calFile'),el.querySelector('#calRemove')].filter(Boolean);
-  const busy=value=>{working=value;controls().forEach(b=>b.disabled=value)};
+  const busy=value=>{working=value;controls().forEach(b=>b.disabled=value||(GOOGLE_CALENDAR_PAUSED&&b.id==='calGoogle'))};
   const showPreview=(engine,events,source)=>{
     if(!active())return;const index=engine.indexEvents(events,bounds.start,bounds.end),dates=Object.keys(index).sort();
     status.textContent=events.length?`${events.length}개 일정을 가져왔어요.`:'이 기간에 등록된 일정이 없어요.';
@@ -1592,8 +1594,9 @@ function openCalSheet(){
   };
   el.querySelector('#calRemove')?.addEventListener('click',()=>{clearCal();closeCalSheet();renderCalendar();toast('가져온 일정을 지웠어요. 스티커는 유지돼요.')});
   // Fetch public configuration in advance so opening Google remains a user gesture.
-  let config=null;calendarConfig().then(v=>{config=v}).catch(()=>{});
+  let config=null;if(!GOOGLE_CALENDAR_PAUSED)calendarConfig().then(v=>{config=v}).catch(()=>{});
   el.querySelector('#calGoogle').onclick=()=>{
+    if(GOOGLE_CALENDAR_PAUSED){status.textContent='Google 검증 완료까지 구글 캘린더 연결을 잠시 중단했어요.';return}
     preview.innerHTML='';choices.innerHTML='';
     if(/KAKAOTALK|Instagram|FBAN|FBAV|NAVER\(/i.test(navigator.userAgent)){status.textContent='이 브라우저에서는 구글 로그인이 제한돼요. 우측 메뉴에서 Chrome 또는 Safari로 열어 주세요. 캘린더 파일 가져오기는 여기서도 사용할 수 있어요.';return}
     if(!config){status.textContent='구글 연결 설정을 확인하는 중이에요. 잠시 후 다시 눌러 주세요.';calendarConfig().then(v=>{config=v;if(active())status.textContent=v.configured?'준비됐어요. 구글 캘린더 연결을 눌러 주세요.':'구글 연결은 설정 중이에요. 지금은 캘린더 파일로 가져올 수 있어요.'}).catch(e=>{if(active())status.textContent=e.message});return}
