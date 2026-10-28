@@ -6,11 +6,11 @@ module.exports=async(req,res)=>{
   res.setHeader('Cache-Control','private, no-store');res.setHeader('X-Content-Type-Options','nosniff');
   try{
     if(req.method==='GET'){
-      if(req.query?.mode!=='admin')return res.status(200).json({enabled:false,configured:false,clientId:'',reason:'verification_pending'});
+      if(!['admin','demo'].includes(req.query?.mode))return res.status(200).json({enabled:false,configured:false,clientId:'',reason:'verification_pending'});
       if(!authorize(req,res))return;
       let clientId=valid(process.env.GOOGLE_CLIENT_ID)?process.env.GOOGLE_CLIENT_ID:'';
       try{const saved=decode(await db(path()));if(saved)clientId=saved;}catch{if(!clientId)return res.status(503).json({error:'구글 연결 설정을 확인하지 못했어요. 다시 시도해 주세요.'})}
-      return res.status(200).json({enabled:false,clientId,configured:Boolean(clientId)});
+      return res.status(200).json({enabled:false,testEnabled:req.query?.mode==='demo'&&Boolean(clientId),clientId,configured:Boolean(clientId)});
     }
     if(req.method!=='POST')return res.status(405).json({error:'지원하지 않는 요청입니다.'});
     if(!authorize(req,res))return;

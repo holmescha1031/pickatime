@@ -1546,10 +1546,31 @@ function myCount(id){
 
 /* Personal calendar details remain in memory; only explicit sticker edits are shared. */
 const GOOGLE_CALENDAR_PAUSED=true;
-let CAL=null,calIndex=null,calDialog=null,calendarModulePromise=null,calendarConfigPromise=null;
+let CAL=null,calIndex=null,calDialog=null,calendarModulePromise=null,calendarConfigPromise=null,calendarConfigKey=null,googleCalendarSdkPromise=null;
 LS.del('wmd:cal'); // Remove the old, unscoped prototype cache.
+calendarDemoRequested(); // Keep the filming opt-in across navigation in this tab.
 function calendarModule(){return calendarModulePromise??=import('./assets/calendar-data.mjs').catch(e=>{calendarModulePromise=null;throw e})}
-function calendarConfig(){return calendarConfigPromise??=fetch('/api/calendar-config',{cache:'no-store'}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error);return d}).catch(e=>{calendarConfigPromise=null;throw e})}
+function calendarDemoRequested(){
+  if(new URLSearchParams(location.search).get('calendarTest')==='1')SS.set('wmd:calendar-demo','1');
+  return SS.get('wmd:calendar-demo')==='1';
+}
+function calendarConfig(){
+  const mode=calendarDemoRequested()?'demo':'public',key=mode+':'+(kakaoUser?.id||'');
+  if(calendarConfigKey!==key){calendarConfigPromise=null;calendarConfigKey=key}
+  return calendarConfigPromise??=fetch('/api/calendar-config'+(mode==='demo'?'?mode=demo':''),{credentials:'include',cache:'no-store'}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error);return d}).catch(e=>{if(calendarConfigKey===key)calendarConfigPromise=null;throw e});
+}
+function googleCalendarSDK(){
+  if(window.google?.accounts?.oauth2)return Promise.resolve();
+  if(googleCalendarSdkPromise)return googleCalendarSdkPromise;
+  googleCalendarSdkPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');let timer;
+    const fail=()=>{clearTimeout(timer);script.remove();reject(Error('구글 로그인 기능을 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.'))};
+    script.src='https://accounts.google.com/gsi/client';script.async=true;
+    script.onload=()=>{clearTimeout(timer);if(window.google?.accounts?.oauth2)resolve();else fail()};
+    script.onerror=fail;timer=setTimeout(fail,15000);document.head.appendChild(script);
+  }).catch(e=>{googleCalendarSdkPromise=null;throw e});
+  return googleCalendarSdkPromise;
+}
 function personalCalendar(){if(CAL&&(CAL.user!==kakaoUser?.id||CAL.id!==sid)){CAL=null;calIndex=null}return CAL}
 function closeCalSheet(){calDialog?.close();calDialog?.remove();calDialog=null}
 function clearCal(){CAL=null;calIndex=null}
@@ -1606,7 +1627,8 @@ function openCalSheet(){
       <p>파일을 다시 가져오면 기존에 가져온 일정 표시를 새 파일의 일정으로 바꿔요. 실시간 동기화가 아니라 파일을 내보낸 시점의 일정이며, 이미 붙인 스티커는 바뀌지 않아요.</p>
 </div></section>`;
   el.setAttribute('aria-labelledby','calendarImportTitle');document.body.appendChild(el);
-  let token=null,disposed=false,working=false;
+  let token=null,disposed=false,working=false,config=null,googleReady=false;
+  const canConnectGoogle=()=>googleReady&&Boolean(config?.clientId)&&(config.testEnabled===true||config.enabled===true);
   const active=()=>!disposed&&el.isConnected&&voteImportActive(c);
   const dispose=()=>{disposed=true;token=null;el.remove();if(calDialog===el)calDialog=null};
   el.addEventListener('close',dispose);el.addEventListener('cancel',()=>{if(working)token=null});
@@ -1621,7 +1643,7 @@ function openCalSheet(){
   el.addEventListener('cancel',e=>{if(!helpPane.hidden){e.preventDefault();backToImport()}});
   const status=el.querySelector('#calStatus'),preview=el.querySelector('#calPreview'),choices=el.querySelector('#calChoices');
   const controls=()=>[el.querySelector('#calGoogle'),el.querySelector('#calFile'),el.querySelector('#calFileHelp'),el.querySelector('#calRemove')].filter(Boolean);
-  const busy=value=>{working=value;controls().forEach(b=>b.disabled=value||(GOOGLE_CALENDAR_PAUSED&&b.id==='calGoogle'))};
+  const busy=value=>{working=value;controls().forEach(b=>b.disabled=value||(b.id==='calGoogle'&&!canConnectGoogle()))};
   const showPreview=(engine,events,source)=>{
     if(!active())return;const index=engine.indexEvents(events,bounds.start,bounds.end),dates=Object.keys(index).sort();
     status.textContent=events.length?`${events.length}개 일정을 가져왔어요.`:'이 기간에 등록된 일정이 없어요.';
@@ -1653,10 +1675,22 @@ function openCalSheet(){
     finally{if(active())busy(false)}
   };
   el.querySelector('#calRemove')?.addEventListener('click',()=>{clearCal();closeCalSheet();renderCalendar();toast('가져온 일정을 지웠어요. 스티커는 유지돼요.')});
-  // Fetch public configuration in advance so opening Google remains a user gesture.
-  let config=null;if(!GOOGLE_CALENDAR_PAUSED)calendarConfig().then(v=>{config=v}).catch(()=>{});
+  // A hidden filming route still requires the exact administrator's signed session.
+  if(calendarDemoRequested()&&kakaoUser?.id==='kakao_5136916326'){
+    const googleButton=el.querySelector('#calGoogle'),note=el.querySelector('#calGooglePaused');
+    googleButton.textContent='촬영용 연결 준비 중…';
+    void (async()=>{
+      try{
+        const data=await calendarConfig();if(!active())return;
+        if(data.testEnabled!==true||!data.clientId)throw Error('관리자 페이지에서 구글 클라이언트 ID를 먼저 저장해 주세요.');
+        await googleCalendarSDK();if(!active())return;
+        config=data;googleReady=true;googleButton.textContent='구글 캘린더 연결';googleButton.disabled=working;
+        note.textContent='운영자 시연용 연결입니다. 일반 사용자의 연결은 중단된 상태예요.';
+      }catch(e){if(active()){googleButton.textContent='구글 캘린더 연결 · 준비 중';note.textContent=e.message}}
+    })();
+  }
   el.querySelector('#calGoogle').onclick=()=>{
-    if(GOOGLE_CALENDAR_PAUSED){status.textContent='Google 검증 완료까지 구글 캘린더 연결을 잠시 중단했어요.';return}
+    if(!canConnectGoogle()){status.textContent='Google 검증 완료까지 구글 캘린더 연결을 잠시 중단했어요.';return}
     preview.innerHTML='';choices.innerHTML='';
     if(/KAKAOTALK|Instagram|FBAN|FBAV|NAVER\(/i.test(navigator.userAgent)){status.textContent='이 브라우저에서는 구글 로그인이 제한돼요. 우측 메뉴에서 Chrome 또는 Safari로 열어 주세요. 캘린더 파일 가져오기는 여기서도 사용할 수 있어요.';return}
     if(!config){status.textContent='구글 연결 설정을 확인하는 중이에요. 잠시 후 다시 눌러 주세요.';calendarConfig().then(v=>{config=v;if(active())status.textContent=v.configured?'준비됐어요. 구글 캘린더 연결을 눌러 주세요.':'구글 연결은 설정 중이에요. 지금은 캘린더 파일로 가져올 수 있어요.'}).catch(e=>{if(active())status.textContent=e.message});return}
