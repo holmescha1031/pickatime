@@ -171,6 +171,10 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 
 .half[data-l="2"] .stk{color:var(--s1);transform:rotate(var(--r)) scale(1)}
 .half[data-l="3"] .stk{color:var(--s2);transform:rotate(var(--r)) scale(1)}
+.half[data-l="4"] .stk{transform:rotate(var(--r)) scale(1)}
+.eye-sticker{position:relative}
+.eye-sticker.level-4,.half[data-l="4"] .eye-sticker{background-image:url('./assets/sticker-eyes.png')}
+.eye-sticker.level-4::after,.half[data-l="4"] .eye-sticker::after{content:"";position:absolute;inset:0;background: url('./assets/sticker-crosses.svg') center 65% / 120% auto no-repeat;pointer-events:none}
 .half .eye-sticker{opacity:1}
 @media(prefers-reduced-motion:reduce){.stk{transition:none}}
 .half.busy::before{content:"";position:absolute;z-index:3;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 1.5px #fff}
@@ -225,7 +229,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .rdate small.sun{color:var(--sun)} .rdate small.sat{color:var(--sat)}
 .bar{display:flex;gap:2px;height:8px;margin:7px 0 6px;border-radius:99px;overflow:hidden}
 .bar i{flex:1}
-.b2{background:var(--s1)}.b3{background:var(--s2)}.b0{background:var(--miss)}
+.b2{background:var(--s1)}.b3{background:var(--s2)}.b4{background:#D74650}.b0{background:var(--miss)}
 .missing{font-size:12px;color:var(--sub);line-height:1.4}
 .cnt{font-family:var(--display);font-size:22px;text-align:right;white-space:nowrap}
 .cnt small{font-family:var(--body);font-size:12px;color:var(--sub);font-weight:600}
@@ -301,8 +305,8 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 
 <script src="./config.js"></script>
 <script src="./assets/kr-holidays.js"></script>
-<script src="./assets/vote-drag-v2.js"></script>
-<script src="./assets/vote-import-v2.js"></script>
+<script src="./assets/vote-drag-v3.js"></script>
+<script src="./assets/vote-import-v3.js"></script>
 <script src="./assets/vote-save-state.js"></script>
 <script src="./assets/analytics.js"></script>
 
@@ -1116,7 +1120,7 @@ function viewMain(){
 function meetingPreview(id,data,userId){
   if(!data?.meta||!data.members?.[userId])return null;
   const {list}=computeRank(data),best=list[0];
-  const tied=best?list.filter(r=>r.count===best.count&&r.score===best.score).length:0;
+  const tied=best?list.filter(r=>r.unavailable===best.unavailable&&r.count===best.count&&r.score===best.score).length:0;
   const date=best?parseYmd(best.d):null;
   const top=best?`${date.getFullYear()}.${pad(date.getMonth()+1)}.${pad(date.getDate())} (${WD[date.getDay()]}) ${SLOT_NAME[best.sl]}${tied>1?' · 공동 1위 '+tied+'개':''}`:'아직 예정된 1위 일시가 없어요';
   const joined=Object.keys(data.members).length;
@@ -1169,7 +1173,10 @@ async function openMyMeetings(){
 }
 function rankShareState(data=S,ranked=computeRank(data).list){
   const ids=Object.keys(data.members||{}),voters=new Set();
-  for(const row of ranked)for(const id of Object.keys(row.lv))voters.add(id);
+  for(const id of ids)for(const [date,slots] of Object.entries(data.votes?.[id]||{})){
+    if(date<todayStr()||!inMeetingRange(date,data.meta)||!slots||typeof slots!=='object')continue;
+    if(['L','D'].some(slot=>normalizeVoteLevel(slots[slot])>0))voters.add(id);
+  }
   const expected=Number.isSafeInteger(data.meta?.expectedCount)&&data.meta.expectedCount>=2&&data.meta.expectedCount<=100?data.meta.expectedCount:null;
   const total=Math.max(expected||0,ids.length),voted=voters.size,remaining=expected?Math.max(0,total-voted):null;
   const complete=Boolean(expected&&total>=2&&remaining===0);
@@ -1416,10 +1423,10 @@ async function trackedVoteTransaction(c,cell){
 }
 
 /* ----- 내 스티커 달력 ----- */
-const LEVEL_TEXT={2:'아마 가능',3:'되긴 하는데…'};
-// Keep stored levels 2/3 stable; merge old sparkle (1) into normal eyes (2).
-const normalizeVoteLevel=level=>level===1?2:level===2||level===3?level:0;
-const nextVoteLevel=level=>Number(level)===2?3:Number(level)===3?0:2;
+const LEVEL_TEXT={2:'아마 가능',3:'되긴 하는데…',4:'불가능'};
+// Keep stored levels 2/3 stable and use 4 for unavailable; merge old sparkle (1) into normal eyes (2).
+const normalizeVoteLevel=level=>level===1?2:level===2||level===3||level===4?level:0;
+const nextVoteLevel=level=>Number(level)===2?3:Number(level)===3||Number(level)===4?0:2;
 const SLOTS=[['L','점심'],['D','저녁']];
 const SLOT_NAME={L:'점심',D:'저녁'};
 function myVotes(){return S.votes?.[S.me]||{}}
@@ -1464,7 +1471,7 @@ function renderCalendar(){
       const halves=SLOTS.map(([sl,name])=>{
         const l=past?0:lvOf(mv,ds,sl),r=(hash(ds+sl)%9)-4,busy=dayEv.some(e=>e[sl]),count=heat.counts[ds+'|'+sl]||0;
         const voteLabel=calendarVoteLabel(ds,sl,l,count,heat.total,busy);
-        return `<button class="half${busy?' busy':''}" data-d="${ds}" data-s="${sl}" data-l="${l}" data-votes="${count}" data-vote-total="${heat.total}" style="--vote-bg:${calendarHeatColor(count,heat.total)}" ${past?'disabled':''}
+        return `<button class="half${busy?' busy':''}" data-d="${ds}" data-s="${sl}" aria-keyshortcuts="Shift+Enter Shift+Space" data-l="${l}" data-votes="${count}" data-vote-total="${heat.total}" style="--vote-bg:${calendarHeatColor(count,heat.total)}" ${past?'disabled':''}
           title="${esc(voteLabel)}" aria-label="${esc(voteLabel)}"><i class="stk" style="--r:${r}deg" aria-hidden="true">${meetingSticker()}</i><span class="lb">${name}</span></button>`}).join('');
       cells.push({past,ds,dow,m,d,h:`<div title="${esc(holiday)}" class="day${holiday?' holiday':''}${dow===0?' sun':''}${dow===6?' sat':''}${ds===today?' today':''}${past?' past':''}"><span class="n">${d}</span>${calendarDayHtml(ds,dayEv)}${halves}</div>`});
     }
@@ -1481,6 +1488,8 @@ function renderCalendar(){
       <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>한 번 클릭: 아마 가능</span>
       <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>두 번 클릭: 되긴 하는데…</span>
       <span>(세 번 누르면 떼져요)</span>
+      <span><i class="legend-sticker l4" aria-hidden="true">${meetingSticker(4)}</i>점심·저녁 칸 길게 누르기: 불가능</span>
+      <span>불가능 스티커는 한 번 누르면 떼져요. 키보드: Shift + Enter</span>
     </div>
     <p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p>
     ${html}
@@ -1491,7 +1500,7 @@ function renderCalendar(){
     </section>
     <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
-  detachVoteDrag=window.attachVoteDrag($('#body'),(b,l)=>setVoteLevel(b,l,'drag'),nextVoteLevel);
+  detachVoteDrag=window.attachVoteDrag($('#body'),(b,l,method)=>setVoteLevel(b,l,method||'drag'),nextVoteLevel);
   $('#reuseVotes').onclick=()=>offerVoteImport(true);
   $('#finishVote').onclick=finishVote;
   $('#retryVoteSave').onclick=retryVoteSaves;
@@ -1526,11 +1535,11 @@ function setVoteLevel(b,next,inputMethod='tap'){
   if(next)day[sl]=next;else delete day[sl];
   if(Object.keys(day).length)mv[d]=day;else delete mv[d];
   S.votes={...S.votes,[S.me]:mv};
-  const count=Object.keys(S.members||{}).filter(id=>normalizeVoteLevel(S.votes?.[id]?.[d]?.[sl])>0).length;
+  const count=Object.keys(S.members||{}).filter(id=>[2,3].includes(normalizeVoteLevel(S.votes?.[id]?.[d]?.[sl]))).length;
   applyCalendarHeat(b,count,calendarVoteTotal());
   navigator.vibrate?.(8);
   const path=`sessions/${sid}/votes/${S.me}/${d}/${sl}`;
-  void voteSaves.save(voteSaveKey(),path,()=>store.set(path,next||null)).then(r=>{if(r.ok)usage('vote_change',{input_method:inputMethod,selection:next===2?'normal':next===3?'uncertain':'remove'})});
+  void voteSaves.save(voteSaveKey(),path,()=>store.set(path,next||null)).then(r=>{if(r.ok)usage('vote_change',{input_method:inputMethod,selection:next===2?'normal':next===3?'uncertain':next===4?'unavailable':'remove'})});
 }
 function syncCalendar(){
   if(!$('.month'))return;
@@ -1728,12 +1737,12 @@ function computeRank(data=S){
       for(const [sl,storedLevel] of Object.entries(v)){
         const l=normalizeVoteLevel(storedLevel);
         if(!SLOT_NAME[sl]||!l)continue;
-        const r=map[d+sl]??={d,sl,count:0,score:0,lv:{}};
-        r.count++;r.score+=4-l;r.lv[id]=l;
+        const r=map[d+sl]??={d,sl,count:0,unavailable:0,score:0,lv:{}};
+        if(l===4){r.unavailable++;r.score-=2}else{r.count++;r.score+=4-l}r.lv[id]=l;
       }
     }
   }
-  return {ids,list:Object.values(map).sort((a,b)=>b.count-a.count||b.score-a.score||a.d.localeCompare(b.d)||['L','D'].indexOf(a.sl)-['L','D'].indexOf(b.sl))};
+  return {ids,list:Object.values(map).filter(r=>r.count>0).sort((a,b)=>a.unavailable-b.unavailable||b.count-a.count||b.score-a.score||a.d.localeCompare(b.d)||['L','D'].indexOf(a.sl)-['L','D'].indexOf(b.sl))};
 }
 function renderRank(){
   const {ids,list}=computeRank();
@@ -1745,7 +1754,7 @@ function renderRank(){
   const maxCount=Math.max(0,...list.map(r=>r.count));
   const waiting=sorted.filter(id=>!cnt(id));
   let sum;
-  if(!list.length)sum='아직 붙인 스티커가 없어요';
+  if(!list.length)sum=sorted.some(id=>cnt(id))?'아직 가능하다고 표시한 시간이 없어요':'아직 붙인 스티커가 없어요';
   else if(remaining)sum=`아직 ${remaining}명이 참여하지 않았어요. 현재 최대 ${maxCount}명이 만날 수 있어요`;
   else if(allDays.length)sum=expected?`다 같이 되는 시간이 ${allDays.length}개 있어요!`:`현재 참여한 ${ids.length}명이 함께 가능한 시간이 ${allDays.length}개 있어요`;
   else if(waiting.length)sum=`${waiting.length}명이 아직 스티커를 안 붙였어요`;
@@ -1760,7 +1769,8 @@ function renderRank(){
       const segs=sorted.map(id=>`<i class="b${r.lv[id]||0}"></i>`).join('')+'<i class="b0"></i>'.repeat(Math.max(0,total-ids.length));
       const miss=sorted.filter(id=>!r.lv[id]).map(id=>members[id].name);
       const vague=sorted.filter(id=>r.lv[id]===3).map(id=>members[id].name);
-      const notes=[miss.length?`불가능: ${miss.map(esc).join(', ')}`:'',vague.length?`애매해요: ${vague.map(esc).join(', ')}`:''].filter(Boolean).join('<br>');
+      const unavailable=sorted.filter(id=>r.lv[id]===4).map(id=>members[id].name);
+      const notes=[unavailable.length?`불가능: ${unavailable.map(esc).join(', ')}`:'',miss.length?`미응답: ${miss.map(esc).join(', ')}`:'',vague.length?`애매해요: ${vague.map(esc).join(', ')}`:''].filter(Boolean).join('<br>');
       return `<li class="rk${isAll?' all':''}">
         <div class="pos">${i+1}</div>
         <div><div class="rdate">${dt.getMonth()+1}월 ${dt.getDate()}일<small class="${dow===0||holidayName(r.d)?'sun':dow===6?'sat':''}" title="${esc(holidayName(r.d))}">${WD[dow]}</small><span class="slot ${r.sl}">${SLOT_NAME[r.sl]}</span></div>
@@ -1769,7 +1779,7 @@ function renderRank(){
       </li>`}).join('')}</ol>
       ${list.length>10?`<button class="btn ghost more" id="more">${S.showAll?'상위 10개만 보기':`전체 ${list.length}개 보기`}</button>`:''}`
     :`<div class="empty">‘스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}
-    <p class="hint" style="text-align:center;margin-top:14px">가능하다고 표시한 사람 수가 많은 순, 같으면 스티커 가중치 합계가 높은 순이에요. 아마 가능 2점 · 되긴 하는데… 1점</p>`;
+    <p class="hint" style="text-align:center;margin-top:14px">불가능한 사람이 적은 순, 가능한 사람이 많은 순, 합계 점수가 높은 순이에요. 아마 가능 2점 · 되긴 하는데… 1점 · 불가능 -2점. 미응답은 불가능으로 세지 않아요.</p>`;
   const more=$('#more');if(more)more.onclick=()=>{S.showAll=!S.showAll;renderRank()};
 }
 
@@ -1810,4 +1820,5 @@ window.addEventListener('popstate',async()=>{
 </script>
 </body>
 </html>
+
 

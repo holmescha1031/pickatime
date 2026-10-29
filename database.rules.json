@@ -51,7 +51,7 @@
             ".write": "root.child('sessions').child($sid).child('members').child($mid).exists()",
             "$date": {
               "$slot": {
-                ".validate": "($slot === 'L' || $slot === 'D') && newData.isNumber() && (newData.val() === 1 || newData.val() === 2 || newData.val() === 3)"
+                ".validate": "($slot === 'L' || $slot === 'D') && newData.isNumber() && (newData.val() === 1 || newData.val() === 2 || newData.val() === 3 || newData.val() === 4)"
               }
             }
           }
@@ -77,3 +77,4 @@
     }
   }
 }
+
