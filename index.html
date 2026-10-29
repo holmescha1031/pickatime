@@ -1576,15 +1576,15 @@ function closeCalSheet(){calDialog?.close();calDialog?.remove();calDialog=null}
 function clearCal(){CAL=null;calIndex=null}
 function calBounds(){const b=window.VoteTransfer.bounds(S.meta);return b?{start:[b.start,todayStr()].sort().at(-1),end:b.end}:null}
 function calDays(){const cal=personalCalendar(),b=calBounds();if(!cal||!b||b.start>b.end)return {};const key=b.start+'|'+b.end;if(calIndex?.key!==key)calIndex={key,days:cal.engine.indexEvents(cal.events,b.start,b.end)};return calIndex.days}
-function calBarHtml(){const cal=personalCalendar();return `<button type="button" class="calbtn${cal?' on':''}" data-cal="open"><span class="ic" aria-hidden="true">📅</span><span class="tx"><b>${cal?'내 캘린더':'내 캘린더 가져오기'}</b>${cal?`<small>${esc(cal.source)} · ${cal.events.length}개 일정 · 나에게만 표시</small>`:''}</span><span class="go">${cal?'관리':'가져오기'}</span></button>`}
+function calBarHtml(){const cal=personalCalendar();return `<button type="button" class="calbtn${cal?' on':''}" data-cal="open"><span class="ic" aria-hidden="true">📅</span><span class="tx"><b>${cal?'내 캘린더':'내 캘린더 가져오기'}</b>${cal?`<small>${esc(cal.source)} · ${cal.events.length}개 일정</small>`:''}</span><span class="go">${cal?'관리':'가져오기'}</span></button>`}
 function calendarDayHtml(date,events){
   if(!personalCalendar()||!events.length)return '';
-  return `<button type="button" class="day-agenda${events.length?' has-events':''}" data-agenda="${date}" aria-label="${date} 내 일정 ${events.length}개"><span class="agenda-label">내 일정</span>${events.length?events.slice(0,2).map(e=>`<span class="agenda-event" title="${esc(e.tm+' '+e.t)}">${esc(e.t)}</span>`).join('')+(events.length>2?`<span class="agenda-more">+${events.length-2}</span>`:''):'<span class="agenda-empty">—</span>'}</button>`;
+  return `<button type="button" class="day-agenda${events.length?' has-events':''}" data-agenda="${date}" aria-label="${date} 내 일정 ${events.length}개">${events.length?events.slice(0,2).map(e=>`<span class="agenda-event" title="${esc(e.tm+' '+e.t)}">${esc(e.t)}</span>`).join('')+(events.length>2?`<span class="agenda-more">+${events.length-2}</span>`:''):'<span class="agenda-empty">—</span>'}</button>`;
 }
 function openCalendarDay(date){
   const list=calDays()[date]||[];closeCalSheet();
   const el=document.createElement('dialog');el.className='existing-meeting calendar-dialog';calDialog=el;
-  el.innerHTML=`<div class="dialog-heading"><h2 id="calendarDayTitle">${esc(date)} 내 일정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div><p class="hint">나에게만 표시돼요.</p><div class="agenda-details">${list.length?list.map(e=>`<div><small>${esc(e.tm)}</small><b>${esc(e.t)}</b></div>`).join(''):'<p>가져온 일정이 없는 날이에요.</p>'}</div>`;
+  el.innerHTML=`<div class="dialog-heading"><h2 id="calendarDayTitle">${esc(date)}</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div><div class="agenda-details">${list.length?list.map(e=>`<div><small>${esc(e.tm)}</small><b>${esc(e.t)}</b></div>`).join(''):'<p>가져온 일정이 없는 날이에요.</p>'}</div>`;
   el.setAttribute('aria-labelledby','calendarDayTitle');document.body.appendChild(el);el.querySelector('[data-close]').onclick=closeCalSheet;el.addEventListener('close',()=>{if(calDialog===el)calDialog=null;el.remove()});el.showModal();
 }
 function openCalSheet(){
@@ -1594,7 +1594,7 @@ function openCalSheet(){
   const el=document.createElement('dialog');el.className='existing-meeting calendar-dialog';calDialog=el;
   const current=personalCalendar();
   el.innerHTML=`<section id="calendarImportPane"><div class="dialog-heading"><h2 id="calendarImportTitle">내 캘린더 가져오기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div>
-    <p class="hint">일정을 보면서 스티커를 붙여 보세요. 일정은 나에게만 표시돼요.</p>
+    <p class="hint">일정을 보면서 스티커를 붙여 보세요.</p>
     <button type="button" class="btn blue block" id="calGoogle" disabled aria-describedby="calGooglePaused">구글 캘린더 연결 · 준비 중</button>
     <p class="hint" id="calGooglePaused">Google 검증 완료까지 연결을 잠시 중단했어요.</p>
     <div class="calendar-file-row"><button type="button" class="btn block calendar-file-btn" id="calFile">캘린더 파일 선택 (.ics)</button><button type="button" class="cal-help-button" id="calFileHelp" aria-label=".ics 파일 가져오는 방법" aria-controls="calendarHelpPane" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2-2.4 3.7" stroke-linecap="round"/><circle cx="12" cy="17" r=".8" fill="currentColor" stroke="none"/></svg></button></div>
