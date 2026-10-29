@@ -270,10 +270,12 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .meeting-card b{display:block;font-size:17px;margin-bottom:9px;overflow-wrap:anywhere}
 .meeting-card small{display:block;color:var(--sub);font-size:13px;line-height:1.6}
 .meeting-card .meeting-attendance{display:inline-block;color:var(--s1);font-weight:700;background:#F1EAFB;border-radius:8px;padding:3px 8px;margin-top:9px;font-size:13px}
-.day-agenda{height:80px;min-width:0;padding:4px 2px;border:0;border-radius:7px;background:#F5F6FC;display:flex;flex-direction:column;align-items:stretch;gap:3px;text-align:left;overflow:hidden}
+.day-agenda{height:56px;min-width:0;padding:4px 2px;border:0;border-radius:7px;background:#F5F6FC;display:flex;flex-direction:column;align-items:stretch;gap:2px;text-align:left;overflow:hidden}
 .agenda-label{font-size:9px;color:var(--sub);text-align:center}
-.agenda-event{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:17px;background:#E2E7FA;color:#353F83;padding:0 2px;border-radius:3px}
-.agenda-more,.agenda-empty{font-size:9px;line-height:12px;color:var(--sub);text-align:center}
+.day-agenda:not(.has-events){justify-content:center}
+dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{width:48px;height:48px;min-width:48px;flex-shrink:0;padding:0!important;font-size:32px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.agenda-event{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:16px;flex-shrink:0;background:#E2E7FA;color:#353F83;padding:0 2px;border-radius:3px}
+.agenda-more,.agenda-empty{font-size:9px;line-height:12px;flex-shrink:0;color:var(--sub);text-align:center}
 .calendar-dialog{max-height:85dvh;overflow-y:auto}.calendar-file-btn{margin-top:10px;border:1px solid var(--line);background:var(--paper);color:var(--s1)}
 .calendar-choice{display:flex;align-items:center;gap:12px;padding:12px 0;min-height:44px}.calendar-choice input{width:20px;height:20px;accent-color:var(--s1)}
 .calendar-preview{max-height:220px;overflow-y:auto;margin-bottom:18px}.calendar-preview>div{padding:10px 0;border-bottom:1px solid var(--line)}.calendar-preview small,.calendar-preview span{display:block;overflow-wrap:anywhere;line-height:1.5}.calendar-preview small{color:var(--sub)}
@@ -1578,8 +1580,8 @@ function calBounds(){const b=window.VoteTransfer.bounds(S.meta);return b?{start:
 function calDays(){const cal=personalCalendar(),b=calBounds();if(!cal||!b||b.start>b.end)return {};const key=b.start+'|'+b.end;if(calIndex?.key!==key)calIndex={key,days:cal.engine.indexEvents(cal.events,b.start,b.end)};return calIndex.days}
 function calBarHtml(){const cal=personalCalendar();return `<button type="button" class="calbtn${cal?' on':''}" data-cal="open"><span class="ic" aria-hidden="true">📅</span><span class="tx"><b>${cal?'내 캘린더':'내 캘린더 가져오기'}</b>${cal?`<small>${esc(cal.source)} · ${cal.events.length}개 일정</small>`:''}</span><span class="go">${cal?'관리':'가져오기'}</span></button>`}
 function calendarDayHtml(date,events){
-  if(!personalCalendar()||!events.length)return '';
-  return `<button type="button" class="day-agenda${events.length?' has-events':''}" data-agenda="${date}" aria-label="${date} 내 일정 ${events.length}개">${events.length?events.slice(0,2).map(e=>`<span class="agenda-event" title="${esc(e.tm+' '+e.t)}">${esc(e.t)}</span>`).join('')+(events.length>2?`<span class="agenda-more">+${events.length-2}</span>`:''):'<span class="agenda-empty">—</span>'}</button>`;
+  if(!personalCalendar())return '';
+  return `<button type="button" class="day-agenda${events.length?' has-events':''}" data-agenda="${date}" aria-label="${date} 내 일정 ${events.length}개">${events.length?events.slice(0,2).map(e=>`<span class="agenda-event" title="${esc(e.tm+' '+e.t)}">${esc(e.t)}</span>`).join('')+(events.length>2?`<span class="agenda-more">+${events.length-2}</span>`:''):'<span class="agenda-empty">-</span>'}</button>`;
 }
 function openCalendarDay(date){
   const list=calDays()[date]||[];closeCalSheet();
