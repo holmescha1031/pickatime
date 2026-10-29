@@ -173,8 +173,8 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .half[data-l="3"] .stk{color:var(--s2);transform:rotate(var(--r)) scale(1)}
 .half[data-l="4"] .stk{transform:rotate(var(--r)) scale(1)}
 .eye-sticker{position:relative}
-.eye-sticker.level-4,.half[data-l="4"] .eye-sticker{background-image:url('./assets/sticker-eyes.png')}
-.eye-sticker.level-4::after,.half[data-l="4"] .eye-sticker::after{content:"";position:absolute;inset:0;background: url('./assets/sticker-crosses.svg') center 65% / 120% auto no-repeat;pointer-events:none}
+ .eye-sticker.level-4,.half[data-l="4"] .eye-sticker{background-image:url('./assets/sticker-unavailable.svg')}
+
 .half .eye-sticker{opacity:1}
 @media(prefers-reduced-motion:reduce){.stk{transition:none}}
 .half.busy::before{content:"";position:absolute;z-index:3;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 1.5px #fff}
@@ -203,7 +203,9 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .slot{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:2px}
 .slot.L{background:#FFF1C9;color:#8A6300}.slot.D{background:#E3E8FF;color:#3340A0}
 .clear{display:block;margin:4px auto 0}
-.vote-save-status{font-size:13px;color:var(--sub);margin:8px 0 14px;text-align:center;min-height:20px}
+.vote-save-status{display:flex;justify-content:flex-end;font-size:13px;color:var(--sub);margin:8px 0 14px;text-align:right;min-height:32px}
+.vote-save-status>span{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid transparent;border-radius:999px;line-height:20px}
+.vote-save-status.is-saved>span{color:#187447;background:#E7F6ED;border-color:#BCE4CC;font-weight:700}
 .vote-save-status.save-error{color:var(--sun)}
 .vote-finish{margin:20px 0 16px;padding:18px;background:var(--card);border:1.5px solid var(--line);border-radius:20px}
 .vote-finish .vote-save-status{margin:10px 0 0}
@@ -1381,7 +1383,7 @@ function renderVoteSaveState(){
   if(!S.me||shown!=='main'||S.tab!=='mine')return;
   const state=voteSaves.info(voteSaveKey()),finishing=voteFinishBusy===voteSaveKey();
   const text=state.pending?'저장 중…':state.failed?'저장하지 못했어요. 다시 저장해 주세요.':state.saved||myCount(S.me)>0?'저장됨 ✓':'스티커를 붙이면 자동으로 저장돼요';
-  document.querySelectorAll('[data-vote-save-status]').forEach(el=>{el.textContent=text;el.classList.toggle('save-error',state.failed>0&&!state.pending)});
+  document.querySelectorAll('[data-vote-save-status]').forEach(el=>{let label=el.querySelector('span');if(!label){label=document.createElement('span');el.replaceChildren(label)}label.textContent=text;el.classList.toggle('save-error',state.failed>0&&!state.pending);el.classList.toggle('is-saved',!state.pending&&!state.failed&&(state.saved||myCount(S.me)>0))});
   const retry=$('#retryVoteSave');if(retry){retry.hidden=!state.failed;retry.disabled=state.pending>0||finishing}
   const confirmation=voteConfirmationState(),showFinish=!confirmation.confirmed||confirmation.changed;
   const panel=$('#voteFinishPanel');if(panel)panel.hidden=!showFinish&&!state.failed;
@@ -1488,8 +1490,7 @@ function renderCalendar(){
       <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>한 번 클릭: 아마 가능</span>
       <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>두 번 클릭: 되긴 하는데…</span>
       <span>(세 번 누르면 떼져요)</span>
-      <span><i class="legend-sticker l4" aria-hidden="true">${meetingSticker(4)}</i>점심·저녁 칸 길게 누르기: 불가능</span>
-      <span>불가능 스티커는 한 번 누르면 떼져요. 키보드: Shift + Enter</span>
+      <span><i class="legend-sticker l4" aria-hidden="true">${meetingSticker(4)}</i>길게 누르기: 어떻게 해도 불가능</span>
     </div>
     <p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p>
     ${html}
