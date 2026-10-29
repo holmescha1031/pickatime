@@ -139,8 +139,9 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .date-range-fields input{font-size:16px;padding:12px 8px;box-sizing:border-box}
 @media(max-width:350px){.date-range-fields{grid-template-columns:1fr}}
 /* legend */
-.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--sub);margin:2px 2px 12px}
-.legend>span{display:inline-flex;align-items:center;gap:6px}
+.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;font-size:13px;color:var(--sub);margin:2px 2px 12px}
+.legend>span{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.5}
+.legend>span:last-child{grid-column:1 / -1}
 .legend-sticker{display:inline-flex;width:30px;height:29px;flex:none;padding:0;background:transparent}
 .legend-sticker.l1{color:var(--s1)}.legend-sticker.l2{color:var(--s2)}.legend-sticker.l3{color:var(--s3)}
 .legend-sticker .eye-sticker{opacity:1}
@@ -207,11 +208,8 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .vote-save-status>span{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid transparent;border-radius:999px;line-height:20px}
 .vote-save-status.is-saved>span{color:#187447;background:#E7F6ED;border-color:#BCE4CC;font-weight:700}
 .vote-save-status.save-error{color:var(--sun)}
-.vote-finish{margin:20px 0 16px;padding:18px;background:var(--card);border:1.5px solid var(--line);border-radius:20px}
-.vote-finish .vote-save-status{margin:10px 0 0}
-.vote-finish .btn:disabled{opacity:.65}
-#retryVoteSave{display:block;margin:8px auto 0;color:var(--sun)}
-#retryVoteSave[hidden],#finishVote[hidden],#voteFinishPanel[hidden]{display:none}
+#retryVoteSave{display:block;margin:-6px 0 14px auto;color:var(--sun)}
+#retryVoteSave[hidden]{display:none}
 
 /* ranking */
 .vote-results-ready{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:12px;padding-top:12px;font-size:13px;color:var(--s1)}
@@ -1364,33 +1362,16 @@ function showVoteImport(c,sources){
 }
 
 const voteSaves=window.createVoteSaveTracker(()=>renderVoteSaveState());
-let voteFinishBusy=null;
 const voteSaveKey=(id=sid,user=S.me)=>id+':'+user;
-const voteConfirmationKey=()=>`wmd:vote-confirmed:${sid}:${S.me}`;
-function voteFingerprint(votes=myVotes()){
-  const cells=[];
-  for(const date of Object.keys(votes||{}).sort()){
-    if(!inMeetingRange(date)||!votes[date]||typeof votes[date]!=='object')continue;
-    for(const slot of ['L','D']){const level=normalizeVoteLevel(votes[date][slot]);if(level)cells.push([date,slot,level])}
-  }
-  return JSON.stringify(cells);
-}
-function voteConfirmationState(){
-  const previous=LS.get(voteConfirmationKey()),confirmed=previous!==null&&previous!==undefined;
-  return {confirmed,changed:confirmed&&previous!==voteFingerprint()};
-}
 function renderVoteSaveState(){
   if(!S.me||shown!=='main'||S.tab!=='mine')return;
-  const state=voteSaves.info(voteSaveKey()),finishing=voteFinishBusy===voteSaveKey();
+  const state=voteSaves.info(voteSaveKey());
   const text=state.pending?'저장 중…':state.failed?'저장하지 못했어요. 다시 저장해 주세요.':state.saved||myCount(S.me)>0?'저장됨 ✓':'스티커를 붙이면 자동으로 저장돼요';
   document.querySelectorAll('[data-vote-save-status]').forEach(el=>{let label=el.querySelector('span');if(!label){label=document.createElement('span');el.replaceChildren(label)}label.textContent=text;el.classList.toggle('save-error',state.failed>0&&!state.pending);el.classList.toggle('is-saved',!state.pending&&!state.failed&&(state.saved||myCount(S.me)>0))});
-  const retry=$('#retryVoteSave');if(retry){retry.hidden=!state.failed;retry.disabled=state.pending>0||finishing}
-  const confirmation=voteConfirmationState(),showFinish=!confirmation.confirmed||confirmation.changed;
-  const panel=$('#voteFinishPanel');if(panel)panel.hidden=!showFinish&&!state.failed;
-  const finish=$('#finishVote');if(finish){finish.hidden=!showFinish;finish.disabled=finishing;finish.textContent=finishing?'저장 확인 중…':confirmation.confirmed?'투표 수정하기':'이대로 투표하기'}
-  const clear=$('#clearAll');if(clear)clear.disabled=state.pending>0||state.failed>0||finishing;
-  const reuse=$('#reuseVotes');if(reuse)reuse.disabled=state.pending>0||state.failed>0||finishing;
-  document.querySelectorAll('.half').forEach(b=>{if(!b.hasAttribute('data-save-disabled')&&b.disabled)return;if(state.rootBlocked||finishing){b.setAttribute('data-save-disabled','');b.disabled=true}else if(b.hasAttribute('data-save-disabled')){b.removeAttribute('data-save-disabled');b.disabled=false}});
+  const retry=$('#retryVoteSave');if(retry){retry.hidden=!state.failed;retry.disabled=state.pending>0}
+  const clear=$('#clearAll');if(clear)clear.disabled=state.pending>0||state.failed>0;
+  const reuse=$('#reuseVotes');if(reuse)reuse.disabled=state.pending>0||state.failed>0;
+  document.querySelectorAll('.half').forEach(b=>{if(!b.hasAttribute('data-save-disabled')&&b.disabled)return;if(state.rootBlocked){b.setAttribute('data-save-disabled','');b.disabled=true}else if(b.hasAttribute('data-save-disabled')){b.removeAttribute('data-save-disabled');b.disabled=false}});
 }
 async function retryVoteSaves(){
   const id=sid,user=S.me,request=sessionLoad,key=voteSaveKey(id,user);
@@ -1401,22 +1382,6 @@ async function retryVoteSaves(){
     toast('투표를 저장했어요');
   }else toast('아직 저장하지 못했어요. 연결을 확인하고 다시 시도해 주세요.');
   renderVoteSaveState();
-}
-async function finishVote(){
-  if(!S.me||voteFinishBusy===voteSaveKey())return;
-  const id=sid,user=S.me,request=sessionLoad,key=voteSaveKey(id,user);
-  voteFinishBusy=key;renderVoteSaveState();
-  try{
-    const result=await voteSaves.settle(key);
-    if(sid!==id||S.me!==user||sessionLoad!==request||shown!=='main'||S.tab!=='mine')return;
-    if(result.failed){toast('저장하지 못한 선택이 있어요. 다시 저장한 뒤 마쳐 주세요.');return}
-    if(!myCount(user)){toast('가능한 날짜에 스티커를 먼저 붙여 주세요');return}
-    usage('vote_confirm',{confirmation_mode:voteConfirmationState().confirmed?'edit':'first',cell_count:myCount(user)});
-    LS.set(voteConfirmationKey(),voteFingerprint());
-    S.tab='rank';const url=new URL(location.href);url.searchParams.set('tab','rank');history.replaceState(null,'',url.pathname+url.search);
-    renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'});
-    toast('투표를 저장했어요.\n나중에 언제든 바꿀 수 있어요.');
-  }finally{if(voteFinishBusy===key)voteFinishBusy=null;renderVoteSaveState()}
 }
 async function trackedVoteTransaction(c,cell){
   const path=`sessions/${c.id}/votes/${c.user}/${cell.date}/${cell.slot}`;
@@ -1489,21 +1454,15 @@ function renderCalendar(){
     <div class="legend">
       <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>한 번 클릭: 아마 가능</span>
       <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>두 번 클릭: 되긴 하는데…</span>
-      <span>(세 번 누르면 떼져요)</span>
       <span><i class="legend-sticker l4" aria-hidden="true">${meetingSticker(4)}</i>길게 누르기: 어떻게 해도 불가능</span>
     </div>
     <p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p>
+    <button type="button" class="btn ghost" id="retryVoteSave" hidden>다시 저장하기</button>
     ${html}
-    <section class="vote-finish" id="voteFinishPanel" aria-label="투표 완료">
-      <button type="button" class="btn blue block" id="finishVote">이대로 투표하기</button>
-      <p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p>
-      <button type="button" class="btn ghost" id="retryVoteSave" hidden>다시 저장하기</button>
-    </section>
     <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
   detachVoteDrag=window.attachVoteDrag($('#body'),(b,l,method)=>setVoteLevel(b,l,method||'drag'),nextVoteLevel);
   $('#reuseVotes').onclick=()=>offerVoteImport(true);
-  $('#finishVote').onclick=finishVote;
   $('#retryVoteSave').onclick=retryVoteSaves;
   renderVoteSaveState();
   if(!calDialog)void offerVoteImport();
@@ -1516,7 +1475,7 @@ function onDayTap(e){
   if(act==='open')return openCalSheet();
   if(e.target.id==='clearAll'){
     if(!Object.keys(myVotes()).length){toast('붙인 스티커가 없어요');return}
-    const state=voteSaves.info(voteSaveKey());if(state.pending||state.failed||voteFinishBusy)return;
+    const state=voteSaves.info(voteSaveKey());if(state.pending||state.failed)return;
     if(confirm('내가 붙인 스티커를 모두 뗄까요?')){
       const path=`sessions/${sid}/votes/${S.me}`;
       void voteSaves.save(voteSaveKey(),path,()=>store.set(path,null),{root:true}).then(r=>{if(r.ok)usage('vote_clear')});
@@ -1528,7 +1487,7 @@ function onDayTap(e){
 }
 function setVoteLevel(b,next,inputMethod='tap'){
   if(!b||b.disabled||!S.me||!inMeetingRange(b.dataset.d))return;
-  if(voteSaves.info(voteSaveKey()).rootBlocked||voteFinishBusy===voteSaveKey())return;
+  if(voteSaves.info(voteSaveKey()).rootBlocked)return;
   if(Number(b.dataset.l)===next)return;
   const d=b.dataset.d,sl=b.dataset.s;
   b.dataset.l=next;
