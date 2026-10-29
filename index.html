@@ -214,7 +214,8 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 /* ranking */
 .vote-results-ready{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:12px;padding-top:12px;font-size:13px;color:var(--s1)}
 .sum{font-family:var(--display);font-size:22px;line-height:1.35;margin:4px 2px 12px;word-break:keep-all}
-.people{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.people{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.rank-color-key{margin:0 2px 14px;font-size:12px}
 .pp{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:4px 10px 4px 4px;font-size:13px;font-weight:600}
 .pp .av{width:22px;height:22px;font-size:11px}
 .pp em{font-style:normal;color:var(--sub);font-weight:500}
@@ -227,8 +228,12 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .rdate{font-weight:700;font-size:16px}
 .rdate small{font-weight:600;color:var(--sub);margin-left:4px}
 .rdate small.sun{color:var(--sun)} .rdate small.sat{color:var(--sat)}
-.bar{display:flex;gap:2px;height:8px;margin:7px 0 6px;border-radius:99px;overflow:hidden}
-.bar i{flex:1}
+.bar{display:flex;gap:2px;height:10px;margin:7px 0 6px;border-radius:99px;overflow:hidden}
+.bar i{flex:1;min-width:0;position:relative}
+.people .pp{border-color:var(--member-color,var(--line))}
+.bar .b2,.bar .b4{background:var(--member-color,var(--s1))}
+.bar .b3{background:repeating-linear-gradient(135deg,var(--member-color,var(--s2)) 0 3px,#FFFFFFBB 3px 6px)}
+.bar .b4::after{content:'×';position:absolute;inset:0;text-align:center;font-size:11px;line-height:10px;font-style:normal;font-weight:800;color:#fff}
 .b2{background:var(--s1)}.b3{background:var(--s2)}.b4{background:#D74650}.b0{background:var(--miss)}
 .missing{font-size:12px;color:var(--sub);line-height:1.4}
 .cnt{font-family:var(--display);font-size:22px;text-align:right;white-space:nowrap}
@@ -513,7 +518,24 @@ const holidayName = date=>window.KR_HOLIDAYS?.[date]||'';
 const esc = s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hash = s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)};
 const colorOf = name=>COLORS[hash(name)%COLORS.length];
-const avatar = name=>`<span class="av" style="background:${colorOf(name)}">${esc([...name][0]||'?')}</span>`;
+const avatar = (name,color=colorOf(name))=>`<span class="av" style="background:${color}">${esc([...name][0]||'?')}</span>`;
+const MEMBER_COLORS=['#4D50BA','#D15B36','#168366','#9650AE','#A97708','#CD4262','#1386A2','#60708B','#55803D','#A8518B','#866040','#3C70B1'];
+function sortedMemberIds(members){
+  return Object.keys(members||{}).sort((a,b)=>(Number(members[a]?.joinedAt)||0)-(Number(members[b]?.joinedAt)||0)||a.localeCompare(b));
+}
+function memberColorMap(members){
+  const colors={},used=new Set();let extra=0;
+  for(const [i,id] of sortedMemberIds(members).entries()){
+    let color=MEMBER_COLORS[i];
+    while(!color||used.has(color)){
+      const hue=(extra++*137.508)%360,a=.55*.43;
+      const channel=n=>{const k=(n+hue/30)%12;return Math.round(255*(.43-a*Math.max(-1,Math.min(k-3,9-k,1)))).toString(16).padStart(2,'0')};
+      color='#'+channel(0)+channel(8)+channel(4);
+    }
+    colors[id]=color;used.add(color);
+  }
+  return colors;
+}
 const ro = name=>{const c=name.charCodeAt(name.length-1);if(c<0xAC00||c>0xD7A3)return'로';const j=(c-0xAC00)%28;return(j===0||j===8)?'로':'으로'};
 const randId = n=>{const a='abcdefghjkmnpqrstuvwxyz23456789';let s='';const r=crypto.getRandomValues(new Uint8Array(n));for(const x of r)s+=a[x%a.length];return s};
 const monthLabel = ym=>{const[y,m]=ym.split('-').map(Number);return `${y}년 ${m}월`};
@@ -1219,13 +1241,13 @@ function renderAttendance(){
   const {ids,joined,expected,voted}=attendanceInfo();
   const shareStatus=rankShareState();
   const members=S.members||{};
-  const sorted=[...ids].sort((a,b)=>(members[a].joinedAt||0)-(members[b].joinedAt||0));
+  const sorted=sortedMemberIds(members),colors=memberColorMap(members);
   el.innerHTML=`
     <div class="attendance-head">
       <span class="attendance-count" aria-live="polite">참여 <b>${joined}${expected?'/'+expected:''}</b>명</span>
       <button class="btn blue invite-btn" id="inviteVote">투표링크 공유하기</button>
     </div>
-    <div class="member-stickers">${sorted.map(id=>{const c=COLORS[hash(id)%COLORS.length];return `<span class="name-sticker" style="--member-color:${c};--member-bg:${c}12">${esc(members[id].name)}${id===S.me?' <small>(나)</small>':''}</span>`}).join('')||'<span class="hint">참여한 친구들이 여기에 표시돼요.</span>'}</div>
+    <div class="member-stickers">${sorted.map(id=>{const c=colors[id];return `<span class="name-sticker" style="--member-color:${c};--member-bg:${c}12">${esc(members[id].name)}${id===S.me?' <small>(나)</small>':''}</span>`}).join('')||'<span class="hint">참여한 친구들이 여기에 표시돼요.</span>'}</div>
     <p class="hint">${voted}명이 스티커를 붙였어요.${expected?'':' 예정 인원이 아직 정해지지 않았어요.'}</p>
     ${expected?'':'<button class="btn ghost" id="setExpected">예정 인원 설정</button>'}
     <div class="vote-results-ready"><b>${esc(shareStatus.complete?'모두 참여했어요! 상위 5개 날짜를 공유해 보세요.':shareStatus.headline)}</b><button class="btn blue invite-btn" id="shareAllResults">${shareStatus.complete?'결과 공유하기':'현재 상황 공유하기'}</button></div>`;
@@ -1246,7 +1268,7 @@ function renderAttendance(){
 function renderMe(){
   renderAttendance();
   const m=S.members?.[S.me],bar=$('#mebar');if(!bar)return;bar.hidden=!m;if(!m)return;
-  $('#mebar').innerHTML=`<span class="row">${avatar(m.name)}<span><b>${esc(m.name)}</b>${ro(m.name)} 참여 중</span></span><button class="btn ghost" id="switch">이름 바꾸기</button>`;
+  $('#mebar').innerHTML=`<span class="row">${avatar(m.name,memberColorMap(S.members)[S.me])}<span><b>${esc(m.name)}</b>${ro(m.name)} 참여 중</span></span><button class="btn ghost" id="switch">이름 바꾸기</button>`;
   $('#switch').onclick=async()=>{
     const typed=prompt('모든 모임에서 사용할 닉네임을 입력해 주세요. (최대 10자)',myProfile.nickname||m.name);
     const name=typed?.trim();if(!name)return;
@@ -1708,7 +1730,7 @@ function renderRank(){
   const {ids,list}=computeRank();
   const {target:total,expected,remaining}=attendanceInfo();
   const members=S.members||{};
-  const sorted=[...ids].sort((a,b)=>members[a].joinedAt-members[b].joinedAt);
+  const sorted=sortedMemberIds(members),colors=memberColorMap(members);
   const cnt=myCount;
   const allDays=list.filter(r=>r.count===total&&total>0);
   const maxCount=Math.max(0,...list.map(r=>r.count));
@@ -1723,10 +1745,11 @@ function renderRank(){
   const shownList=S.showAll?list:list.slice(0,10);
   $('#body').innerHTML=`
     <p class="sum">${esc(sum)}</p>
-    <div class="people">${sorted.map(id=>{const c=cnt(id);return `<span class="pp${c?'':' wait'}">${avatar(members[id].name)}${esc(members[id].name)} <em>${c?c+'칸':'아직'}</em></span>`}).join('')}</div>
+    <div class="people">${sorted.map(id=>{const c=cnt(id);return `<span class="pp${c?'':' wait'}" style="--member-color:${colors[id]}">${avatar(members[id].name,colors[id])}${esc(members[id].name)} <em>${c?c+'칸':'아직'}</em></span>`}).join('')}</div>
+    <p class="hint rank-color-key">색은 참여자, 빗금은 애매함, ×는 불가능을 뜻해요.</p>
     ${list.length?`<ol class="rank">${shownList.map((r,i)=>{
       const dt=parseYmd(r.d),dow=dt.getDay(),isAll=r.count===total&&total>0;
-      const segs=sorted.map(id=>`<i class="b${r.lv[id]||0}"></i>`).join('')+'<i class="b0"></i>'.repeat(Math.max(0,total-ids.length));
+      const segs=sorted.map(id=>{const label=members[id].name+': '+(LEVEL_TEXT[r.lv[id]]||'미응답');return `<i class="b${r.lv[id]||0}" style="--member-color:${colors[id]}" title="${esc(label)}" role="img" aria-label="${esc(label)}"></i>`}).join('')+'<i class="b0" role="img" aria-label="아직 참여하지 않은 인원"></i>'.repeat(Math.max(0,total-ids.length));
       const miss=sorted.filter(id=>!r.lv[id]).map(id=>members[id].name);
       const vague=sorted.filter(id=>r.lv[id]===3).map(id=>members[id].name);
       const unavailable=sorted.filter(id=>r.lv[id]===4).map(id=>members[id].name);
