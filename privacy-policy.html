@@ -17,7 +17,7 @@
 <header><a href="/" aria-label="언제봐? 홈"><img src="/assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a><a href="/">홈으로 돌아가기</a></header>
 <article>
 <h1>개인정보처리방침</h1>
-<p class="date">시행일 및 최종 수정일: 2026년 10월 27일</p>
+<p class="date">시행일: 2026년 10월 27일 · 최종 수정일: 2026년 10월 30일</p>
 <p>언제봐?(이하 “서비스”)는 친구들과 가능한 점심·저녁 시간을 스티커로 투표하고 모임 날짜를 정하는 개인 운영 서비스입니다. 이 방침은 서비스가 어떤 정보를 어떤 목적으로 처리하고, 이용자가 이를 어떻게 확인·삭제할 수 있는지 설명합니다.</p>
 <div class="summary"><ul><li>모임 닉네임과 스티커 투표는 모임 링크를 가진 사람에게 보입니다.</li><li>가져온 개인 캘린더 일정은 본인의 현재 페이지에서만 표시되며, 서비스 DB에 저장하거나 다른 참여자에게 공유하지 않습니다.</li><li>캘린더 연결은 선택 사항입니다. 연결하지 않아도 직접 스티커를 붙여 투표할 수 있습니다.</li></ul></div>
 
@@ -77,8 +77,21 @@
 <p>이용자는 본인의 정보에 대해 열람·정정·삭제·처리 정지 또는 동의 철회를 요청할 수 있습니다. 서비스에서 닉네임 변경과 스티커 수정·삭제를 직접 할 수 있으며, 그 밖의 요청은 아래 이메일로 보내 주세요. 본인 확인에는 대상 모임 주소나 계정 연결 확인 등 필요한 최소한의 정보를 요청할 수 있습니다. 비밀번호는 보내지 마세요.</p>
 <p>Google 권한은 <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener noreferrer">Google 계정의 서드 파티 연결 관리</a>에서 언제든 철회할 수 있습니다. 서비스 화면의 ‘가져온 일정 지우기’는 화면 데이터를 지우는 동작이며, Google 계정의 권한 철회와는 별개입니다. 브라우저에 이미 표시된 정보도 지우려면 일정 지우기 또는 새로고침을 함께 해 주세요.</p>
 
-<h2>8. 정보 보호 조치</h2>
-<p>HTTPS 통신, 서명된 HttpOnly·Secure 로그인 쿠키, 서버 측 관리자·모임 삭제 권한 확인 등을 사용합니다. 개인 캘린더 데이터와 Google 액세스 토큰은 서비스 DB에 저장하지 않습니다. 모임 정보는 링크 공유를 전제로 제공되므로, 공유받은 사람의 재전달까지 서비스가 통제하지는 않습니다.</p>
+<h2 id="google-data-protection">8. 정보 보호 조치 및 Google 사용자 데이터 보호</h2>
+<p>언제봐?는 Google Calendar에서 읽은 일정과 액세스 토큰을 민감한 정보로 취급하며, 다음과 같은 방식으로 무단 접근·노출 위험을 줄입니다.</p>
+<ul>
+<li><strong>전송 구간 암호화:</strong> 서비스는 HTTPS로 제공하며, 브라우저와 Google 인증·Calendar API 사이의 통신도 HTTPS/TLS로 암호화합니다. 일정 조회는 브라우저에서 Google API로 직접 이루어지며, Google 액세스 토큰은 Calendar API 요청의 Authorization 헤더로 전달하고 공유 주소나 분석 이벤트에 넣지 않습니다.</li>
+<li><strong>저장 최소화:</strong> 가져온 Google 일정과 액세스 토큰은 현재 페이지의 브라우저 메모리에서만 처리합니다. 서비스 서버·Firebase DB·서버의 캘린더 백업·브라우저 localStorage 또는 sessionStorage에 저장하지 않습니다. 따라서 서비스에는 이 Google 일정·토큰을 장기 보관하는 저장소가 없습니다. Google 계정에 있는 원본 일정의 보관·보호는 Google의 정책에 따릅니다.</li>
+<li><strong>최소 읽기 권한:</strong> 캘린더 목록과 일정의 읽기 전용 권한만 요청합니다. 이용자가 선택한 캘린더에서 해당 모임 기간의 일정을 조회하며, Google 일정의 생성·수정·삭제 권한은 요청하지 않습니다.</li>
+<li><strong>개인 화면과 공유 데이터 분리:</strong> 가져온 일정은 요청한 계정·모임의 본인 화면에만 표시하고, 다른 계정이나 모임으로 전환한 뒤에는 이전 일정을 표시하지 않습니다. 일정 제목·시간과 Google 액세스 토큰을 모임의 공유 투표 데이터, 관리자 통계, 공유 메시지 또는 Google Analytics에 포함하지 않습니다. 화면에 일정 제목을 표시할 때는 HTML 특수문자를 이스케이프하여 텍스트로 표시합니다.</li>
+<li><strong>사용 종료와 연결 철회:</strong> 일정 가져오기 창을 닫을 때 토큰 참조를 제거하며, 일정 조회가 완료된 경우에도 앱이 보유한 토큰 참조를 제거합니다. ‘가져온 일정 지우기’로 표시 데이터의 참조를 제거할 수 있고, 새로고침·페이지 종료 뒤에는 가져온 일정을 복원하지 않습니다. Google 계정의 연결 관리에서 권한을 철회할 수도 있습니다. 이 동작은 Google에 있는 원본 일정을 삭제하는 동작이 아닙니다.</li>
+<li><strong>그 밖의 서비스 정보 보호:</strong> 로그인에는 서명된 HttpOnly·Secure 세션 쿠키를 사용하고, 관리자 화면과 모임 삭제 요청은 서버에서 권한을 확인합니다. 모임 닉네임·스티커 등 공유용 데이터는 모임 링크를 가진 사람에게 제공되므로, 가져온 개인 캘린더 데이터와 공개 범위가 다릅니다.</li>
+</ul>
+<div class="summary" lang="en">
+<p><strong>Google user data protection summary</strong></p>
+<p>Pickatime uses HTTPS/TLS for connections to the application and Google APIs. Calendar API access tokens are sent in the Authorization header, not in shared URLs or analytics events. Imported Google Calendar data and access tokens are processed only in browser memory and are not persisted to our servers, Firebase database, calendar backups, localStorage, or sessionStorage.</p>
+<p>We request read-only access and retrieve events only from the calendars selected by the user within the meeting period. Imported events are displayed only to the requesting user, with event titles escaped as text. They are excluded from shared voting records, administrative statistics, sharing messages, and Google Analytics. The app clears its token references after a successful event fetch or when the import dialog closes. Users can clear imported events, reload or close the page, and revoke authorization through their Google Account. These actions do not delete the original events stored by Google.</p>
+</div>
 
 <h2>9. 운영자 및 문의</h2>
 <p>개인정보 처리 담당: 언제봐? 운영자<br>문의·열람·정정·삭제 요청: <a href="mailto:hpnpix.locked@gmail.com">hpnpix.locked@gmail.com</a></p>
