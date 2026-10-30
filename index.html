@@ -174,6 +174,9 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .day{display:flex;flex-direction:column;gap:3px;padding:3px 2px;min-width:0}
 .day .n{text-align:center;font-size:13px;font-weight:700;line-height:1.2;position:relative}
 .day.past .n{color:#C3CBDA!important;font-weight:500}
+.calendar-ended .half:disabled{background:var(--vote-bg,#EFF1FA)}
+.calendar-ended .half:disabled .lb{opacity:.65}
+.calendar-ended-note{margin:6px 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--sub);font-size:13px;line-height:1.6}
 .day.today .n{background:var(--ink);color:#fff!important;border-radius:99px;margin:0 auto;padding:0 7px}
 .half{position:relative;border:0;padding:0;height:48px;border-radius:11px;background:var(--vote-bg,#EFF1FA);display:grid;place-items:center;overflow:visible}
 .half:disabled{background:transparent;cursor:default}
@@ -765,6 +768,16 @@ function meetingSticker(level=2){
   return `<span class="meeting-mark eye-sticker level-${level}" aria-hidden="true"></span>`;
 }
 
+function validateNewMeetingPeriod(range,mode,today=todayStr(),maxDate=null){
+  if(mode==='dates'&&(!range?.start||!range?.end))return '시작일과 종료일을 직접 선택해 주세요.';
+  if(!range||range.start?.length!==(mode==='dates'?10:7)||range.end?.length!==(mode==='dates'?10:7))return '투표할 월 또는 날짜를 올바르게 선택해 주세요.';
+  const error=validateMeetingPeriod(range);if(error)return error;
+  const bounds=window.VoteTransfer.bounds(range);
+  if(bounds.end<today)return '이미 지난 기간으로는 새 투표를 만들 수 없어요. 후보 날짜를 다시 선택해 주세요.';
+  if(mode==='dates'&&bounds.start<today)return '시작일은 오늘 또는 이후로 선택해 주세요.';
+  if(maxDate&&bounds.end>maxDate)return '선택할 수 있는 기간 안에서 날짜를 골라 주세요.';
+  return '';
+}
 function viewCreate(){
   closeMeetingPeriod();
   setPageLoading(false);
@@ -783,8 +796,8 @@ function viewCreate(){
   let start=validDraft?draft.start.slice(0,7):months[0],end=validDraft?draft.end.slice(0,7):months[0],picking=false;
   let periodMode=validDraft&&draft.start.length===10?'dates':'months';
   const minDate=todayStr(),maxDate=window.VoteTransfer.bounds({start:months[0],end:months.at(-1)}).end;
-  const savedStart=validDraft&&draft.start.length===10?draft.start:minDate;
-  const savedEnd=validDraft&&draft.end.length===10?draft.end:minDate;
+  const savedStart=validDraft&&draft.start.length===10?draft.start:'';
+  const savedEnd=validDraft&&draft.end.length===10?draft.end:'';
   $('#app').innerHTML=`
     <div class="hero">
       <span class="brand brand--hero" id="homeLogo" aria-label="언제봐?"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></span>
@@ -820,6 +833,7 @@ function viewCreate(){
           <div><label class="f" for="endDate">종료일</label><input class="inp" type="date" id="endDate" min="${savedStart}" max="${maxDate}" value="${savedEnd}"></div>
         </div>
         <p class="count-error" id="dateError" role="alert" hidden></p>
+        <p class="hint" id="selectedDateHint" aria-live="polite" hidden></p>
       </div>
     </section>
     <button class="btn blue block" id="create">모임 만들고 링크 공유</button>
@@ -862,23 +876,25 @@ function viewCreate(){
   $('#chooseDates').onclick=()=>{periodMode='dates';paintPeriodMode()};
   const selectedPeriod=()=>periodMode==='dates'?{start:$('#startDate').value,end:$('#endDate').value}:{start,end};
   const validateDates=()=>{
-    const range=selectedPeriod();let message='';
-    if(periodMode==='dates'){
-      if(!range.start||!range.end)message='시작일과 종료일을 선택해 주세요.';
-      else if(range.end<range.start)message='종료일은 시작일과 같거나 이후여야 해요.';
-      else if(!window.VoteTransfer.bounds(range)||range.start<minDate||range.end>maxDate)message='선택할 수 있는 기간 안에서 날짜를 골라 주세요.';
-      else if(monthsBetween(range.start,range.end).length>6)message='최대 6개월까지 고를 수 있어요.';
-    }
+    const range=selectedPeriod(),today=todayStr(),message=validateNewMeetingPeriod(range,periodMode,today,maxDate);
+    $('#startDate').min=today;$('#endDate').min=[today,$('#startDate').value||today].sort().at(-1);
     $('#dateError').textContent=message;$('#dateError').hidden=!message;
+    const hint=$('#selectedDateHint'),bounds=window.VoteTransfer.bounds(range);
+    hint.hidden=periodMode!=='dates'||Boolean(message)||!bounds;
+    if(!hint.hidden){const days=Math.round((Date.parse(bounds.end+'T00:00:00Z')-Date.parse(bounds.start+'T00:00:00Z'))/86400000)+1;hint.textContent='후보 날짜: '+periodLabel(range.start,range.end)+(days===1?' · 하루':' · '+days+'일')}
     return !message;
   };
   $('#startDate').onchange=()=>{
-    $('#endDate').min=$('#startDate').value||minDate;
-    if($('#endDate').value&&$('#endDate').value<$('#startDate').value)$('#endDate').value=$('#startDate').value;
+    // Do not silently turn an earlier end date into a one-day selection.
+    if($('#endDate').value&&$('#endDate').value<$('#startDate').value)$('#endDate').value='';
     validateDates();
   };
-  $('#endDate').onchange=validateDates;paintPeriodMode();
+  $('#endDate').onchange=validateDates;paintPeriodMode();validateDates();
   const t=$('#title');
+  const lockCreateFields=value=>{
+    [t,countInput,$('#chooseMonths'),$('#chooseDates'),$('#startDate'),$('#endDate')].forEach(input=>input.disabled=value);
+    $('#months').querySelectorAll('.mo').forEach(button=>button.disabled=value);
+  };
   t.oninput=()=>{
     $('#existingMeeting').close();
     $('#createError').hidden=true;
@@ -886,7 +902,7 @@ function viewCreate(){
   };
   const showExistingMeeting=id=>{
     const url=shareUrl(id),panel=$('#existingMeeting');
-    $('#create').disabled=false;
+    lockCreateFields(false);$('#create').disabled=false;
     $('#create').textContent='모임 만들고 링크 공유';
     $('#createError').hidden=true;
     panel.innerHTML=`<div class="dialog-heading"><h2 id="existingMeetingTitle">이미 만든 모임이 있어요</h2>
@@ -910,15 +926,15 @@ function viewCreate(){
     if(!validateCountLimit()){countInput.focus();return}
     if(!Number.isSafeInteger(expectedCount)||expectedCount<2){$('#expectedCount').focus();toast('참여 예정 인원을 2명 이상의 정수로 입력해 주세요.');return}
     if(!validateDates()){(document.querySelector('#dateChoice input:invalid')||$('#startDate')).focus();return}
-    const selected=selectedPeriod();
+    const selected=selectedPeriod(),selectedMode=periodMode;
     const btn=$('#create');if(btn.disabled)return;
     $('#createError').hidden=true;
     $('#existingMeeting').close();
     SS.set('wmd:createDraft',JSON.stringify({title,...selected,expectedCount}));
-    btn.disabled=true;btn.textContent='로그인 확인 중…';
+    lockCreateFields(true);btn.disabled=true;btn.textContent='로그인 확인 중…';
     await sessionReady;
     if($('#create')!==btn||sid)return;
-    if(!kakaoUser){btn.disabled=false;btn.textContent='모임 만들고 링크 공유';loginKakao('create');return}
+    if(!kakaoUser){lockCreateFields(false);btn.disabled=false;btn.textContent='모임 만들고 링크 공유';loginKakao('create');return}
     btn.textContent='만드는 중…';
     let id;
     try{
@@ -930,15 +946,18 @@ function viewCreate(){
         if(await isMeetingDeleted(id))throw Object.assign(new Error('Deleted meeting'),{code:'DELETED_MEETING'});
         showExistingMeeting(id);return
       }
+      const periodError=validateNewMeetingPeriod(selected,selectedMode,todayStr(),maxDate);
+      if(periodError)throw Object.assign(new Error(periodError),{code:'INVALID_PERIOD'});
       await store.set(`sessions/${id}/meta`,{title,...selected,expectedCount,createdAt:Date.now()});
-      usage('meeting_create',{period_mode:periodMode,month_count:monthsBetween(selected.start,selected.end).length,expected_count:expectedCount});
+      usage('meeting_create',{period_mode:selectedMode,month_count:monthsBetween(selected.start,selected.end).length,expected_count:expectedCount});
       void registerAdminMeeting(id,{title});
       SS.del('wmd:createDraft');
       SS.set('wmd:new',id);
       try{history.pushState(null,'',`?s=${id}`)}catch(e){}
       sid=id;shown=null;window.scrollTo(0,0);bootSession();
     }catch(e){
-      btn.disabled=false;btn.textContent='다시 모임 만들기';
+      if($('#create')!==btn||sid)return;
+      lockCreateFields(false);btn.disabled=false;btn.textContent='다시 모임 만들기';
       const code=String(e?.code||'UNKNOWN');
       const denied=/permission[-_ ]denied/i.test(code+' '+String(e?.message||''));
       let duplicate=code==='DUPLICATE_MEETING';
@@ -946,7 +965,7 @@ function viewCreate(){
         try{duplicate=Boolean(await store.get(`sessions/${id}/meta`))}catch(readError){}
       }
       if(duplicate&&id){showExistingMeeting(id);return}
-      const message=code==='DELETED_MEETING'
+      const message=code==='INVALID_PERIOD'?e.message:code==='DELETED_MEETING'
         ?'삭제한 투표와 같은 이름이에요. 다른 모임 이름을 입력해 주세요.'
         :denied
         ?'모임 저장 권한이 없습니다. Firebase Realtime Database 규칙을 확인해 주세요. (PERMISSION_DENIED)'
@@ -1592,7 +1611,7 @@ function applyCalendarHeat(button,count,total){
 
 function renderCalendar(){
   detachVoteDrag?.();detachVoteDrag=null;
-  const today=todayStr(),mv=myVotes(),idx=calDays(),heat=calendarVoteHeat();
+  const today=todayStr(),mv=myVotes(),idx=calDays(),heat=calendarVoteHeat(),bounds=window.VoteTransfer.bounds(S.meta),ended=Boolean(bounds&&bounds.end<today);
   const html=monthsBetween(S.meta.start,S.meta.end).map(ym=>{
     const [y,m]=ym.split('-').map(Number);
     const first=new Date(y,m-1,1).getDay(),days=new Date(y,m,0).getDate();
@@ -1603,16 +1622,16 @@ function renderCalendar(){
       const holiday=holidayName(ds);
       const dayEv=past?[]:(idx[ds]||[]);
       const halves=SLOTS.map(([sl,name])=>{
-        const l=past?0:lvOf(mv,ds,sl),r=(hash(ds+sl)%9)-4,busy=dayEv.some(e=>e[sl]),count=heat.counts[ds+'|'+sl]||0;
+        const l=past&&!ended?0:lvOf(mv,ds,sl),r=(hash(ds+sl)%9)-4,busy=dayEv.some(e=>e[sl]),count=heat.counts[ds+'|'+sl]||0;
         const voteLabel=calendarVoteLabel(ds,sl,l,count,heat.total,busy);
         return `<button class="half${busy?' busy':''}" data-d="${ds}" data-s="${sl}" aria-keyshortcuts="Shift+Enter Shift+Space" data-l="${l}" data-votes="${count}" data-vote-total="${heat.total}" style="--vote-bg:${calendarHeatColor(count,heat.total)}" ${past?'disabled':''}
           title="${esc(voteLabel)}" aria-label="${esc(voteLabel)}"><i class="stk" style="--r:${r}deg" aria-hidden="true">${meetingSticker()}</i><span class="lb">${name}</span></button>`}).join('');
       cells.push({past,ds,dow,m,d,h:`<div title="${esc(holiday)}" class="day${holiday?' holiday':''}${dow===0?' sun':''}${dow===6?' sat':''}${ds===today?' today':''}${past?' past':''}"><span class="n">${d}</span>${calendarDayHtml(ds,dayEv)}${halves}</div>`});
     }
     let rows='';
-    for(let i=0;i<cells.length;i+=7){const wk=cells.slice(i,i+7);if(wk.every(c=>c.past))continue;rows+=wk.map(c=>c.h).join('')}
+    for(let i=0;i<cells.length;i+=7){const wk=cells.slice(i,i+7);if(!wk.some(c=>c.ds)||(!ended&&wk.every(c=>c.past)))continue;rows+=wk.map(c=>c.h).join('')}
     if(!rows)return '';
-    return `<section class="month"><h2>${y===new Date().getFullYear()?'':y+'년 '}${m}월</h2>
+    return `<section class="month${ended?' calendar-ended':''}"><h2>${y===new Date().getFullYear()?'':y+'년 '}${m}월</h2>
       <div class="wk">${WD.map(w=>`<div>${w}</div>`).join('')}</div><div class="grid" style="row-gap:6px">${rows}</div></section>`;
   }).join('');
   $('#body').innerHTML=`
@@ -1625,6 +1644,7 @@ function renderCalendar(){
     </div>
     <p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p>
     <button type="button" class="btn ghost" id="retryVoteSave" hidden>다시 저장하기</button>
+    ${ended?'<p class="calendar-ended-note" role="status">후보 날짜가 모두 지난 투표예요. 상단 날짜 옆 연필로 기간을 바꿀 수 있어요.</p>':''}
     ${html}
     <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
@@ -1949,6 +1969,7 @@ window.addEventListener('popstate',async()=>{
 </script>
 </body>
 </html>
+
 
 
 
