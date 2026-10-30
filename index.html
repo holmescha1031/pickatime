@@ -107,6 +107,13 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .edit-meeting-title svg{width:18px;height:18px}.edit-meeting-title:hover{background:#E9EBFA;color:var(--s1)}
 .stitle{font-size:30px;line-height:1.2;margin:14px 0 4px;word-break:keep-all}
 .speriod{color:var(--sub);font-size:14px;margin:0 0 14px}
+.meeting-period-row{display:flex;align-items:center;gap:6px;margin:0 0 14px}
+.meeting-period-row .speriod{margin:0;min-width:0;overflow-wrap:anywhere}
+.edit-meeting-period{width:30px;height:30px}
+.period-editor .dialog-heading{margin-bottom:14px}
+.period-editor [hidden]{display:none!important}
+.period-editor input{min-width:0}
+.period-preserve-note{margin-top:16px}
 .mebar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:6px 6px 6px 12px;margin-bottom:12px;font-size:14px}
 .mebar[hidden]{display:none}
 .mebar b{font-weight:700}
@@ -397,6 +404,7 @@ function makeStore(){
       demo:false,
       get:p=>db.ref(p).once('value').then(s=>s.val()),
       set:(p,v)=>db.ref(p).set(v),
+      update:(p,v)=>db.ref(p).update(v),
       putVoteIfEmpty:(p,v)=>db.ref(p).transaction(current=>current===null||current===0?v:undefined,undefined,false),
       on:(p,cb)=>{const r=db.ref(p),h=s=>cb(s.val());r.on('value',h,()=>toast('실시간 데이터를 읽지 못했어요. DB 규칙과 연결을 확인해 주세요.'));return()=>r.off('value',h)}
     };
@@ -424,6 +432,10 @@ function makeStore(){
   };
 }
 const store = makeStore();
+if(!store.update)store.update=async(p,values)=>{
+  const current=await store.get(p);if(!current)throw Error('MISSING_MEETING');
+  await store.set(p,{...current,...values});
+};
 if(!store.putVoteIfEmpty)store.putVoteIfEmpty=async(p,v)=>{
   const current=await store.get(p);
   if(current!==null&&current!==undefined&&current!==0)return {committed:false};
@@ -685,6 +697,7 @@ async function isMeetingDeleted(id){
   return data.deleted===true;
 }
 function showDeletedMeeting(){
+  closeMeetingPeriod();
   setPageLoading(false);
   closeCalSheet();
   clearAdminLogo();
@@ -746,6 +759,7 @@ function meetingSticker(level=2){
 }
 
 function viewCreate(){
+  closeMeetingPeriod();
   setPageLoading(false);
   closeCalSheet();
   clearAdminLogo();
@@ -957,6 +971,7 @@ async function findMyMeetingByTitle(title,except=null){
 }
 function openMeetingRename(){
   if(!sid||!S.meta||meetingRenameDialog)return;
+  closeMeetingPeriod();
   const id=sid,request=sessionLoad,el=document.createElement('dialog');
   el.className='existing-meeting';el.setAttribute('aria-labelledby','renameMeetingHeading');
   el.innerHTML=`<div class="dialog-heading"><h2 id="renameMeetingHeading">모임 이름 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">✕</button></div><input class="inp" id="renameMeetingInput" aria-label="모임 이름" maxlength="30" value="${esc(S.meta.title)}" autocomplete="off"><p class="hint">변경한 이름은 참여한 모두에게 보여요.</p><p class="count-error" data-error role="alert" hidden></p><button type="button" class="btn blue block" data-save style="margin-top:20px">수정하기</button>`;
@@ -989,12 +1004,100 @@ function openMeetingRename(){
   input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();button.click()}});
 }
 
+/* Candidate dates are metadata only: votes outside the range remain stored. */
+let meetingPeriodDialog=null;
+function closeMeetingPeriod(){meetingPeriodDialog?.close();meetingPeriodDialog?.remove();meetingPeriodDialog=null}
+function meetingPeriodMarkup(){
+  return `<div class="meeting-period-row"><p class="speriod" id="meetingPeriodLabel">${esc(periodLabel(S.meta.start,S.meta.end))}</p><button type="button" class="edit-meeting-title edit-meeting-period" aria-label="투표 후보 날짜 수정" title="투표 후보 날짜 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg></button></div>`;
+}
+function validateMeetingPeriod(range){
+  if(!range?.start||!range?.end)return '시작과 종료를 모두 선택해 주세요.';
+  const shape=/^[0-9]{4}-(0[1-9]|1[0-2])(?:-[0-9]{2})?$/;
+  if(typeof range.start!=='string'||typeof range.end!=='string'||!shape.test(range.start)||!shape.test(range.end)||range.start.length!==range.end.length)return '월 또는 날짜를 올바르게 선택해 주세요.';
+  if(range.end<range.start)return '종료일은 시작일과 같거나 이후여야 해요.';
+  const count=(Number(range.end.slice(0,4))-Number(range.start.slice(0,4)))*12+Number(range.end.slice(5,7))-Number(range.start.slice(5,7))+1;
+  if(count>6)return '최대 6개월까지 고를 수 있어요.';
+  if(!window.VoteTransfer.bounds(range))return '존재하는 날짜를 선택해 주세요.';
+  return '';
+}
+function receiveMeetingMeta(meta){
+  const changed=S.meta&&(S.meta.start!==meta.start||S.meta.end!==meta.end);
+  if(changed){
+    const hadCalendar=Boolean(personalCalendar());
+    closeCalSheet();closeVoteImport();clearCal();
+    if(hadCalendar)toast('후보 날짜가 바뀌었어요. 캘린더를 다시 가져와 주세요.');
+  }
+  S.meta=meta;refresh(Boolean(changed));
+}
+function openMeetingPeriod(){
+  if(!sid||!S.meta||meetingPeriodDialog)return;
+  closeMeetingRename();closeCalSheet();closeVoteImport();
+  const id=sid,request=sessionLoad,original={start:S.meta.start,end:S.meta.end},bounds=window.VoteTransfer.bounds(original);
+  if(!bounds){toast('현재 후보 날짜를 확인하지 못했어요. 다시 불러와 주세요.');return}
+  let mode=original.start.length===7?'months':'dates',working=false;
+  const el=document.createElement('dialog');el.className='existing-meeting period-editor';el.setAttribute('aria-labelledby','meetingPeriodHeading');
+  el.innerHTML=`<div class="dialog-heading"><h2 id="meetingPeriodHeading">투표 후보 날짜 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">✕</button></div>
+    <div class="period-switch" role="group" aria-label="투표 기간 선택 방식">
+      <button type="button" class="period-option" data-mode="months" aria-controls="editMonthFields"><span class="period-option-title">월로 선택</span><span class="period-option-detail">월 단위로 고르기</span></button>
+      <button type="button" class="period-option" data-mode="dates" aria-controls="editDateFields"><span class="period-option-title">날짜로 선택</span><span class="period-option-detail">시작일 ~ 종료일</span></button>
+    </div>
+    <div class="date-range-fields" id="editMonthFields"><div><label class="f" for="editStartMonth">시작 월</label><input class="inp" id="editStartMonth" type="month" value="${esc(original.start.slice(0,7))}" required></div><div><label class="f" for="editEndMonth">종료 월</label><input class="inp" id="editEndMonth" type="month" value="${esc(original.end.slice(0,7))}" required></div></div>
+    <div class="date-range-fields" id="editDateFields"><div><label class="f" for="editStartDate">시작일</label><input class="inp" id="editStartDate" type="date" value="${bounds.start}" required></div><div><label class="f" for="editEndDate">종료일</label><input class="inp" id="editEndDate" type="date" value="${bounds.end}" required></div></div>
+    <p class="hint period-preserve-note">기존 스티커는 유지돼요. 제외한 날짜는 순위에서 빠져요.</p>
+    <p class="count-error" data-error role="alert" hidden></p>
+    <button type="button" class="btn blue block" data-save style="margin-top:20px">수정하기</button>`;
+  document.body.appendChild(el);meetingPeriodDialog=el;
+  const q=selector=>el.querySelector(selector),button=q('[data-save]'),error=q('[data-error]');
+  const active=()=>sid===id&&request===sessionLoad&&el.isConnected&&meetingPeriodDialog===el;
+  const selected=()=>mode==='months'?{start:q('#editStartMonth').value,end:q('#editEndMonth').value}:{start:q('#editStartDate').value,end:q('#editEndDate').value};
+  const paint=()=>{
+    q('#editMonthFields').hidden=mode!=='months';q('#editDateFields').hidden=mode!=='dates';
+    el.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+    q('#editEndMonth').min=q('#editStartMonth').value;q('#editEndDate').min=q('#editStartDate').value;
+  };
+  const showError=message=>{error.textContent=message;error.hidden=!message};
+  el.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{
+    if(working||b.dataset.mode===mode)return;
+    const current=selected();
+    if(!validateMeetingPeriod(current)){
+      if(b.dataset.mode==='months'){q('#editStartMonth').value=current.start.slice(0,7);q('#editEndMonth').value=current.end.slice(0,7)}
+      else{const range=window.VoteTransfer.bounds(current);q('#editStartDate').value=range.start;q('#editEndDate').value=range.end}
+    }
+    mode=b.dataset.mode;showError('');paint();
+  });
+  el.querySelectorAll('input').forEach(input=>input.oninput=()=>{showError(validateMeetingPeriod(selected()));paint()});
+  q('[data-close]').onclick=closeMeetingPeriod;
+  el.addEventListener('close',()=>{el.remove();if(meetingPeriodDialog===el)meetingPeriodDialog=null});
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.target.matches('input')){e.preventDefault();button.click()}});
+  const lock=value=>{working=value;el.querySelectorAll('input,[data-mode],[data-save]').forEach(b=>b.disabled=value);button.textContent=value?'수정 중…':'수정하기'};
+  button.onclick=async()=>{
+    if(working||!active())return;
+    const range=selected(),message=validateMeetingPeriod(range);if(message){showError(message);return}
+    if(range.start===original.start&&range.end===original.end){closeMeetingPeriod();return}
+    showError('');lock(true);
+    try{
+      const state=await voteSaves.settle(voteSaveKey(id,S.me));if(!active())return;
+      if(state.failed)throw Error('UNSAVED_VOTES');
+      if(await isMeetingDeleted(id))throw Error('DELETED_MEETING');
+      const latest=await store.get(`sessions/${id}/meta`);if(!active())return;
+      if(!latest)throw Error('MISSING_MEETING');
+      if(latest.start!==original.start||latest.end!==original.end)throw Error('CHANGED_PERIOD');
+      // A single update avoids exposing a half-written start/end range to listeners.
+      await store.update(`sessions/${id}/meta`,range);if(!active())return;
+      closeMeetingPeriod();receiveMeetingMeta({...S.meta,...range});toast('투표 후보 날짜를 수정했어요.');
+    }catch(e){if(active())showError(e.message==='CHANGED_PERIOD'?'다른 참여자가 후보 날짜를 수정했어요. 닫고 다시 열어 주세요.':e.message==='DELETED_MEETING'?'삭제된 투표는 수정할 수 없어요.':e.message==='UNSAVED_VOTES'?'저장하지 못한 스티커가 있어요. 다시 저장한 뒤 수정해 주세요.':'후보 날짜를 수정하지 못했어요. 연결과 저장 권한을 확인해 주세요.')}
+    finally{if(el.isConnected)lock(false)}
+  };
+  paint();el.showModal();
+}
+
 /* ---------- 2. 세션 ---------- */
 const S={meta:null,me:null,members:null,votes:{},tab:'mine',showAll:false};
 const meKey=()=>`wmd:me:${sid}`;
 
 let sessionLoad=0;
 async function bootSession(){
+  closeMeetingPeriod();
   closeCalSheet();
   clearAdminLogo();
   closeMeetingRename();
@@ -1041,7 +1144,7 @@ async function bootSession(){
   document.title=`${S.meta.title} · 언제봐?`;
   route();
   watchMeetingStatus(id,request);
-  S.unsub=[store.on(`sessions/${id}/meta`,v=>{if(request!==sessionLoad)return;if(v){S.meta=v;refresh()}}),store.on(`sessions/${id}/members`,v=>{
+  S.unsub=[store.on(`sessions/${id}/meta`,v=>{if(request!==sessionLoad)return;if(v)receiveMeetingMeta(v)}),store.on(`sessions/${id}/members`,v=>{
     if(request!==sessionLoad)return;
     S.members=v||{};
     if(S.me&&!S.members[S.me]){S.me=null;LS.del(meKey())}
@@ -1055,18 +1158,19 @@ function route(){
   if(want!==shown){shown=want;want==='main'?viewMain():viewEntry()}
   else refresh();
 }
-function refresh(){
+function refresh(periodChanged=false){
   if(shown==='entry'){
     // Realtime snapshots must not replace an input being edited (including Korean IME).
-    const title=$('#entryTitle'),period=$('#entryPeriod');
+    const title=$('#entryTitle'),period=$('#meetingPeriodLabel');
     if(title)title.textContent=S.meta.title;
-    if(period)period.textContent=periodLabel(S.meta.start,S.meta.end)+' 중에 골라요';
+    if(period)period.textContent=periodLabel(S.meta.start,S.meta.end);
   }
-  if(shown==='main'){const title=$('#meetingTitle');if(title)title.textContent=S.meta.title;document.title=S.meta.title+' · 언제봐?';renderMe();S.tab==='mine'?syncCalendar():renderRank();renderVoteSaveState()}
+  if(shown==='main'){const title=$('#meetingTitle'),period=$('#meetingPeriodLabel');if(title)title.textContent=S.meta.title;if(period)period.textContent=periodLabel(S.meta.start,S.meta.end);document.title=S.meta.title+' · 언제봐?';renderMe();S.tab==='mine'?(periodChanged?renderCalendar():syncCalendar()):renderRank();renderVoteSaveState()}
 }
 
 /* ----- 닉네임 선택 ----- */
 function viewEntry(){
+  closeMeetingPeriod();
   setPageLoading(false);
   closeCalSheet();
   clearAdminLogo();
@@ -1077,7 +1181,7 @@ function viewEntry(){
   $('#app').innerHTML=`
     <a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a>
     ${meetingTitleMarkup('entryTitle')}
-    <p class="speriod" id="entryPeriod">${periodLabel(S.meta.start,S.meta.end)} 중에 골라요</p>
+    ${meetingPeriodMarkup()}
     <section class="panel">
       ${!kakaoUser?`<p>카카오로 로그인하고 되는 시간에 스티커를 붙여 주세요.</p>
       <button class="btn block" id="kakaoLogin" style="background:#FEE500;color:#191919">카카오 로그인</button>`:
@@ -1088,6 +1192,7 @@ function viewEntry(){
     ${kakaoUser?'<div class="account-switch"><button class="btn ghost" id="otherAccount">다른 카카오 계정으로 로그인</button></div>':''}
     <div class="vote-delete-footer" id="deleteControl"></div>`;
   bindMeetingTitleEdit();
+  $('.edit-meeting-period').onclick=openMeetingPeriod;
   renderDeleteControl();
   bindAdminLogo();
   if(!kakaoUser){$('#kakaoLogin').onclick=loginKakao;return}
@@ -1121,7 +1226,7 @@ function viewMain(){
       <div class="top-actions"><button class="btn ghost icon-btn" id="myMeetings" aria-label="내가 참여한 모임투표 목록" title="내 모임투표">${listIcon()}</button></div>
     </div>
     ${meetingTitleMarkup('meetingTitle')}
-    <p class="speriod">${periodLabel(S.meta.start,S.meta.end)}</p>
+    ${meetingPeriodMarkup()}
     ${store.demo?`<div class="demo">체험 모드예요. 지금은 이 브라우저에만 저장돼서 친구에게 보이지 않아요. 새 탭에서 같은 링크를 열어 다른 닉네임으로 테스트해 볼 수 있어요.</div>`:''}
     <section class="attendance" id="attendance" aria-label="모임 참여 현황"></section>
     <div class="mebar" id="mebar"></div>
@@ -1133,6 +1238,7 @@ function viewMain(){
     <div class="vote-delete-footer" id="deleteControl"></div>`;
   renderDeleteControl();
   bindMeetingTitleEdit();
+  $('.edit-meeting-period').onclick=openMeetingPeriod;
   $('#myMeetings').onclick=openMyMeetings;
   $('.tabs').onclick=e=>{const b=e.target.closest('.tab');if(b){
     S.tab=b.dataset.t;const url=new URL(location.href);
@@ -1796,6 +1902,7 @@ function renderRank(){
   if(resumeMeetings&&kakaoUser){resumeMeetings=false;await openMyMeetings()}
 })();
 window.addEventListener('popstate',async()=>{
+  closeMeetingPeriod();
   sid=new URLSearchParams(location.search).get('s');
   const target=sid,request=++sessionLoad;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];shown=null;
@@ -1809,5 +1916,6 @@ window.addEventListener('popstate',async()=>{
 </script>
 </body>
 </html>
+
 
 

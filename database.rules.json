@@ -11,10 +11,12 @@
             ".write": "data.exists() && root.child('sessions').child($sid).child('meta').child('originalTitle').exists()"
           },
           "start": {
-            ".validate": "newData.isString()"
+            ".validate": "newData.isString()",
+            ".write": "data.exists() && newData.isString() && root.child('sessions').child($sid).child('meta').exists()"
           },
           "end": {
-            ".validate": "newData.isString()"
+            ".validate": "newData.isString()",
+            ".write": "data.exists() && newData.isString() && root.child('sessions').child($sid).child('meta').exists()"
           },
           "createdAt": {
             ".validate": "newData.isNumber()"
@@ -77,4 +79,3 @@
     }
   }
 }
-
