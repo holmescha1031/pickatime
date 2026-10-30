@@ -776,7 +776,7 @@ function validateNewMeetingPeriod(range,mode,today=todayStr(),maxDate=null){
   if(bounds.end<today)return '이미 지난 기간으로는 새 투표를 만들 수 없어요. 후보 날짜를 다시 선택해 주세요.';
   if(mode==='dates'&&bounds.start<today)return '시작일은 오늘 또는 이후로 선택해 주세요.';
   if(maxDate&&bounds.end>maxDate)return '선택할 수 있는 기간 안에서 날짜를 골라 주세요.';
-  return '';
+  return validateMeetingPeriod(range,today);
 }
 function viewCreate(){
   closeMeetingPeriod();
@@ -881,7 +881,7 @@ function viewCreate(){
     $('#dateError').textContent=message;$('#dateError').hidden=!message;
     const hint=$('#selectedDateHint'),bounds=window.VoteTransfer.bounds(range);
     hint.hidden=periodMode!=='dates'||Boolean(message)||!bounds;
-    if(!hint.hidden){const days=Math.round((Date.parse(bounds.end+'T00:00:00Z')-Date.parse(bounds.start+'T00:00:00Z'))/86400000)+1;hint.textContent='후보 날짜: '+periodLabel(range.start,range.end)+(days===1?' · 하루':' · '+days+'일')}
+    if(!hint.hidden){const days=Math.round((Date.parse(bounds.end+'T00:00:00Z')-Date.parse(bounds.start+'T00:00:00Z'))/86400000)+1;hint.textContent='후보 날짜: '+periodLabel(range.start,range.end)+(' · '+days+'일')}
     return !message;
   };
   $('#startDate').onchange=()=>{
@@ -1036,14 +1036,17 @@ function closeMeetingPeriod(){meetingPeriodDialog?.close();meetingPeriodDialog?.
 function meetingPeriodMarkup(){
   return `<div class="meeting-period-row"><p class="speriod" id="meetingPeriodLabel">${esc(periodLabel(S.meta.start,S.meta.end))}</p><button type="button" class="edit-meeting-title edit-meeting-period" aria-label="투표 후보 날짜 수정" title="투표 후보 날짜 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg></button></div>`;
 }
-function validateMeetingPeriod(range){
+function validateMeetingPeriod(range,minimumDate=null){
   if(!range?.start||!range?.end)return '시작과 종료를 모두 선택해 주세요.';
   const shape=/^[0-9]{4}-(0[1-9]|1[0-2])(?:-[0-9]{2})?$/;
   if(typeof range.start!=='string'||typeof range.end!=='string'||!shape.test(range.start)||!shape.test(range.end)||range.start.length!==range.end.length)return '월 또는 날짜를 올바르게 선택해 주세요.';
   if(range.end<range.start)return '종료일은 시작일과 같거나 이후여야 해요.';
   const count=(Number(range.end.slice(0,4))-Number(range.start.slice(0,4)))*12+Number(range.end.slice(5,7))-Number(range.start.slice(5,7))+1;
   if(count>6)return '최대 6개월까지 고를 수 있어요.';
-  if(!window.VoteTransfer.bounds(range))return '존재하는 날짜를 선택해 주세요.';
+  const bounds=window.VoteTransfer.bounds(range);
+  if(!bounds)return '존재하는 날짜를 선택해 주세요.';
+  if(bounds.start===bounds.end)return '투표 후보 날짜는 최소 2일 이상 선택해 주세요.';
+  if(minimumDate){const first=bounds.start<minimumDate?minimumDate:bounds.start;if(Date.parse(bounds.end+'T00:00:00Z')-Date.parse(first+'T00:00:00Z')<86400000)return '오늘 이후 투표 가능한 후보 날짜를 최소 2일 이상 선택해 주세요.'}
   return '';
 }
 function receiveMeetingMeta(meta){
@@ -1124,7 +1127,7 @@ function openMeetingPeriod(){
   const lock=value=>{working=value;el.querySelectorAll('input,[data-mode],[data-save],[data-month-nav],[data-period-month]').forEach(b=>b.disabled=value);paintMonths();button.textContent=value?'수정 중…':'수정하기'};
   button.onclick=async()=>{
     if(working||!active())return;
-    const range=selected(),message=validateMeetingPeriod(range);if(message){showError(message);return}
+    const range=selected(),message=validateMeetingPeriod(range,todayStr());if(message){showError(message);return}
     if(range.start===original.start&&range.end===original.end){closeMeetingPeriod();return}
     showError('');lock(true);
     try{
