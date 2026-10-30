@@ -23,6 +23,40 @@
     {
       "source": "/terms-of-service",
       "destination": "/terms-of-service.html"
+    },
+    {
+      "source": "/privacy-policy/en",
+      "destination": "/privacy-policy-en.html"
+    },
+    {
+      "source": "/privacy-policy/ko",
+      "destination": "/privacy-policy.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/privacy-policy",
+      "destination": "/privacy-policy/en",
+      "permanent": false,
+      "has": [
+        {
+          "type": "header",
+          "key": "accept-language",
+          "value": "^[eE][nN](?:-[A-Za-z0-9]+)*(?:[,;].*)?$"
+        }
+      ]
+    },
+    {
+      "source": "/privacy-policy.html",
+      "destination": "/privacy-policy/en",
+      "permanent": false,
+      "has": [
+        {
+          "type": "header",
+          "key": "accept-language",
+          "value": "^[eE][nN](?:-[A-Za-z0-9]+)*(?:[,;].*)?$"
+        }
+      ]
     }
   ]
 }
