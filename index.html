@@ -109,7 +109,14 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .speriod{color:var(--sub);font-size:14px;margin:0 0 14px}
 .meeting-period-row{display:flex;align-items:center;gap:6px;margin:0 0 14px}
 .meeting-period-row .speriod{margin:0;min-width:0;overflow-wrap:anywhere}
-.edit-meeting-period{width:30px;height:30px}
+.edit-meeting-period{width:28px;height:28px;padding:6px}
+.edit-meeting-period svg{width:13px;height:13px}
+.period-month-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+.period-month-nav strong{font-size:16px}
+.period-month-nav button{width:40px;height:40px;padding:0;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:23px;line-height:1;color:var(--s1)}
+.period-month-nav button:disabled{opacity:.35;cursor:default}
+.period-month-grid .mo{min-height:46px}
+.period-month-hint{margin-top:10px;min-height:38px;line-height:1.5}
 .period-editor .dialog-heading{margin-bottom:14px}
 .period-editor [hidden]{display:none!important}
 .period-editor input{min-width:0}
@@ -1034,14 +1041,19 @@ function openMeetingPeriod(){
   closeMeetingRename();closeCalSheet();closeVoteImport();
   const id=sid,request=sessionLoad,original={start:S.meta.start,end:S.meta.end},bounds=window.VoteTransfer.bounds(original);
   if(!bounds){toast('현재 후보 날짜를 확인하지 못했어요. 다시 불러와 주세요.');return}
-  let mode=original.start.length===7?'months':'dates',working=false;
+  let mode=original.start.length===7?'months':'dates',working=false,monthYear=Number(original.start.slice(0,4)),pickingMonth=false;
   const el=document.createElement('dialog');el.className='existing-meeting period-editor';el.setAttribute('aria-labelledby','meetingPeriodHeading');
   el.innerHTML=`<div class="dialog-heading"><h2 id="meetingPeriodHeading">투표 후보 날짜 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">✕</button></div>
     <div class="period-switch" role="group" aria-label="투표 기간 선택 방식">
       <button type="button" class="period-option" data-mode="months" aria-controls="editMonthFields"><span class="period-option-title">월로 선택</span><span class="period-option-detail">월 단위로 고르기</span></button>
       <button type="button" class="period-option" data-mode="dates" aria-controls="editDateFields"><span class="period-option-title">날짜로 선택</span><span class="period-option-detail">시작일 ~ 종료일</span></button>
     </div>
-    <div class="date-range-fields" id="editMonthFields"><div><label class="f" for="editStartMonth">시작 월</label><input class="inp" id="editStartMonth" type="month" value="${esc(original.start.slice(0,7))}" required></div><div><label class="f" for="editEndMonth">종료 월</label><input class="inp" id="editEndMonth" type="month" value="${esc(original.end.slice(0,7))}" required></div></div>
+    <div id="editMonthFields">
+      <input id="editStartMonth" type="hidden" value="${esc(original.start.slice(0,7))}"><input id="editEndMonth" type="hidden" value="${esc(original.end.slice(0,7))}">
+      <div class="period-month-nav"><button type="button" data-month-nav="-1" aria-label="이전 연도">‹</button><strong id="editMonthYear" aria-live="polite"></strong><button type="button" data-month-nav="1" aria-label="다음 연도">›</button></div>
+      <div class="months period-month-grid" id="editMonthGrid" role="group" aria-labelledby="editMonthYear"></div>
+      <p class="hint period-month-hint" id="editMonthHint" aria-live="polite"></p>
+    </div>
     <div class="date-range-fields" id="editDateFields"><div><label class="f" for="editStartDate">시작일</label><input class="inp" id="editStartDate" type="date" value="${bounds.start}" required></div><div><label class="f" for="editEndDate">종료일</label><input class="inp" id="editEndDate" type="date" value="${bounds.end}" required></div></div>
     <p class="hint period-preserve-note">기존 스티커는 유지돼요. 제외한 날짜는 순위에서 빠져요.</p>
     <p class="count-error" data-error role="alert" hidden></p>
@@ -1050,12 +1062,33 @@ function openMeetingPeriod(){
   const q=selector=>el.querySelector(selector),button=q('[data-save]'),error=q('[data-error]');
   const active=()=>sid===id&&request===sessionLoad&&el.isConnected&&meetingPeriodDialog===el;
   const selected=()=>mode==='months'?{start:q('#editStartMonth').value,end:q('#editEndMonth').value}:{start:q('#editStartDate').value,end:q('#editEndDate').value};
+  const paintMonths=()=>{
+    const start=q('#editStartMonth').value,end=q('#editEndMonth').value;
+    q('#editMonthYear').textContent=monthYear+'년';
+    q('#editMonthGrid').innerHTML=Array.from({length:12},(_,i)=>{
+      const value=String(monthYear).padStart(4,'0')+'-'+String(i+1).padStart(2,'0'),selected=value>=start&&value<=end,cls=value===start||value===end?'edge':selected?'in':'';
+      return `<button type="button" class="mo ${cls}" data-period-month="${value}" aria-label="${monthYear}년 ${i+1}월" aria-pressed="${selected}" ${working?'disabled':''}>${i+1}월</button>`;
+    }).join('');
+    q('#editMonthHint').textContent=pickingMonth?'끝나는 달을 눌러 주세요. 같은 달을 누르면 그 달만 선택해요.':periodLabel(start,end)+' · 시작할 달과 끝날 달을 차례로 눌러 주세요.';
+    el.querySelectorAll('[data-month-nav]').forEach(b=>b.disabled=working||(Number(b.dataset.monthNav)<0?monthYear<=1:monthYear>=9999));
+  };
   const paint=()=>{
+    paintMonths();
     q('#editMonthFields').hidden=mode!=='months';q('#editDateFields').hidden=mode!=='dates';
     el.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
-    q('#editEndMonth').min=q('#editStartMonth').value;q('#editEndDate').min=q('#editStartDate').value;
+    q('#editEndDate').min=q('#editStartDate').value;
   };
   const showError=message=>{error.textContent=message;error.hidden=!message};
+  q('#editMonthGrid').onclick=e=>{
+    const b=e.target.closest('[data-period-month]');if(!b||working||mode!=='months')return;
+    const month=b.dataset.periodMonth;if(!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(month))return;
+    if(!pickingMonth){q('#editStartMonth').value=q('#editEndMonth').value=month;pickingMonth=true}
+    else{const range=[q('#editStartMonth').value,month].sort();q('#editStartMonth').value=range[0];q('#editEndMonth').value=range[1];pickingMonth=false}
+    const keepFocus=document.activeElement===b;
+    showError(validateMeetingPeriod(selected()));paint();
+    if(keepFocus)q('#editMonthGrid').querySelector('[data-period-month="'+month+'"]').focus({preventScroll:true});
+  };
+  el.querySelectorAll('[data-month-nav]').forEach(b=>b.onclick=()=>{if(working)return;monthYear=Math.max(1,Math.min(9999,monthYear+Number(b.dataset.monthNav)));paintMonths()});
   el.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{
     if(working||b.dataset.mode===mode)return;
     const current=selected();
@@ -1063,13 +1096,13 @@ function openMeetingPeriod(){
       if(b.dataset.mode==='months'){q('#editStartMonth').value=current.start.slice(0,7);q('#editEndMonth').value=current.end.slice(0,7)}
       else{const range=window.VoteTransfer.bounds(current);q('#editStartDate').value=range.start;q('#editEndDate').value=range.end}
     }
-    mode=b.dataset.mode;showError('');paint();
+    mode=b.dataset.mode;if(mode==='months'){monthYear=Number(q('#editStartMonth').value.slice(0,4));pickingMonth=false}showError('');paint();
   });
   el.querySelectorAll('input').forEach(input=>input.oninput=()=>{showError(validateMeetingPeriod(selected()));paint()});
   q('[data-close]').onclick=closeMeetingPeriod;
   el.addEventListener('close',()=>{el.remove();if(meetingPeriodDialog===el)meetingPeriodDialog=null});
   el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.target.matches('input')){e.preventDefault();button.click()}});
-  const lock=value=>{working=value;el.querySelectorAll('input,[data-mode],[data-save]').forEach(b=>b.disabled=value);button.textContent=value?'수정 중…':'수정하기'};
+  const lock=value=>{working=value;el.querySelectorAll('input,[data-mode],[data-save],[data-month-nav],[data-period-month]').forEach(b=>b.disabled=value);paintMonths();button.textContent=value?'수정 중…':'수정하기'};
   button.onclick=async()=>{
     if(working||!active())return;
     const range=selected(),message=validateMeetingPeriod(range);if(message){showError(message);return}
@@ -1916,6 +1949,7 @@ window.addEventListener('popstate',async()=>{
 </script>
 </body>
 </html>
+
 
 
 
