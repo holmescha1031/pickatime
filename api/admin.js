@@ -1,4 +1,4 @@
-const {authorize,ORIGIN}=require('../lib/admin-auth');
+const {authorize,siteOrigin}=require('../lib/admin-auth');
 const index=require('../lib/admin-index');
 const analytics=require('../lib/analytics-config');
 const {summarize}=require('../lib/admin-stats');
@@ -8,7 +8,7 @@ module.exports=async(req,res)=>{
  if(!['GET','POST'].includes(req.method))return res.status(405).json({error:'지원하지 않는 요청입니다.'});
  try{
   if(req.method==='POST'){
-   if(req.headers.origin!==ORIGIN)return res.status(403).json({error:'허용되지 않은 요청입니다.'});
+   if(req.headers.origin!==siteOrigin())return res.status(403).json({error:'허용되지 않은 요청입니다.'});
    let body=req.body;try{if(typeof body==='string')body=JSON.parse(body)}catch{return res.status(400).json({error:'올바른 JSON 파일을 선택해 주세요.'})}
    if(body?.action==='ga'){
     if(!analytics.valid(body.measurementId))return res.status(400).json({error:'G-로 시작하는 GA4 측정 ID를 확인해 주세요.'});
@@ -31,3 +31,4 @@ module.exports=async(req,res)=>{
   if(!failed)cache.set(cacheKey,{expires:Date.now()+15000,data});return res.status(200).json(data);
  }catch{return res.status(503).json({error:'통계를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'})}
 };
+

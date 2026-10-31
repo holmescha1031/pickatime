@@ -2,3 +2,9 @@
 .env.*
 .vercel/
 node_modules/
+
+
+.dev.vars
+.dev.vars.*
+.wrangler/
+dist/
