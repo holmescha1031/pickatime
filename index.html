@@ -715,6 +715,7 @@ function showDeletedMeeting(){
   closeVoteImport();
   stopMeetingStatusWatch();detachVoteDrag?.();detachVoteDrag=null;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];shown=null;
+  S.meta=null;S.members={};S.votes={};
   $('#app').innerHTML='<div class="hero"><a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a><h1>삭제된 투표예요</h1><p>모임을 만든 사람이 삭제한 투표입니다.</p></div><a class="btn blue block" href="./">홈으로 돌아가기</a>';
 }
 function watchMeetingStatus(id,request){
@@ -733,7 +734,7 @@ async function renderDeleteControl(){
   if(await meetingIdFor(userId,S.meta.originalTitle||title)!==id||sid!==id||kakaoUser?.id!==userId||$('#deleteControl')!==host)return;
   host.innerHTML='<button class="btn delete-vote" id="deleteVote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>이 투표 삭제하기</button>';
   $('#deleteVote').onclick=async()=>{
-    if(!confirm('이 투표를 삭제할까요?\n삭제하면 참여자 목록에서 사라지고 공유 링크로도 열 수 없어요.'))return;
+    if(!confirm('이 투표를 삭제할까요?\n모임 정보·참여자·스티커를 DB에서 영구 삭제해요.\n공유 링크로도 열 수 없으며 복구할 수 없어요.'))return;
     const btn=$('#deleteVote');btn.disabled=true;btn.textContent='삭제하는 중…';
     try{
       const r=await fetch(new URL('/api/meeting',window.APP_CONFIG.authServer),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',sid:id})});
@@ -1199,7 +1200,7 @@ async function bootSession(){
   document.title=`${S.meta.title} · 언제봐?`;
   route();
   watchMeetingStatus(id,request);
-  S.unsub=[store.on(`sessions/${id}/meta`,v=>{if(request!==sessionLoad)return;if(v)receiveMeetingMeta(v)}),store.on(`sessions/${id}/members`,v=>{
+  S.unsub=[store.on(`sessions/${id}/meta`,v=>{if(request!==sessionLoad)return;if(v)receiveMeetingMeta(v);else{sessionLoad++;showDeletedMeeting()}}),store.on(`sessions/${id}/members`,v=>{
     if(request!==sessionLoad)return;
     S.members=v||{};
     if(S.me&&!S.members[S.me]){S.me=null;LS.del(meKey())}
@@ -1962,6 +1963,7 @@ window.addEventListener('popstate',async()=>{
   sid=new URLSearchParams(location.search).get('s');
   const target=sid,request=++sessionLoad;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];shown=null;
+  S.meta=null;S.members={};S.votes={};
   closeCalSheet();closeVoteImport();
   if(target){
     showPageLoading('투표를 불러오는 중…');
@@ -1972,6 +1974,7 @@ window.addEventListener('popstate',async()=>{
 </script>
 </body>
 </html>
+
 
 
 

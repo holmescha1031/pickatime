@@ -1,4 +1,4 @@
-// Owner-verified soft deletion. The private HMAC registry uses existing profile rules.
+// Owner-verified physical deletion through a server-only Firebase service account.
 const crypto=require('node:crypto');
 const DB='https://pickatime-meet-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ORIGINS=new Set(['https://pickatime-phi.vercel.app','https://holmescha1031.github.io']);
@@ -44,7 +44,9 @@ module.exports=async function handler(req,res){
     const user=sessionUser(req,secret);
     if(!user)return res.status(401).json({error:'다시 로그인한 뒤 삭제해 주세요.'});
     if(!['delete','register'].includes(body?.action))return res.status(400).json({error:'잘못된 요청입니다.'});
-    const meta=await db(`sessions/${id}/meta`);
+    const session=await db(`sessions/${id}`);
+    const meta=session?.meta;
+    if(body.action==='delete'&&!meta&&await db(marker)===true)return res.status(200).json({deleted:true});
     if(!meta||typeof meta.title!=='string')return res.status(404).json({error:'투표를 찾을 수 없습니다.'});
     const ownerId='m_'+crypto.createHash('sha256').update(JSON.stringify([user.id,(meta.originalTitle||meta.title).trim().normalize('NFC')])).digest('hex');
     if(ownerId!==id)return res.status(403).json({error:'투표를 만든 사람만 삭제할 수 있어요.'});
@@ -53,10 +55,8 @@ module.exports=async function handler(req,res){
       await require('../lib/admin-index').registerMeeting(id);
       return res.status(200).json({indexed:true});
     }
-    await db(marker,{method:'PUT',headers:{'Content-Type':'application/json'},body:'true'});
-    const profileKey='u_'+crypto.createHmac('sha256',secret).update('pickatime:profile:v1:'+user.id.slice(6)).digest('hex');
-    // Index cleanup is best effort; the deleted marker always filters stale indexes.
-    try{await db(`profiles/${profileKey}/meetings/${id}`,{method:'DELETE'});}catch{}
+    await require('../lib/firebase-admin-rest').eraseMeeting(id,session,user.id,secret);
     return res.status(200).json({deleted:true});
-  }catch(e){return res.status(503).json({error:e.status===401||e.status===403?'투표 삭제 정보를 저장할 권한이 없습니다. Firebase 규칙을 확인해 주세요.':'서버 연결에 실패했어요. 잠시 후 다시 시도해 주세요.'});}
+  }catch(e){if(e.message==='FIREBASE_ADMIN_CONFIG_REQUIRED')return res.status(503).json({error:'DB 실제 삭제를 위한 서버 인증 설정이 필요해요. 아직 삭제되지 않았습니다.'});return res.status(503).json({error:e.status===401||e.status===403?'투표 삭제 정보를 저장할 권한이 없습니다. Firebase 규칙을 확인해 주세요.':'서버 연결에 실패했어요. 잠시 후 다시 시도해 주세요.'});}
 };
+
