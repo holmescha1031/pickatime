@@ -4,5 +4,13 @@
   "private": true,
   "engines": {
     "node": ">=22"
+  },
+  "scripts": {
+    "build:cloudflare": "node scripts/build-cloudflare.cjs",
+    "deploy:cloudflare": "npm run build:cloudflare && wrangler deploy",
+    "check:cloudflare": "npm run build:cloudflare && wrangler deploy --dry-run"
+  },
+  "devDependencies": {
+    "wrangler": "^4.34.0"
   }
 }

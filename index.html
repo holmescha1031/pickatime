@@ -336,6 +336,8 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="./assets/firebase-identity.js"></script>
 <script>
 /* =========================================================
    ① Firebase 설정 — README의 순서대로 만든 값을 붙여넣으세요.
@@ -410,12 +412,13 @@ function makeStore(){
   if (FIREBASE_CONFIG.databaseURL && window.firebase) {
     firebase.initializeApp(FIREBASE_CONFIG);
     const db = firebase.database();
+    const authorizeWrite=async()=>{if(window.APP_CONFIG?.requireFirebaseAuth){const id=kakaoUser?.id;await window.FirebaseIdentity.ensure(id);if(kakaoUser?.id!==id)throw Error('계정이 변경됐어요. 다시 시도해 주세요.')}};
     return {
       demo:false,
       get:p=>db.ref(p).once('value').then(s=>s.val()),
-      set:(p,v)=>db.ref(p).set(v),
-      update:(p,v)=>db.ref(p).update(v),
-      putVoteIfEmpty:(p,v)=>db.ref(p).transaction(current=>current===null||current===0?v:undefined,undefined,false),
+      set:async(p,v)=>{await authorizeWrite();return db.ref(p).set(v)},
+      update:async(p,v)=>{await authorizeWrite();return db.ref(p).update(v)},
+      putVoteIfEmpty:async(p,v)=>{await authorizeWrite();return db.ref(p).transaction(current=>current===null||current===0?v:undefined,undefined,false)},
       on:(p,cb)=>{const r=db.ref(p),h=s=>cb(s.val());r.on('value',h,()=>toast('실시간 데이터를 읽지 못했어요. DB 규칙과 연결을 확인해 주세요.'));return()=>r.off('value',h)}
     };
   }
@@ -1256,6 +1259,7 @@ function viewEntry(){
     try{
       const r=await fetch(new URL('/api/kakao',window.APP_CONFIG.authServer),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'})});
       if(!r.ok)throw new Error();
+      await window.FirebaseIdentity?.clear();
       kakaoUser=null;myProfile={nickname:'',meetings:{}};Kakao.Auth.setAccessToken(null);viewEntry();
     }catch(e){toast('계정 전환에 실패했어요. 다시 시도해 주세요.')}
   };
@@ -1974,6 +1978,7 @@ window.addEventListener('popstate',async()=>{
 </script>
 </body>
 </html>
+
 
 
 
