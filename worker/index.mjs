@@ -47,7 +47,7 @@ export default {
   if(['/privacy-policy','/privacy-policy.html'].includes(url.pathname)&&/^en(?:-[a-z0-9]+)*(?:[,;].*)?$/i.test(request.headers.get('accept-language')||'')){
    return protect(new Response(null,{status:302,headers:{Location:'/privacy-policy/en',Vary:'Accept-Language','Cache-Control':'private, no-store'}}));
   }
-  const routes={'/privacy-policy':'/privacy-policy.html','/privacy-policy/en':'/privacy-policy-en.html','/privacy-policy/ko':'/privacy-policy.html','/terms-of-service':'/terms-of-service.html','/admin':'/admin.html'};
+  const routes={'/':'/index.html','/privacy-policy':'/privacy-policy.html','/privacy-policy/en':'/privacy-policy-en.html','/privacy-policy/ko':'/privacy-policy.html','/terms-of-service':'/terms-of-service.html','/admin':'/admin.html'};
   if(routes[url.pathname])url.pathname=routes[url.pathname];
   return protect(await env.ASSETS.fetch(new Request(url,request)));
  }

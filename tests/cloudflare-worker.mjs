@@ -3,6 +3,7 @@ import fs from 'node:fs';
 process.env.SITE_ORIGIN='https://test.example';
 const {default:worker,invoke}=await import('../worker/index.mjs');
 let paths=[];const env={ASSETS:{fetch:async req=>{paths.push(new URL(req.url).pathname);return new Response('asset')}}};
+await worker.fetch(new Request('https://test.example/?s=existing-poll'),{ASSETS:{fetch:async req=>{const u=new URL(req.url);assert.equal(u.pathname,'/index.html');assert.equal(u.search,'?s=existing-poll');return new Response('asset')}}});
 let r=await worker.fetch(new Request('https://test.example/privacy-policy',{headers:{'Accept-Language':'en-US,en;q=0.9'}}),env);assert.equal(r.status,302);assert.equal(r.headers.get('Location'),'/privacy-policy/en');assert.match(r.headers.get('Vary'),/Accept-Language/);
 r=await worker.fetch(new Request('https://test.example/privacy-policy/ko',{headers:{'Accept-Language':'en-US'}}),env);assert.equal(r.status,200);assert.equal(paths.at(-1),'/privacy-policy.html');
 r=await worker.fetch(new Request('https://test.example/privacy-policy/en'),env);assert.equal(paths.at(-1),'/privacy-policy-en.html');assert.equal(r.headers.get('X-Frame-Options'),'DENY');
