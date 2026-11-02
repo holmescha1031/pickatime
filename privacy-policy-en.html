@@ -23,7 +23,7 @@
 <nav class="policy-languages" aria-label="Policy language"><a href="/privacy-policy/ko" lang="ko" hreflang="ko">한국어</a><span aria-hidden="true">·</span><a href="/privacy-policy/en" lang="en" hreflang="en" aria-current="page">English</a></nav>
 <article>
 <h1>Privacy Policy</h1>
-<p class="date">Effective: October 27, 2026 · Last updated: October 31, 2026</p>
+<p class="date">Effective: October 27, 2026 · Last updated: November 2, 2026</p>
 <p>언제봐? (Pickatime, the “Service”) is an independently operated service that helps friends choose a meeting date by voting on lunch and dinner times with stickers. This policy explains what information the Service processes, why it processes that information, and how you can access or request deletion of it.</p>
 <div class="summary"><ul><li>Meeting nicknames and sticker votes are visible to people who have the meeting link.</li><li>Imported personal calendar events are displayed only on your current page. They are not stored in the Service database or shared with other participants.</li><li>Connecting a calendar is optional. You can vote manually without connecting one.</li></ul></div>
 
@@ -55,10 +55,11 @@
 <p>The Service uses the providers below. They may access information when processing requests or process technical information under their own privacy policies. Information travels over the internet and may be processed in infrastructure outside your country.</p>
 <div class="table" role="region" aria-label="External providers and processing" tabindex="0"><table><thead><tr><th scope="col">Provider</th><th scope="col">Role and information processed</th><th scope="col">Location and policy</th></tr></thead><tbody>
 <tr><td>Kakao</td><td>Login and KakaoTalk sharing initiated by you</td><td>Subject to Kakao’s operating locations and <a href="https://www.kakao.com/policy/privacy" target="_blank" rel="noopener noreferrer">privacy policy</a>.</td></tr>
-<tr><td>Google LLC — Firebase</td><td>Storage and synchronization of account profiles, joined meeting history, meetings and votes</td><td>The current Realtime Database region is Singapore (asia-southeast1). Operational and support processing is described in <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer">Firebase’s privacy information</a>.</td></tr>
+<tr><td>Google LLC — Firebase</td><td>Account authentication, and storage and synchronization of account profiles, joined meeting history, meetings and votes</td><td>The current Realtime Database region is Singapore (asia-southeast1). Authentication, operational and support processing use Google infrastructure as described in <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer">Firebase’s privacy information</a>.</td></tr>
 <tr><td>Google LLC — Google Calendar and authorization</td><td>Calendar reading and authorization permitted by you</td><td>Subject to Google’s global infrastructure and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">privacy policy</a>.</td></tr>
 <tr><td>Google LLC — Google Analytics 4</td><td>Usage statistics including cookie identifiers, browser/device information, approximate location, page views and actions</td><td>Processed through Google’s global infrastructure. Retention and deletion depend on the Service’s GA4 settings and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google’s policies</a>.</td></tr>
-<tr><td>Vercel Inc.</td><td>Website hosting, execution of login and administration APIs, and access/technical information needed to process requests</td><td>Processed through global infrastructure, including the United States, according to the Service’s configuration. See <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Vercel’s privacy policy</a>.</td></tr>
+<tr><td>Cloudflare, Inc.</td><td>Website hosting, execution of login and administration APIs, and access/technical information needed to process requests</td><td>Processed through Cloudflare’s global infrastructure according to the Service’s configuration. See <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare’s privacy policy</a>.</td></tr>
+<tr><td>Vercel Inc.</td><td>Redirecting legacy website addresses to the current website, and technical information from requests to those legacy addresses</td><td>Processed through global infrastructure, including the United States. See <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Vercel’s privacy policy</a>.</td></tr>
 </tbody></table></div>
 <p>Requests to these providers occur when you use relevant features, such as login, saving a meeting or connecting a calendar, or when related page resources are loaded. Providers of external SDKs, fonts and static resources, including Google and Kakao, may also receive technical information needed to serve those resources. Processing duration depends on the retention criteria below and each provider’s contracts, settings and policies.</p>
 
@@ -91,7 +92,7 @@
 <li><strong>Minimum, read-only permissions:</strong> We request only read access to the calendar list and events. We retrieve events from the calendars you select within the meeting period. We do not request permission to create, modify or delete Google events.</li>
 <li><strong>Separation of personal and shared data:</strong> Imported events are displayed only on the requesting account’s own screen for the relevant meeting. The previous events are not displayed after switching accounts or meetings. Event titles/times and Google access tokens are excluded from shared voting records, administrator statistics, sharing messages and Google Analytics. Event titles are escaped and displayed as text rather than interpreted as HTML.</li>
 <li><strong>Ending use and revoking access:</strong> The app removes its token references when the import dialog closes and after a successful event fetch. You can remove references to displayed event data using “Clear imported events”; imported events are not restored after a page reload or closure. You can also revoke permissions through your Google Account’s connections page. These actions do not delete the original events stored by Google.</li>
-<li><strong>Protection of other Service information:</strong> Login uses signed HttpOnly and Secure session cookies. The server checks authorization for administrator pages and meeting deletion requests. Shared information such as meeting nicknames and sticker votes is available to people with the meeting link and has a different visibility scope from imported personal calendar data.</li>
+<li><strong>Protection of other Service information:</strong> Login uses signed HttpOnly and Secure session cookies. Firebase Authentication identifies the participant, and database rules restrict changes to each meeting’s participant record and sticker votes to the authenticated participant’s own identifier. Server credentials are stored as encrypted Secrets in Cloudflare. The server checks authorization for administrator pages and meeting deletion requests. Shared information such as meeting nicknames and sticker votes is available to people with the meeting link and has a different visibility scope from imported personal calendar data.</li>
 </ul>
 
 <h2>9. Operator and Contact</h2>
@@ -105,4 +106,5 @@
 </main>
 </body>
 </html>
+
 

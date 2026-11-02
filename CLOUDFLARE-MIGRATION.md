@@ -2,7 +2,7 @@
 
 Production hosting is Cloudflare Workers at **https://pickatime.xyz**. The Vercel deployment redirects every path to the same path on this origin; Vercel preserves incoming query parameters, including poll IDs and rank links. No meeting IDs or database records are migrated.
 
-The supplied **database.secure.rules.json** is still a staged replacement. Publishing it is a separate final step in Firebase Console. Do not claim the live database is secured until these rules are published and verified.
+On November 2, 2026, the user confirmed publishing **database.secure.rules.json** in Firebase Console. **database.rules.json** now matches that published configuration. Publication is user-confirmed; live cross-account denial and actual deletion have not yet been independently verified.
 
 ## Runtime secrets and identity
 
@@ -36,7 +36,7 @@ Keep the domain registration at Namecheap/Gabia and connect DNS to Cloudflare. A
 4. Validate own sticker add/change/remove/import, own nickname update, live updates across two accounts, rejection of modifying someone else's votes/profile member, meeting title/period editing, creator-only actual deletion, and old-link handling. Physical deletion uses a server-authenticated atomic write without broadening public delete permissions.
 5. Switch the domain/redirect and refresh old clients. Old Vercel clients without Firebase authentication cannot write after secured rules activate.
 
-The original `database.rules.json` is preserved for the running legacy site; the secure file is a deliberate, staged replacement, not a second database. After cutover it should become the canonical rules file.
+`database.rules.json` is the canonical authenticated rules file and matches `database.secure.rules.json`. Do not restore the earlier unauthenticated member/vote write permissions.
 
 ## Verification status — 2026-11-02
 
@@ -48,4 +48,6 @@ Cloudflare Builds successfully installed Wrangler 4.156.1, compiled and deployed
 
 `node scripts/verify-legacy-redirect.mjs` checks actual legacy 308 responses, destination availability, paths and query preservation after the Vercel deployment is ready.
 
-Firebase rules have only been evaluated locally; two-account rejection checks and a disposable actual-delete check still need to run against the live database after publication. Keep existing Firebase Auth domains. Do not claim those checks passed or rules were published without confirming them.
+The user confirmed rule publication. Rule expressions were tested locally; live two-account rejection checks and a disposable actual-delete check remain pending. Keep existing Firebase Auth domains. Do not claim those live checks passed without confirming them.
+
+Legacy redirect probes initially found HTTP 200 despite the correct deployed vercel.json. The effective redirect is also configured in Vercel project-level routes: regex `^/(.*)$`, destination `https://pickatime.xyz/$1`, status 308, route ID `a1f51a82-9c42-4795-bd77-f19aa89e078d`. Actual read-only probes subsequently passed for root poll links, policy and admin paths, query preservation and reachable destinations. Keep this project route active while legacy links are in use.
