@@ -6,6 +6,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "keep_vars": true,
   "workers_dev": true,
+  "routes": [{"pattern":"pickatime.xyz","custom_domain":true}],
+  "vars": {"SITE_ORIGIN":"https://pickatime.xyz"},
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

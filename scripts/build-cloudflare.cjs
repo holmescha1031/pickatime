@@ -3,7 +3,10 @@ const fs=require('node:fs');
 const path=require('node:path');
 const root=path.resolve(__dirname,'..'),out=path.join(root,'dist');
 fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(out,{recursive:true});
-for(const file of ['index.html','admin.html','privacy-policy.html','privacy-policy-en.html','terms-of-service.html'])fs.copyFileSync(path.join(root,file),path.join(out,file));
+for(const file of ['index.html','admin.html','privacy-policy.html','privacy-policy-en.html','terms-of-service.html']){
+ const html=fs.readFileSync(path.join(root,file),'utf8').replaceAll('https://pickatime-phi.vercel.app','https://pickatime.xyz');
+ fs.writeFileSync(path.join(out,file),html);
+}
 fs.cpSync(path.join(root,'assets'),path.join(out,'assets'),{recursive:true});
 fs.writeFileSync(path.join(out,'config.js'),'window.APP_CONFIG = {authServer:location.origin,publicSite:location.origin+"/",requireFirebaseAuth:true};\n');
 fs.writeFileSync(path.join(out,'_headers'),`/*

@@ -17,4 +17,7 @@ await check('/privacy-policy',302,r=>assert.equal(r.headers.get('location'),'/pr
 await check('/privacy-policy/en',200,r=>assert.match(r.headers.get('content-type')||'',/text\/html/));
 await check('/privacy-policy/ko',200,null,{headers:{'Accept-Language':'en-US'}});
 for(const path of ['/api/firebase-token.js','/lib/admin-auth.js','/database.secure.rules.json','/CLOUDFLARE-MIGRATION.md'])await check(path,404);
+await check('/api/kakao',401,null,{headers:{Origin:'https://pickatime.xyz'}});
+await check('/api/firebase-token',401,null,{method:'POST',headers:{Origin:'https://pickatime.xyz','Content-Type':'application/json'},body:'{}'});
+await check('/api/firebase-token',204,null,{method:'OPTIONS',headers:{Origin:'https://pickatime.xyz','Access-Control-Request-Method':'POST'}});
 console.log('PASS deployed read-only checks. Login, Firebase writes and deletion require separate authenticated checks.');
