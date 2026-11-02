@@ -4,6 +4,8 @@ module.exports = async function handler(req, res) {
     ['https://pickatime-phi.vercel.app', 'https://pickatime-phi.vercel.app/'],
     ['https://holmescha1031.github.io', 'https://holmescha1031.github.io/pickatime/']
   ]);
+  const configured=require('../lib/site-config').siteOrigin();
+  callbacks.set(configured,configured+'/');
   const origin = req.headers.origin;
   const redirectUri = callbacks.get(origin);
   res.setHeader('Cache-Control', 'no-store');
@@ -39,7 +41,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({error:'로그인 코드 또는 콜백 주소가 잘못됐습니다.'});
   const key=process.env.KAKAO_REST_API_KEY;
   const secret=process.env.KAKAO_CLIENT_SECRET;
-  if(!key || !secret) return res.status(503).json({error:'Vercel에 카카오 REST API 키와 Client Secret을 설정해 주세요.'});
+  if(!key || !secret) return res.status(503).json({error:'서버에 카카오 REST API 키와 Client Secret을 설정해 주세요.'});
   try {
     const params=new URLSearchParams({grant_type:'authorization_code',client_id:key,client_secret:secret,
       redirect_uri:redirectUri,code:body.code});
@@ -60,3 +62,4 @@ module.exports = async function handler(req, res) {
     return res.status(200).json(account);
   } catch { return res.status(502).json({error:'카카오 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.'}); }
 };
+

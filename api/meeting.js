@@ -1,7 +1,7 @@
 // Owner-verified physical deletion through a server-only Firebase service account.
 const crypto=require('node:crypto');
 const DB='https://pickatime-meet-default-rtdb.asia-southeast1.firebasedatabase.app';
-const ORIGINS=new Set(['https://pickatime-phi.vercel.app','https://holmescha1031.github.io']);
+const {origins}=require('../lib/site-config');
 const validId=id=>typeof id==='string'&&/^m_[a-f0-9]{64}$/.test(id);
 function sessionUser(req,secret){
   try{
@@ -18,7 +18,7 @@ function sessionUser(req,secret){
 module.exports=async function handler(req,res){
   res.setHeader('Cache-Control','no-store');res.setHeader('Vary','Origin');
   const origin=req.headers.origin;
-  if(origin&&!ORIGINS.has(origin))return res.status(403).json({error:'허용되지 않은 요청입니다.'});
+  if(origin&&!origins().has(origin))return res.status(403).json({error:'허용되지 않은 요청입니다.'});
   if(origin)res.setHeader('Access-Control-Allow-Origin',origin);
   res.setHeader('Access-Control-Allow-Credentials','true');
   res.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS');
@@ -59,4 +59,5 @@ module.exports=async function handler(req,res){
     return res.status(200).json({deleted:true});
   }catch(e){if(e.message==='FIREBASE_ADMIN_CONFIG_REQUIRED')return res.status(503).json({error:'DB 실제 삭제를 위한 서버 인증 설정이 필요해요. 아직 삭제되지 않았습니다.'});return res.status(503).json({error:e.status===401||e.status===403?'투표 삭제 정보를 저장할 권한이 없습니다. Firebase 규칙을 확인해 주세요.':'서버 연결에 실패했어요. 잠시 후 다시 시도해 주세요.'});}
 };
+
 
