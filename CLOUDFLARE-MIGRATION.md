@@ -1,6 +1,8 @@
 # Cloudflare migration and vote authorization
 
-This branch prepares a new Cloudflare deployment. It does **not** change live Firebase rules or redirect the existing Vercel site. Do not claim the live database is secured until the new rules are published and verified.
+Production hosting is Cloudflare Workers at **https://pickatime.xyz**. The Vercel deployment redirects every path to the same path on this origin; Vercel preserves incoming query parameters, including poll IDs and rank links. No meeting IDs or database records are migrated.
+
+The supplied **database.secure.rules.json** is still a staged replacement. Publishing it is a separate final step in Firebase Console. Do not claim the live database is secured until these rules are published and verified.
 
 ## Runtime secrets and identity
 
@@ -16,15 +18,15 @@ In Firebase Authentication, initialize the service if not already enabled. Custo
 
 ## Build/deploy
 
-Connect **holmescha1031/pickatime** in Cloudflare Workers & Pages, select this branch for initial migration testing, root `/`, build `npm run build:cloudflare`, deploy `npx wrangler deploy`. The dependency range installs current compatible Wrangler v4. Run `npm run check:cloudflare` in the build environment for the native bundle/dry-run check, and `npx wrangler types` if adding typed bindings.
+Connect **holmescha1031/pickatime** in Cloudflare Workers & Pages, use `main` for production automatic deployment, root `/`, build `npm run build:cloudflare`, deploy `npx wrangler deploy`. The dependency range installs current compatible Wrangler v4. Run `npm run check:cloudflare` in the build environment for the native bundle/dry-run check, and `npx wrangler types` if adding typed bindings.
 
-Only the generated `dist/` directory is public. Server code, rules, setup documentation and keys are never copied. Static files bypass the Worker; only API and policy/admin routes invoke code. Security headers also apply to static responses. The Google Calendar public connection remains paused during verification.
+Only the generated `dist/` directory is public. Server code, rules, setup documentation and keys are never copied. Matching static files bypass the Worker; the root index alias, API and policy/admin routes invoke code. Security headers also apply to static responses. The Google Calendar public connection remains paused during verification.
 
 If the account does not yet have a workers.dev subdomain, open Workers & Pages once or create one before the first preview deployment. Connecting the ChatGPT Cloudflare plugin does not install the Cloudflare GitHub app; authorize the repository in Cloudflare if prompted.
 
 ## Domain and OAuth
 
-Keep the domain registration at Namecheap/Gabia and connect DNS to Cloudflare. Add the exact new root URL as a Kakao login redirect URI and the hostname to the Kakao JavaScript domain list before testing. Update Google OAuth JavaScript origins and branding/policy URLs, Search Console ownership, sharing URLs and policy canonical URLs when switching the production domain. Keep the old Vercel site running until validation, then redirect existing poll URLs while preserving `?s=...` and other navigation parameters. Do not discard existing poll IDs or database records.
+Keep the domain registration at Namecheap/Gabia and connect DNS to Cloudflare. Add the exact new root URL as a Kakao login redirect URI and the hostname to the Kakao JavaScript domain list before testing. Update Google OAuth JavaScript origins and branding/policy URLs, Search Console ownership, sharing URLs and policy canonical URLs when switching the production domain. Keep the Vercel project and domain so existing poll URLs continue to redirect while preserving `?s=...` and other navigation parameters. Do not discard existing poll IDs or database records.
 
 ## Activate secured writes LAST
 
@@ -36,10 +38,14 @@ Keep the domain registration at Namecheap/Gabia and connect DNS to Cloudflare. A
 
 The original `database.rules.json` is preserved for the running legacy site; the secure file is a deliberate, staged replacement, not a second database. After cutover it should become the canonical rules file.
 
-## Verification completed locally
+## Verification status — 2026-11-02
 
 - `node tests/firebase-identity.cjs`: signed-session UID, RSA custom token, expiry, rejected origins/forgeries, memory-only auth, concurrent login, account mismatch and retry. Locally evaluates the own-member/vote rule expressions.
 - `node tests/cloudflare-worker.mjs`: request adapter, policy languages, security headers, body size/JSON rejection, no exception details, no server/secret files in public build.
 - Existing meeting creation, period editing, unavailable votes and actual deletion tests.
 
-These are Node/VM tests, not Firebase emulator or live Cloudflare tests. Local npm installation is currently blocked by the execution environment proxy, so native Wrangler bundle/schema/types and workerd verification must run in Cloudflare Builds or another network-enabled execution environment. Do not describe this as a verified production migration until those pass and two-account Firebase tests pass.
+Cloudflare Builds successfully installed Wrangler 4.156.1, compiled and deployed the native Worker. Actual HTTPS probes passed on pickatime.xyz for the root poll page, config, paused Google connection, unauthorized admin/login/token endpoints, CORS preflight, Korean and English policies, and 404 responses for non-public server source/rules/docs. The user confirmed Kakao login and sticker storage on the new domain. All three runtime credentials are encrypted Secrets.
+
+`node scripts/verify-legacy-redirect.mjs` checks actual legacy 308 responses, destination availability, paths and query preservation after the Vercel deployment is ready.
+
+Firebase rules have only been evaluated locally; two-account rejection checks and a disposable actual-delete check still need to run against the live database after publication. Keep existing Firebase Auth domains. Do not claim those checks passed or rules were published without confirming them.

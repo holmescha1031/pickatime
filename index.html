@@ -359,7 +359,7 @@ const loginRedirectUri = ()=>location.origin===new URL(PUBLIC_SITE_URL).origin
 if(window.Kakao && !Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY);
 function loginKakao(intent='join'){
   if(!window.Kakao?.Auth?.authorize){toast('카카오 SDK를 불러오지 못했어요. 새로고침해 주세요.');return}
-  if(!window.APP_CONFIG?.authServer){toast('config.js에 Vercel 서버 주소를 먼저 설정해 주세요.');return}
+  if(!window.APP_CONFIG?.authServer){toast('로그인 서버 설정을 확인해 주세요.');return}
   const state=randId(32);
   try{sessionStorage.setItem('wmd:oauth',JSON.stringify({state,sid,tab:new URLSearchParams(location.search).get('tab')==='rank'?'rank':'mine',action:['create','meetings','admin'].includes(intent)?intent:'join',at:Date.now()}))}
   catch(e){toast('로그인에 필요한 브라우저 저장소를 허용해 주세요.');return}
