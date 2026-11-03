@@ -6,7 +6,7 @@
  let enabled=false,current='home',lastPage='',pending=[];
  const origin=location.origin;
  let referrer='';try{referrer=new URL(document.referrer).origin}catch{}
- const context=()=>({page_location:origin+paths[current],page_title:'언제봐?',page_referrer:referrer});
+ const context=()=>({page_location:origin+paths[current],page_title:'언제돼?',page_referrer:referrer});
  function send(name,params){const record={...context(),...params};if(!enabled){if(pending.length<100)pending.push([name,record]);return}window.gtag('event',name,record)}
  function event(name,params={}){
   if(!fields[name])return;const clean={};
@@ -27,4 +27,5 @@
   enabled=true;for(const [name,params]of pending)window.gtag('event',name,{...context(),...params});pending=[];
  }).catch(()=>{pending=[]});
 })();
+
 

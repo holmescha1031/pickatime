@@ -1,4 +1,4 @@
-# 언제봐? 관리자 통계와 GA
+# 언제돼? 관리자 통계와 GA
 
 관리자 주소: https://pickatime-phi.vercel.app/admin.html
 
@@ -40,3 +40,4 @@
 `share_handoff`는 공유 앱으로 전달했다는 뜻이며 수신자에게 실제 발송했는지는 뜻하지 않습니다. GA 이벤트에는 모임 제목·닉네임·계정 ID·모임 ID·날짜·공유 URL·OAuth 코드·쿼리 문자열을 보내지 않습니다. 화면 주소는 `/`, `/join`, `/vote`, `/rank`로 대체하며 외부 유입 주소는 도메인만 사용합니다. 관리자 화면은 GA 태그를 로드하지 않습니다.
 
 GA 맞춤 매개변수 분석이 필요하면 ‘관리 → 맞춤 정의’에서 `screen_name`, `content_type`, `channel`, `input_method`, `selection`, `confirmation_mode`, `period_mode`를 이벤트 범위 측정기준으로 등록합니다. 실시간 이벤트 이름은 등록 없이 확인할 수 있습니다.
+

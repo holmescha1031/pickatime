@@ -27,7 +27,8 @@ window.attachAdminLogo=function(logo,onOpen){
   logo.classList.add('admin-home-logo');
   logo.setAttribute('tabindex','0');
   if(!logo.hasAttribute('href'))logo.setAttribute('role','button');
-  logo.setAttribute('aria-label','언제봐? 로고, 길게 눌러 관리자 페이지 열기');
+  logo.setAttribute('aria-label','언제돼? 로고, 길게 눌러 관리자 페이지 열기');
   logo.querySelector('img')?.setAttribute('draggable','false');
   return()=>{detached=true;stop();listeners.forEach(remove=>remove())};
 };
+

@@ -8,6 +8,10 @@ for(const file of ['index.html','admin.html','privacy-policy.html','privacy-poli
  fs.writeFileSync(path.join(out,file),html);
 }
 fs.cpSync(path.join(root,'assets'),path.join(out,'assets'),{recursive:true});
+// Retired wordmarks are not part of the current public brand.
+for(const file of fs.readdirSync(path.join(out,'assets'))){
+ if(file==='brand-logo.png'||/^share-thumbnail-v\d+\.jpg$/.test(file))fs.rmSync(path.join(out,'assets',file));
+}
 fs.writeFileSync(path.join(out,'config.js'),'window.APP_CONFIG = {authServer:location.origin,publicSite:location.origin+"/",requireFirebaseAuth:true};\n');
 fs.writeFileSync(path.join(out,'_headers'),`/*
   X-Content-Type-Options: nosniff

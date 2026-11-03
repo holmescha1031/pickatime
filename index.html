@@ -4,11 +4,11 @@
 <meta name="google-site-verification" content="uYTYs-zZ-hPp_nONa6pfzCWqMgQiUeHwAB0GgfomViQ" />
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut">
-<title>언제봐?</title>
+<title>언제돼?</title>
 <meta name="description" content="되는 날에 스티커만 붙이면, 다 같이 되는 날이 바로 보여요.">
-<meta property="og:title" content="언제봐?">
+<meta property="og:title" content="언제돼?">
 <meta property="og:description" content="가능한 시간에 스티커만 붙여주세요">
-<meta property="og:image" content="https://pickatime-phi.vercel.app/assets/share-thumbnail-v7.jpg">
+<meta property="og:image" content="https://pickatime-phi.vercel.app/assets/share-thumbnail-v8.png">
 <meta property="og:image:width" content="1734">
 <meta property="og:image:height" content="907">
 <meta name="theme-color" content="#F3F4FF">
@@ -628,7 +628,7 @@ function shareToKakao(sid,title,options={}){
     content:{
       title:payload.title,
       description:payload.description,
-      imageUrl:new URL('assets/share-thumbnail-v7.jpg',PUBLIC_SITE_URL).href,
+      imageUrl:new URL('assets/share-thumbnail-v8.png',PUBLIC_SITE_URL).href,
       imageWidth:1734,imageHeight:907,
       link:{mobileWebUrl:url,webUrl:url}
     },
@@ -719,7 +719,7 @@ function showDeletedMeeting(){
   stopMeetingStatusWatch();detachVoteDrag?.();detachVoteDrag=null;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];shown=null;
   S.meta=null;S.members={};S.votes={};
-  $('#app').innerHTML='<div class="hero"><a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a><h1>삭제된 투표예요</h1><p>모임을 만든 사람이 삭제한 투표입니다.</p></div><a class="btn blue block" href="./">홈으로 돌아가기</a>';
+  $('#app').innerHTML='<div class="hero"><a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></a><h1>삭제된 투표예요</h1><p>모임을 만든 사람이 삭제한 투표입니다.</p></div><a class="btn blue block" href="./">홈으로 돌아가기</a>';
 }
 function watchMeetingStatus(id,request){
   stopMeetingStatusWatch();let busy=false;
@@ -792,7 +792,7 @@ function viewCreate(){
   closeVoteImport();
   stopMeetingStatusWatch();
   detachVoteDrag?.();detachVoteDrag=null;
-  document.title='언제봐?';
+  document.title='언제돼?';
   const now=new Date();
   const months=[...Array(12)].map((_,i)=>ymOf(new Date(now.getFullYear(),now.getMonth()+i,1)));
   let draft;try{draft=JSON.parse(SS.get('wmd:createDraft'))}catch(e){}
@@ -804,7 +804,7 @@ function viewCreate(){
   const savedEnd=validDraft&&draft.end.length===10?draft.end:'';
   $('#app').innerHTML=`
     <div class="hero">
-      <span class="brand brand--hero" id="homeLogo" aria-label="언제봐?"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></span>
+      <span class="brand brand--hero" id="homeLogo" aria-label="언제돼?"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></span>
       <h1 class="home-headline">되는 날에 스티커만 붙여줘</h1>
       <p>모임을 만들고 링크를 보내면, 친구들이 달력에 스티커를 붙여요.<br>다 같이 되는 날이 바로 보여요.</p>
     </div>
@@ -1027,7 +1027,7 @@ function openMeetingRename(){
       if(!active())return;
       await store.set(`sessions/${id}/meta/title`,title);
       if(!active())return;
-      S.meta={...S.meta,originalTitle:meta.originalTitle||meta.title,title};document.title=title+' · 언제봐?';refresh();renderDeleteControl();close();toast('투표 이름을 수정했어요');
+      S.meta={...S.meta,originalTitle:meta.originalTitle||meta.title,title};document.title=title+' · 언제돼?';refresh();renderDeleteControl();close();toast('투표 이름을 수정했어요');
     }catch(e){if(active()){error.textContent=e.message==='DUPLICATE_TITLE'?'이미 같은 이름으로 만든 투표가 있어요. 다른 이름을 입력해 주세요.':e.message==='DELETED_MEETING'?'삭제된 투표는 수정할 수 없어요.':'이름을 수정하지 못했어요. 잠시 후 다시 시도해 주세요.';error.hidden=false}}
     finally{if(el.isConnected){button.disabled=false;input.disabled=false}}
   };
@@ -1179,7 +1179,7 @@ async function bootSession(){
   S.meta=data?.meta||null;
   if(!S.meta){
     setPageLoading(false);
-    $('#app').innerHTML=`<div class="hero"><a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a><h1>모임을 찾을 수 없어요</h1><p>링크가 잘렸거나 모임을 불러올 수 없어요. 링크를 다시 확인해 주세요.</p></div><a class="btn block" href="./">새 모임 만들기</a>`;
+    $('#app').innerHTML=`<div class="hero"><a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></a><h1>모임을 찾을 수 없어요</h1><p>링크가 잘렸거나 모임을 불러올 수 없어요. 링크를 다시 확인해 주세요.</p></div><a class="btn block" href="./">새 모임 만들기</a>`;
     return;
   }
   S.members=data.members||{};S.votes=data.votes||{};
@@ -1200,7 +1200,7 @@ async function bootSession(){
   }
   if(request!==sessionLoad)return;
   void registerAdminMeeting(id,S.meta);
-  document.title=`${S.meta.title} · 언제봐?`;
+  document.title=`${S.meta.title} · 언제돼?`;
   route();
   watchMeetingStatus(id,request);
   S.unsub=[store.on(`sessions/${id}/meta`,v=>{if(request!==sessionLoad)return;if(v)receiveMeetingMeta(v);else{sessionLoad++;showDeletedMeeting()}}),store.on(`sessions/${id}/members`,v=>{
@@ -1224,7 +1224,7 @@ function refresh(periodChanged=false){
     if(title)title.textContent=S.meta.title;
     if(period)period.textContent=periodLabel(S.meta.start,S.meta.end);
   }
-  if(shown==='main'){const title=$('#meetingTitle'),period=$('#meetingPeriodLabel');if(title)title.textContent=S.meta.title;if(period)period.textContent=periodLabel(S.meta.start,S.meta.end);document.title=S.meta.title+' · 언제봐?';renderMe();S.tab==='mine'?(periodChanged?renderCalendar():syncCalendar()):renderRank();renderVoteSaveState()}
+  if(shown==='main'){const title=$('#meetingTitle'),period=$('#meetingPeriodLabel');if(title)title.textContent=S.meta.title;if(period)period.textContent=periodLabel(S.meta.start,S.meta.end);document.title=S.meta.title+' · 언제돼?';renderMe();S.tab==='mine'?(periodChanged?renderCalendar():syncCalendar()):renderRank();renderVoteSaveState()}
 }
 
 /* ----- 닉네임 선택 ----- */
@@ -1238,7 +1238,7 @@ function viewEntry(){
   detachVoteDrag?.();detachVoteDrag=null;
   const typed=myProfile.nickname||$('#nick')?.value||kakaoUser?.name||'';
   $('#app').innerHTML=`
-    <a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a>
+    <a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></a>
     ${meetingTitleMarkup('entryTitle')}
     ${meetingPeriodMarkup()}
     <section class="panel">
@@ -1282,7 +1282,7 @@ function viewMain(){
   clearAdminLogo();
   $('#app').innerHTML=`
     <div class="top">
-      <a class="brand" href="./" aria-label="언제봐? 홈"><img src="./assets/brand-logo.png" alt="언제봐?" width="2172" height="724"></a>
+      <a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></a>
       <div class="top-actions"><button class="btn ghost icon-btn" id="myMeetings" aria-label="내가 참여한 모임투표 목록" title="내 모임투표">${listIcon()}</button></div>
     </div>
     ${meetingTitleMarkup('meetingTitle')}
