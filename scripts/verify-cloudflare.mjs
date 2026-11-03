@@ -10,7 +10,7 @@ async function check(path,status,verify,options={}) {
 }
 await check('/?s=m_migration_readonly',200,async r=>{assert.match(r.headers.get('content-type')||'',/text\/html/);assert((await r.text()).includes('firebase-identity.js'));assert.equal(r.headers.get('x-frame-options'),'DENY');});
 await check('/config.js',200,async r=>{assert((await r.text()).includes('requireFirebaseAuth:true'));});
-await check('/api/calendar-config',200,async r=>{assert.equal((await r.json()).enabled,false);assert.match(r.headers.get('cache-control')||'',/no-store/);});
+await check('/api/calendar-config',200,async r=>{const data=await r.json();assert.equal(data.enabled,true);assert.equal(data.configured,true);assert.match(data.clientId,/\.apps\.googleusercontent\.com$/);assert.match(r.headers.get('cache-control')||'',/no-store/);});
 await check('/api/admin',401);
 await check('/api/not-a-real-endpoint',404);
 await check('/privacy-policy',302,r=>assert.equal(r.headers.get('location'),'/privacy-policy/en'),{headers:{'Accept-Language':'en-US,en;q=0.9'}});

@@ -20,7 +20,7 @@ In Firebase Authentication, initialize the service if not already enabled. Custo
 
 Connect **holmescha1031/pickatime** in Cloudflare Workers & Pages, use `main` for production automatic deployment, root `/`, build `npm run build:cloudflare`, deploy `npx wrangler deploy`. The dependency range installs current compatible Wrangler v4. Run `npm run check:cloudflare` in the build environment for the native bundle/dry-run check, and `npx wrangler types` if adding typed bindings.
 
-Only the generated `dist/` directory is public. Server code, rules, setup documentation and keys are never copied. Matching static files bypass the Worker; the root index alias, API and policy/admin routes invoke code. Security headers also apply to static responses. The Google Calendar public connection remains paused during verification.
+Only the generated `dist/` directory is public. Server code, rules, setup documentation and keys are never copied. Matching static files bypass the Worker; the root index alias, API and policy/admin routes invoke code. Security headers also apply to static responses. Google Calendar public connection is enabled after the user supplied the approval email for calendar.events.readonly. ICS imports and the unused parser are removed.
 
 If the account does not yet have a workers.dev subdomain, open Workers & Pages once or create one before the first preview deployment. Connecting the ChatGPT Cloudflare plugin does not install the Cloudflare GitHub app; authorize the repository in Cloudflare if prompted.
 

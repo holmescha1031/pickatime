@@ -12,6 +12,7 @@ fs.cpSync(path.join(root,'assets'),path.join(out,'assets'),{recursive:true});
 for(const file of fs.readdirSync(path.join(out,'assets'))){
  if(['brand-logo.png','share-thumbnail-v8.png'].includes(file)||/^share-thumbnail-v\d+\.jpg$/.test(file))fs.rmSync(path.join(out,'assets',file));
 }
+fs.rmSync(path.join(out,'assets','vendor','ical'),{recursive:true,force:true});
 fs.writeFileSync(path.join(out,'config.js'),'window.APP_CONFIG = {authServer:location.origin,publicSite:location.origin+"/",requireFirebaseAuth:true};\n');
 fs.writeFileSync(path.join(out,'_headers'),`/*
   X-Content-Type-Options: nosniff

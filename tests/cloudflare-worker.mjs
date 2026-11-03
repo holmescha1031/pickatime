@@ -8,7 +8,8 @@ let r=await worker.fetch(new Request('https://test.example/privacy-policy',{head
 r=await worker.fetch(new Request('https://test.example/privacy-policy/ko',{headers:{'Accept-Language':'en-US'}}),env);assert.equal(r.status,200);assert.equal(paths.at(-1),'/privacy-policy.html');
 r=await worker.fetch(new Request('https://test.example/privacy-policy/en'),env);assert.equal(paths.at(-1),'/privacy-policy-en.html');assert.equal(r.headers.get('X-Frame-Options'),'DENY');
 r=await worker.fetch(new Request('https://test.example/api/not-real'),env);assert.equal(r.status,404);assert.match(r.headers.get('Cache-Control'),/no-store/);
-r=await worker.fetch(new Request('https://test.example/api/calendar-config'),env);assert.equal(r.status,200);assert.equal((await r.json()).enabled,false);
+process.env.GOOGLE_CLIENT_ID='1234567890-test.apps.googleusercontent.com';
+r=await worker.fetch(new Request('https://test.example/api/calendar-config'),env);assert.equal(r.status,200);assert.equal((await r.json()).enabled,true);delete process.env.GOOGLE_CLIENT_ID;
 r=await worker.fetch(new Request('https://test.example/api/admin'),env);assert.equal(r.status,401);
 r=await invoke((req,res)=>res.status(201).json({body:req.body}),new Request('https://test.example/api/test',{method:'POST',body:'{"value":1}'}));assert.equal(r.status,201);assert.deepEqual((await r.json()).body,{value:1});
 r=await invoke(()=>{throw Error('secret-value')},new Request('https://test.example/api/test'));assert.equal(r.status,503);assert(!(await r.text()).includes('secret-value'));
@@ -18,4 +19,4 @@ r=await invoke((req,res)=>res.status(204).end(),new Request('https://test.exampl
 const list=fs.readdirSync(new URL('../dist/',import.meta.url));for(const bad of ['api','lib','tests','database.rules.json','FIREBASE-DELETION-SETUP.md','.env'])assert(!list.includes(bad));assert(fs.readFileSync(new URL('../dist/config.js',import.meta.url),'utf8').includes('requireFirebaseAuth:true'));
 for(const file of ['index.html','privacy-policy.html','privacy-policy-en.html','terms-of-service.html'])assert(!fs.readFileSync(new URL('../dist/'+file,import.meta.url),'utf8').includes('https://pickatime-phi.vercel.app'));
 const config=JSON.parse(fs.readFileSync(new URL('../wrangler.jsonc',import.meta.url)));assert.deepEqual(config.assets.run_worker_first.filter(p=>p.startsWith('/assets')),[]);assert.equal(config.observability.logs.invocation_logs,false);
-console.log('PASS: Worker adapter routes, language overrides, security headers, paused Google connection, admin auth rejection, bounded body, sanitized errors, no secret/server files in public assets. Node adapter tests; workerd deployment test pending.');
+console.log('PASS: Worker adapter routes, language overrides, security headers, public Google connection, admin auth rejection, bounded body, sanitized errors, no secret/server files in public assets. Node adapter tests; workerd deployment test pending.');
