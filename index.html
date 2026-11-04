@@ -197,6 +197,11 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 @media(prefers-reduced-motion:reduce){.stk{transition:none}}
 .half.busy::before{content:"";position:absolute;z-index:3;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 1.5px #fff}
 .calbar{margin-bottom:12px}
+.calbtn-wrap{position:relative}.calbtn-wrap .calbtn{padding-right:42px}
+.cal-info{position:absolute;top:4px;right:5px;width:32px;height:32px;padding:0;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;border-radius:50%}
+.cal-info span{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#E7E9EE;color:#747A88;font:700 12px/1 system-ui,sans-serif}
+.cal-info:focus-visible{outline:2px solid var(--s1);outline-offset:1px}
+.calendar-example-copy{font-size:16px;line-height:1.65;margin:0 0 16px}.calendar-example{margin:0}.calendar-example img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:14px}.calendar-example figcaption{font-size:12px;color:var(--sub);margin-top:8px}
 .calbtn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;border:1.5px dashed #AEBBD3;background:#fff;border-radius:14px;padding:12px 14px;text-align:left}
 .calbtn .ic{flex:none;width:34px;height:34px;border-radius:10px;background:var(--paper);display:grid;place-items:center;font-size:18px}
 .calbtn .tx{flex:1;min-width:0}
@@ -1660,6 +1665,7 @@ function onDayTap(e){
   const w=e.target.closest('.wkplan');
   if(w){const d=w.nextElementSibling;d.hidden=!d.hidden;w.setAttribute('aria-expanded',String(!d.hidden));return}
   const act=e.target.closest('[data-cal]')?.dataset.cal;
+  if(act==='help')return openCalendarHelp();
   if(act==='open')return openCalSheet();
   if(e.target.id==='clearAll'){
     if(!Object.keys(myVotes()).length){toast('붙인 스티커가 없어요');return}
@@ -1729,7 +1735,14 @@ function closeCalSheet(){calDialog?.close();calDialog?.remove();calDialog=null}
 function clearCal(){CAL=null;calIndex=null}
 function calBounds(){const b=window.VoteTransfer.bounds(S.meta);return b?{start:[b.start,todayStr()].sort().at(-1),end:b.end}:null}
 function calDays(){const cal=personalCalendar(),b=calBounds();if(!cal||!b||b.start>b.end)return {};const key=b.start+'|'+b.end;if(calIndex?.key!==key)calIndex={key,days:cal.engine.indexEvents(cal.events,b.start,b.end)};return calIndex.days}
-function calBarHtml(){const cal=personalCalendar();return `<button type="button" class="calbtn${cal?' on':''}" data-cal="open"><span class="ic" aria-hidden="true">📅</span><span class="tx"><b>${cal?'내 캘린더':'내 캘린더 가져오기'}</b>${cal?`<small>${esc(cal.source)} · ${cal.events.length}개 일정</small>`:''}</span><span class="go">${cal?'관리':'가져오기'}</span></button>`}
+function calBarHtml(){const cal=personalCalendar();return `<div class="calbtn-wrap"><button type="button" class="calbtn${cal?' on':''}" data-cal="open"><span class="ic" aria-hidden="true">📅</span><span class="tx"><b>내 캘린더 같이 보기</b>${cal?`<small>${esc(cal.source)} · ${cal.events.length}개 일정</small>`:''}</span><span class="go">${cal?'관리':'보기'}</span></button><button type="button" class="cal-info" data-cal="help" aria-label="내 캘린더 같이 보기 안내" aria-haspopup="dialog"><span aria-hidden="true">?</span></button></div>`}
+function openCalendarHelp(){
+  closeCalSheet();
+  const el=document.createElement('dialog');el.className='existing-meeting calendar-dialog';calDialog=el;
+  el.innerHTML=`<div class="dialog-heading"><h2 id="calendarHelpTitle">내 캘린더 같이 보기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div><p class="calendar-example-copy">내 일정을 보면서 되는 시간을 체크할 수 있어요.</p><figure class="calendar-example"><img src="./assets/calendar-preview.jpg" width="520" height="330" alt="일정 제목이 날짜 아래에 표시되고, 그 아래 점심·저녁 칸에서 스티커로 가능한 시간을 선택하는 예시"><figcaption>예시 일정으로 표시한 화면이에요.</figcaption></figure>`;
+  el.setAttribute('aria-labelledby','calendarHelpTitle');document.body.appendChild(el);
+  el.querySelector('[data-close]').onclick=()=>el.close();el.addEventListener('close',()=>{if(calDialog===el)calDialog=null;el.remove()});el.showModal();
+}
 function calendarDayHtml(date,events){
   if(!personalCalendar())return '';
   return `<button type="button" class="day-agenda${events.length?' has-events':''}" data-agenda="${date}" aria-label="${date} 내 일정 ${events.length}개">${events.length?events.slice(0,2).map(e=>`<span class="agenda-event" title="${esc(e.tm+' '+e.t)}">${esc(e.t)}</span>`).join('')+(events.length>2?`<span class="agenda-more">+${events.length-2}</span>`:''):'<span class="agenda-empty">-</span>'}</button>`;
@@ -1746,7 +1759,7 @@ function openCalSheet(){
   const c=voteImportContext(),bounds=calBounds();if(!bounds||bounds.start>bounds.end){toast('가져올 수 있는 투표 기간이 없어요.');return}
   const el=document.createElement('dialog');el.className='existing-meeting calendar-dialog';calDialog=el;
   const current=personalCalendar();
-  el.innerHTML=`<section id="calendarImportPane"><div class="dialog-heading"><h2 id="calendarImportTitle">내 캘린더 가져오기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div>
+  el.innerHTML=`<section id="calendarImportPane"><div class="dialog-heading"><h2 id="calendarImportTitle">내 캘린더 같이 보기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div>
     <p class="hint">일정을 보면서 스티커를 붙여 보세요.</p>
     <button type="button" class="btn blue block" id="calGoogle" disabled aria-describedby="calGoogleNote">구글 연결 준비 중…</button>
     <p class="hint" id="calGoogleNote">Google 계정에 저장된 캘린더를 연결할 수 있어요.</p>
