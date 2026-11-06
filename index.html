@@ -361,6 +361,7 @@ const loginRedirectUri = ()=>location.origin===new URL(PUBLIC_SITE_URL).origin
   ? PUBLIC_SITE_URL : location.origin+location.pathname;
 if(window.Kakao && !Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY);
 function loginKakao(intent='join'){
+  if(window.APP_CONFIG?.readOnlyPreview){toast('검사용 화면에서는 로그인과 저장을 사용할 수 없어요.');return;}
   if(!window.Kakao?.Auth?.authorize){toast('카카오 SDK를 불러오지 못했어요. 새로고침해 주세요.');return}
   if(!window.APP_CONFIG?.authServer){toast('로그인 서버 설정을 확인해 주세요.');return}
   const state=randId(32);
@@ -415,7 +416,7 @@ function makeStore(){
   if (FIREBASE_CONFIG.databaseURL && window.firebase) {
     firebase.initializeApp(FIREBASE_CONFIG);
     const db = firebase.database();
-    const authorizeWrite=async()=>{if(window.APP_CONFIG?.requireFirebaseAuth){const id=kakaoUser?.id;await window.FirebaseIdentity.ensure(id);if(kakaoUser?.id!==id)throw Error('계정이 변경됐어요. 다시 시도해 주세요.')}};
+    const authorizeWrite=async()=>{if(window.APP_CONFIG?.readOnlyPreview)throw Error('READ_ONLY_PREVIEW');if(window.APP_CONFIG?.requireFirebaseAuth){const id=kakaoUser?.id;await window.FirebaseIdentity.ensure(id);if(kakaoUser?.id!==id)throw Error('계정이 변경됐어요. 다시 시도해 주세요.')}};
     return {
       demo:false,
       get:async p=>{if(p.startsWith('profiles/'))await authorizeWrite();return db.ref(p).once('value').then(s=>s.val())},
@@ -1157,6 +1158,7 @@ function openMeetingPeriod(){
 
 /* ---------- 2. 세션 ---------- */
 async function meetingAction(action,values={}){
+  if(window.APP_CONFIG?.readOnlyPreview)throw Error('READ_ONLY_PREVIEW');
   if(store.demo){
     if(action==='create'){await store.set(`sessions/${values.sid}/meta`,{...values.meta,originalTitle:values.meta.title,createdAt:Date.now()});return {meta:values.meta};}
     if(action==='update'){await store.update(`sessions/${values.sid||sid}/meta`,values.changes);return {};}

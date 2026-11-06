@@ -10,6 +10,7 @@ module.exports=async(req,res)=>{
   if(req.method==='POST'){
    if(req.headers.origin!==siteOrigin())return res.status(403).json({error:'허용되지 않은 요청입니다.'});
    let body=req.body;try{if(typeof body==='string')body=JSON.parse(body)}catch{return res.status(400).json({error:'올바른 JSON 파일을 선택해 주세요.'})}
+   if(body?.action==='database-policy'){await require('../lib/database-policy').apply();return res.status(200).json({applied:true});}
    if(body?.action==='ga'){
     if(!analytics.valid(body.measurementId))return res.status(400).json({error:'G-로 시작하는 GA4 측정 ID를 확인해 주세요.'});
     const measurementId=await analytics.setId(body.measurementId);cache.clear();return res.status(200).json({configured:true,measurementId});

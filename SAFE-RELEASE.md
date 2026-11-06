@@ -1,0 +1,9 @@
+# Keep active polls available during releases
+
+Production stays on its current immutable Worker version while code is edited, built and tested. `npm run deploy:cloudflare` runs the regression suite, uploads a candidate version without activating it, checks that version URL, and only then moves production to its exact version ID. A concurrent production change aborts promotion. Failed production smoke checks restore the captured previous code version. The release does not change database data or rules.
+
+Version URLs are public read-only inspection endpoints, not a separate writable staging database. All non-read API methods are blocked there; client login and Firebase writes are disabled by preview configuration. The checks only read public configuration and DB policy readiness. Private account OAuth flows must be checked separately with test accounts and an isolated database if changed.
+
+Normal API requests and cron jobs no longer install DB rules. A missing policy marker fails candidate `/api/health` without replacing production. Policy installation is a separate authenticated, production-origin administrator action (`POST /api/admin`, action `database-policy`), with a private backup. For a new policy, use a new schema version and first verify that both the currently served client and the new client can use the rules. Add compatible fields first; do not remove old fields, vote levels, membership paths or identity claims while older pages may still be open. Do not rotate the Kakao HMAC secret as a routine deployment.
+
+The existing routes, domains, scheduled trigger and encrypted bindings are retained. A code rollback does not roll back Firebase data or rules. Health checks reduce deployment risk; they do not guarantee availability during provider outages or catch every signed-in interaction.

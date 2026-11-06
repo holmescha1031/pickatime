@@ -29,7 +29,8 @@
       "/privacy-policy/en",
       "/privacy-policy/ko",
       "/terms-of-service",
-      "/admin"
+      "/admin",
+      "/config.js"
     ]
   },
   "observability": {
@@ -47,5 +48,6 @@
   },
   "placement": {
     "hostname": "pickatime-meet-default-rtdb.asia-southeast1.firebasedatabase.app"
-  }
+  },
+  "preview_urls": true
 }

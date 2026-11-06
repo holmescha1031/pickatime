@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build:cloudflare": "node scripts/build-cloudflare.cjs",
-    "deploy:cloudflare": "npm run build:cloudflare && wrangler deploy",
+    "deploy:cloudflare": "npm run build:cloudflare && node scripts/release-cloudflare.mjs",
     "check:cloudflare": "npm run build:cloudflare && wrangler deploy --dry-run"
   },
   "devDependencies": {

@@ -37,11 +37,17 @@ export async function invoke(handler,request){
  }catch(e){return Response.json({error:e.message==='BODY_TOO_LARGE'?'요청이 너무 큽니다.':e.message==='INVALID_JSON'?'잘못된 요청입니다.':'서버 설정이나 연결을 확인해 주세요.'},{status:e.message==='BODY_TOO_LARGE'?413:e.message==='INVALID_JSON'?400:503,headers});}
 }
 export default {
- async scheduled(event,env,ctx){ctx.waitUntil((async()=>{await policy.ensure();await workflow.drainOne();})());},
+ async scheduled(event,env,ctx){ctx.waitUntil((async()=>{await workflow.drainOne();})());},
  async fetch(request,env){
   const url=new URL(request.url);
+  const preview=url.hostname.endsWith('.workers.dev');
+  if(preview&&!['GET','HEAD','OPTIONS'].includes(request.method))return protect(Response.json({error:'READ_ONLY_PREVIEW'},{status:403}));
+  if(url.pathname==='/api/health'){
+   try{await policy.ensure();return protect(Response.json({ready:true},{headers:{'Cache-Control':'no-store'}}));}
+   catch{return protect(Response.json({ready:false},{status:503,headers:{'Cache-Control':'no-store'}}));}
+  }
+  if(preview&&url.pathname==='/config.js')return protect(new Response('window.APP_CONFIG={authServer:location.origin,publicSite:location.origin+"/",requireFirebaseAuth:true,readOnlyPreview:true};',{headers:{'Content-Type':'application/javascript','Cache-Control':'no-store'}}));
   if(url.pathname.startsWith('/api/')){
-   if(env.FIREBASE_SERVICE_ACCOUNT_JSON&&request.method!=='OPTIONS'){try{await policy.ensure()}catch(e){console.error(JSON.stringify({event:'database_policy_failed',status:e.status,phase:e.phase,detail:e.detail}));return protect(Response.json({error:'DB 보호 설정을 적용하지 못했어요. 잠시 후 다시 시도해 주세요.'},{status:503,headers:{'Cache-Control':'no-store'}}));}}
    const handler=handlers[url.pathname];
    const result=handler?await invoke(handler,request):Response.json({error:'NOT_FOUND'},{status:404,headers:{'Cache-Control':'no-store'}});
    return protect(result);

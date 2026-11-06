@@ -20,3 +20,8 @@ const list=fs.readdirSync(new URL('../dist/',import.meta.url));for(const bad of 
 for(const file of ['index.html','privacy-policy.html','privacy-policy-en.html','terms-of-service.html'])assert(!fs.readFileSync(new URL('../dist/'+file,import.meta.url),'utf8').includes('https://pickatime-phi.vercel.app'));
 const config=JSON.parse(fs.readFileSync(new URL('../wrangler.jsonc',import.meta.url)));assert.deepEqual(config.assets.run_worker_first.filter(p=>p.startsWith('/assets')),[]);assert.equal(config.observability.logs.invocation_logs,false);
 console.log('PASS: Worker adapter routes, language overrides, security headers, public Google connection, admin auth rejection, bounded body, sanitized errors, no secret/server files in public assets. Node adapter tests; workerd deployment test pending.');
+
+const previewOrigin='https://release-test-pickatime.example.workers.dev';
+for(const path of ['/api/meeting','/api/firebase-token','/api/kakao','/api/admin']){const response=await worker.fetch(new Request(previewOrigin+path,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),env);assert.equal(response.status,403);assert.equal((await response.json()).error,'READ_ONLY_PREVIEW');}
+const cfg=await worker.fetch(new Request(previewOrigin+'/config.js'),env);assert((await cfg.text()).includes('readOnlyPreview:true'));
+console.log('PASS: version URLs cannot issue login tokens or perform server-side meeting/admin mutations.');
