@@ -327,7 +327,7 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 .create-top{margin:0 0 22px}.number-stepper{display:grid;grid-template-columns:52px minmax(80px,1fr) 52px;gap:10px;align-items:center}.number-stepper input{text-align:center;font-size:24px;font-weight:700;appearance:textfield}.number-stepper input::-webkit-inner-spin-button{appearance:none}.number-stepper button{display:grid;place-items:center;padding:0;line-height:1;height:52px;border:1.5px solid var(--line);border-radius:14px;background:var(--paper);color:var(--s1);font-size:28px;cursor:pointer}.number-stepper button svg{display:block;width:24px;height:24px}.number-stepper button:disabled{opacity:.35}#countHint{text-align:center}.kind-emoji{font-family:"Apple Color Emoji","Segoe UI Emoji",sans-serif;font-size:19px;line-height:1}.create-bottom{margin-top:6px}.trip-month .half{height:96px}
 .rank-actions{display:flex;justify-content:flex-end;margin:8px 0 12px}.rank-confirm-action{position:static;padding:8px 10px;font-size:12px;color:var(--s1)}.rank-pick-guide{grid-column:1/-1;margin:0 0 10px;padding:10px;border-radius:10px;background:var(--paper);color:var(--s1);font-size:13px;line-height:1.5}.ranked-date{padding:0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:default}.confirm-candidate{cursor:pointer;outline:1.5px solid #a8a4df}.confirm-candidate .ranked-date{cursor:pointer}.ranked-date:focus-visible{outline:2px solid var(--s1);outline-offset:4px}
 .drag-hint{margin:8px 0 0;font-size:12px;line-height:1.35;text-align:center}.vote-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 8px}.vote-toolbar .vote-save-status{flex:1;min-width:0;margin:0;font-size:12px;min-height:34px;align-items:center;overflow-wrap:anywhere}.vote-toolbar .vote-save-status>span{padding:6px 10px;min-height:34px}.reuse-votes{display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:34px;padding:6px 10px;border:1px solid #D5D0EC;border-radius:999px;background:#E3DFF5;color:#484177;font:700 12px/20px var(--body);cursor:pointer}.reuse-votes:disabled{opacity:.4;cursor:default}.reuse-votes[hidden]{display:none}.reuse-votes:focus-visible{outline:2px solid var(--s1);outline-offset:3px}
-.trip-fields{margin-bottom:28px}#chooseDay,#chooseTrip{min-height:58px}.meeting-kind-switch{margin-bottom:24px}.home-panel[hidden],.home-meetings[hidden]{display:none!important}.home-list-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 24px}.home-list-heading h2{margin:0;font-size:22px}.home-tabs{margin-bottom:24px}
+.trip-fields{margin-bottom:28px}#chooseDay,#chooseTrip,#chooseMonths,#chooseDates{min-height:58px}.meeting-kind-switch{margin-bottom:24px}.home-panel[hidden],.home-meetings[hidden]{display:none!important}.home-list-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 24px}.home-list-heading h2{margin:0;font-size:22px}.home-tabs{margin-bottom:24px}
 .vote-tabs-wrap{position:sticky;top:0;z-index:6;  background-color:var(--paper);  background-image:radial-gradient(ellipse at 8% 0%,#E0E5FC 0,transparent 48%),radial-gradient(ellipse at 100% 24%,#EBEAFE 0,transparent 45%),linear-gradient(160deg,#F8F9FF,#EFF1FC);  background-attachment:fixed;;margin:0 -16px 14px;padding:8px 16px 10px}.vote-tabs-wrap .tabs{position:static;margin:0}.attendance-number{display:inline-flex;align-items:center;gap:4px}.attendance-edit{display:inline-grid;place-items:center;width:30px;height:30px;padding:5px;border:0;border-radius:8px;background:transparent;color:var(--sub);vertical-align:middle}.attendance-edit svg{width:16px;height:16px}.attendance-edit:hover{background:var(--paper)}.member-editor .dialog-heading{margin-bottom:20px}
 </style>
 <link rel="stylesheet" href="/assets/site-footer.css">
@@ -632,10 +632,13 @@ function bindAdminLogo(){
   detachAdminLogo=()=>link.remove();
 }
 function canShareToKakao(){
-  return Boolean(window.Kakao?.isInitialized?.()&&window.Kakao?.Share?.sendDefault);
+  return Boolean(window.Kakao?.isInitialized?.()&&window.Kakao?.Share?.sendDefault&&window.Kakao?.Share?.sendCustom);
 }
 function shareToKakao(sid,title,options={}){
   const payload=shareContent(sid,title,options),url=payload.url;
+  if(options.kakaoTemplateArgs){
+    return window.Kakao.Share.sendCustom({templateId:138674,templateArgs:options.kakaoTemplateArgs});
+  }
   if(options.kakaoText){
     return window.Kakao.Share.sendDefault({
       objectType:'text',text:options.kakaoText,
@@ -845,7 +848,7 @@ function viewCreate(){
     </section>
     <section class="panel">
       <div class="period-switch meeting-kind-switch" role="group" aria-label="모임 종류">
-        <button type="button" class="period-option" id="chooseDay"><span class="period-option-title"><span class="kind-emoji" aria-hidden="true">🍽️</span>하루 보기</span></button>
+        <button type="button" class="period-option" id="chooseDay"><span class="period-option-title"><span class="kind-emoji" aria-hidden="true">🍖</span>하루 보기</span></button>
         <button type="button" class="period-option" id="chooseTrip"><span class="period-option-title"><span class="kind-emoji" aria-hidden="true">🌴</span>여행 가기</span></button>
       </div>
       <div id="tripFields" class="trip-fields" hidden><label class="f" for="tripDays">며칠 동안 여행하나요?</label><div class="number-stepper"><button type="button" id="tripMinus" aria-label="여행 일수 줄이기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button><input class="inp" id="tripDays" type="number" min="2" max="30" step="1" inputmode="numeric" value="${Number.isSafeInteger(draft?.tripDays)&&draft.tripDays>=2&&draft.tripDays<=30?draft.tripDays:2}"><button type="button" id="tripPlus" aria-label="여행 일수 늘리기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button></div></div>
@@ -1594,10 +1597,26 @@ function rankKakaoText(title,status){
   }
   return shortHeading+'\n\n'+body;
 }
+function rankKakaoTemplateArgs(id,title,status){
+  const args={header:'📅 '+title+(status.complete?' 투표 결과':' 투표 현황')+' - '+status.headline,meeting_id:id};
+  for(let i=1;i<=5;i++){
+    const row=status.dates[i-1];
+    args['title'+i]='';args['desc'+i]='';args['THU'+i]=new URL('assets/sticker-eyes.png',PUBLIC_SITE_URL).href;
+    if(!row)continue;
+    const date=parseYmd(row.d),label=(date.getMonth()+1)+'월 '+date.getDate()+'일 ('+WD[date.getDay()]+')';
+    if(row.endDate){const end=parseYmd(row.endDate);args['title'+i]=label+' ~ '+(end.getMonth()+1)+'월 '+end.getDate()+'일 ('+WD[end.getDay()]+') 여행';}
+    else args['title'+i]=label+' '+SLOT_NAME[row.sl];
+    args['desc'+i]=row.count+'/'+status.total+'명 가능';
+    const image=status.total>0&&row.count===status.total?'share-all-available.png':status.total>0&&row.count*5>=status.total*4?'sticker-sparkle.png':status.total>0&&row.count*2>=status.total?'sticker-eyes.png':'sticker-question.png';
+    args['THU'+i]=new URL('assets/'+image,PUBLIC_SITE_URL).href;
+  }
+  if(!status.dates.length){args.title1='아직 유력 날짜가 없어요';args.desc1='되는 시간에 스티커를 붙여 주세요';args.THU1=new URL('assets/sticker-eyes.png',PUBLIC_SITE_URL).href;}
+  return args;
+}
 function shareRankStatus(){
   const c=S.meta?.confirmed;if(c){const d=parseYmd(c.date);return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+' 확정 일정',description:c.endDate?periodLabel(c.date,c.endDate)+' 여행':`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]}) ${SLOT_NAME[c.slot]}`,buttonTitle:'확정 일정 보기',copyMessage:true,analyticsType:'confirmed'});}
   const status=rankShareState();
-  return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+(status.complete?' 투표 결과':' 투표 상황'),description:status.description,buttonTitle:'투표 보기',copyMessage:true,kakaoText:rankKakaoText(S.meta.title,status),analyticsType:status.complete?'result':'status'});
+  return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+(status.complete?' 투표 결과':' 투표 상황'),description:status.description,buttonTitle:'투표 보기',copyMessage:true,kakaoText:rankKakaoText(S.meta.title,status),kakaoTemplateArgs:rankKakaoTemplateArgs(sid,S.meta.title,status),analyticsType:status.complete?'result':'status'});
 }
 
 function attendanceInfo(){
