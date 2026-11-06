@@ -8,7 +8,7 @@
 <meta name="description" content="되는 날에 스티커만 붙이면, 다 같이 되는 날이 바로 보여요.">
 <meta property="og:title" content="언제돼?">
 <meta property="og:description" content="가능한 시간에 스티커만 붙여주세요">
-<meta property="og:image" content="https://pickatime-phi.vercel.app/assets/share-thumbnail-v9.png">
+<meta property="og:image" content="https://pickatime.xyz/assets/share-card-calendar-v1.jpg">
 <meta property="og:image:width" content="1734">
 <meta property="og:image:height" content="907">
 <meta name="theme-color" content="#F3F4FF">
@@ -655,7 +655,7 @@ function shareToKakao(sid,title,options={}){
     content:{
       title:payload.title,
       description:payload.description,
-      imageUrl:new URL('assets/share-thumbnail-v9.png',PUBLIC_SITE_URL).href,
+      imageUrl:new URL('assets/share-card-calendar-v1.jpg',PUBLIC_SITE_URL).href,
       imageWidth:1734,imageHeight:907,
       link:{mobileWebUrl:url,webUrl:url}
     },
@@ -1627,7 +1627,7 @@ function rankKakaoTemplateArgs(id,title,status){
   return args;
 }
 function shareRankStatus(){
-  const c=S.meta?.confirmed;if(c){const d=parseYmd(c.date);return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+' 확정 일정',description:c.endDate?periodLabel(c.date,c.endDate)+' 여행':`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]}) ${SLOT_NAME[c.slot]}`,buttonTitle:'확정 일정 보기',copyMessage:true,analyticsType:'confirmed'});}
+  const c=S.meta?.confirmed;if(c){const d=parseYmd(c.date);return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+' 확정 일정',description:c.endDate?periodLabel(c.date,c.endDate)+' 여행':`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]}) ${SLOT_NAME[c.slot]}`,buttonTitle:'투표 보기',copyMessage:true,analyticsType:'confirmed'});}
   const status=rankShareState();
   return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+(status.complete?' 투표 결과':' 투표 상황'),description:status.description,buttonTitle:'투표 보기',copyMessage:true,kakaoText:rankKakaoText(S.meta.title,status),kakaoTemplateArgs:rankKakaoTemplateArgs(sid,S.meta.title,status),analyticsType:status.complete?'result':'status'});
 }
