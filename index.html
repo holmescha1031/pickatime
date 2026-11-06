@@ -326,6 +326,7 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 .create-top{margin:0 0 22px}.number-stepper{display:grid;grid-template-columns:52px minmax(80px,1fr) 52px;gap:10px;align-items:center}.number-stepper input{text-align:center;font-size:24px;font-weight:700;appearance:textfield}.number-stepper input::-webkit-inner-spin-button{appearance:none}.number-stepper button{height:52px;border:1.5px solid var(--line);border-radius:14px;background:var(--paper);color:var(--s1);font-size:28px;cursor:pointer}.number-stepper button:disabled{opacity:.35}.trip-month .half{height:96px}
 .rank-actions{display:flex;justify-content:flex-end;margin:8px 0 12px}.rank-confirm-action{position:static;padding:8px 10px;font-size:12px;color:var(--s1)}.rank-pick-guide{grid-column:1/-1;margin:0 0 10px;padding:10px;border-radius:10px;background:var(--paper);color:var(--s1);font-size:13px;line-height:1.5}.ranked-date{padding:0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:default}.confirm-candidate{cursor:pointer;outline:1.5px solid #a8a4df}.confirm-candidate .ranked-date{cursor:pointer}.ranked-date:focus-visible{outline:2px solid var(--s1);outline-offset:4px}
 .drag-hint{margin:0 2px;font-size:12px;line-height:1.6}.vote-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0}.vote-toolbar .vote-save-status{flex:1;min-width:0;margin:0;font-size:12px;min-height:34px;align-items:center;overflow-wrap:anywhere}.vote-toolbar .vote-save-status>span{padding:6px 10px;min-height:34px}.reuse-votes{display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:34px;padding:6px 10px;border:1px solid #BCE4CC;border-radius:999px;background:#E7F6ED;color:#187447;font:700 12px/20px var(--body);cursor:pointer}.reuse-votes:disabled{opacity:.4;cursor:default}.reuse-votes[hidden]{display:none}.reuse-votes:focus-visible{outline:2px solid var(--s1);outline-offset:3px}
+.trip-fields{margin-bottom:28px}#chooseDay,#chooseTrip{min-height:58px}.meeting-kind-switch{margin-bottom:24px}.home-panel[hidden],.home-meetings[hidden]{display:none!important}.home-list-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 24px}.home-list-heading h2{margin:0;font-size:22px}.home-tabs{margin-bottom:24px}
 </style>
 <link rel="stylesheet" href="/assets/site-footer.css">
 </head>
@@ -341,6 +342,7 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 <script src="./assets/vote-save-state.js"></script>
 <script src="./assets/meeting-state.js"></script>
 <script src="./assets/trip-votes.js"></script>
+<script src="./assets/meeting-list-order.js"></script>
 <script src="./assets/analytics.js"></script>
 
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
@@ -821,6 +823,7 @@ function viewCreate(){
   const savedStart=validDraft&&draft.start.length===10?draft.start:'';
   const savedEnd=validDraft&&draft.end.length===10?draft.end:'';
   $('#app').innerHTML=`
+    <div id="homeTabsHost"></div><section id="homeCreatePanel" class="home-panel">
     <div class="hero">
       <span class="brand brand--hero" id="homeLogo" aria-label="언제돼?"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></span>
       <h1 class="home-headline">되는 날에 스티커만 붙여줘</h1>
@@ -839,11 +842,11 @@ function viewCreate(){
       <p class="count-error" id="countError" role="alert" hidden>참여 인원은 100명을 초과할 수 없어요.</p>
     </section>
     <section class="panel">
-      <div class="period-switch" role="group" aria-label="모임 종류">
-        <button type="button" class="period-option" id="chooseDay"><span class="period-option-title">하루 보기</span><span class="period-option-detail">하루 중 되는 시간</span></button>
-        <button type="button" class="period-option" id="chooseTrip"><span class="period-option-title">여행 가기</span><span class="period-option-detail">연속으로 되는 기간</span></button>
+      <div class="period-switch meeting-kind-switch" role="group" aria-label="모임 종류">
+        <button type="button" class="period-option" id="chooseDay"><span class="period-option-title">하루 보기</span></button>
+        <button type="button" class="period-option" id="chooseTrip"><span class="period-option-title">여행 가기</span></button>
       </div>
-      <div id="tripFields" hidden><label class="f" for="tripDays">며칠 동안 여행하나요? (일)</label><input class="inp" id="tripDays" type="number" min="2" max="30" step="1" inputmode="numeric" value="${Number.isSafeInteger(draft?.tripDays)&&draft.tripDays>=2&&draft.tripDays<=30?draft.tripDays:2}"><p class="hint" id="tripHint">여행 일수를 입력하면 연속으로 가능한 후보 기간을 찾아요.</p></div>
+      <div id="tripFields" class="trip-fields" hidden><label class="f" for="tripDays">며칠 동안 여행하나요? (일)</label><div class="number-stepper"><button type="button" id="tripMinus" aria-label="여행 일수 줄이기">−</button><input class="inp" id="tripDays" type="number" min="2" max="30" step="1" inputmode="numeric" value="${Number.isSafeInteger(draft?.tripDays)&&draft.tripDays>=2&&draft.tripDays<=30?draft.tripDays:2}"><button type="button" id="tripPlus" aria-label="여행 일수 늘리기">+</button></div></div>
       <label class="f">언제 중에 고를까요?</label>
       <div class="period-switch" role="group" aria-label="투표 기간 선택 방식">
         <button type="button" class="period-option" id="chooseMonths" aria-controls="monthChoice">
@@ -866,7 +869,7 @@ function viewCreate(){
       </div>
     </section>
     <button class="btn block home-meetings" id="homeMyMeetings">투표중인 모임 보기</button>
-    <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog>`;
+    <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog></section><section id="homeListPanel" class="home-panel" hidden aria-label="내 모임 목록"><div class="home-list-heading"><h2>내 모임</h2><button type="button" class="btn ghost" data-home-refresh>새로고침</button></div><div id="homeMeetingList" class="meeting-list" aria-live="polite"></div></section>`;
   $('#homeMyMeetings').onclick=()=>openMyMeetings();
   void bindAdminLogo();
   const countInput=$('#expectedCount');
@@ -880,7 +883,9 @@ function viewCreate(){
   for(const [id,delta]of [['countMinus',-1],['countPlus',1]])$('#'+id).onclick=()=>{countInput.value=String(Math.max(2,Math.min(100,(Number(countInput.value)||2)+delta)));countInput.oninput();};countInput.oninput();
   const paintMeetingType=()=>{$('#tripFields').hidden=meetingType!=='trip';$('#chooseDay').setAttribute('aria-pressed',String(meetingType==='day'));$('#chooseTrip').setAttribute('aria-pressed',String(meetingType==='trip'));};
   $('#chooseDay').onclick=()=>{meetingType='day';paintMeetingType()};$('#chooseTrip').onclick=()=>{meetingType='trip';paintMeetingType()};paintMeetingType();
-  $('#tripDays').oninput=()=>{const days=Number($('#tripDays').value);$('#tripHint').textContent=Number.isInteger(days)&&days>=2&&days<=30?`${days-1}박 ${days}일 · 후보 범위 안에서 연속된 기간을 찾아요.`:'여행 일수는 2~30일로 입력해 주세요.';};$('#tripDays').oninput();
+  const tripInput=$('#tripDays');
+  tripInput.oninput=()=>{$('#tripMinus').disabled=Number(tripInput.value)<=2;$('#tripPlus').disabled=Number(tripInput.value)>=30;};
+  for(const [id,delta]of [['tripMinus',-1],['tripPlus',1]])$('#'+id).onclick=()=>{tripInput.value=String(Math.max(2,Math.min(30,(Number(tripInput.value)||2)+delta)));tripInput.oninput();};tripInput.oninput();
   const paint=()=>{
     $('#months').innerHTML=months.map((m,i)=>{
       const [y,mm]=m.split('-');const cls=m===start||m===end?'edge':(m>start&&m<end?'in':'');
@@ -923,8 +928,8 @@ function viewCreate(){
   $('#endDate').onchange=validateDates;paintPeriodMode();validateDates();
   const t=$('#title');
   const lockCreateFields=value=>{
-    [t,countInput,$('#countMinus'),$('#countPlus'),$('#chooseDay'),$('#chooseTrip'),$('#tripDays'),$('#chooseMonths'),$('#chooseDates'),$('#startDate'),$('#endDate')].forEach(input=>input.disabled=value);
-    $('#months').querySelectorAll('.mo').forEach(button=>button.disabled=value);if(!value)countInput.oninput();
+    [t,countInput,$('#countMinus'),$('#countPlus'),$('#chooseDay'),$('#chooseTrip'),$('#tripDays'),$('#tripMinus'),$('#tripPlus'),$('#chooseMonths'),$('#chooseDates'),$('#startDate'),$('#endDate')].forEach(input=>input.disabled=value);
+    $('#months').querySelectorAll('.mo').forEach(button=>button.disabled=value);if(!value){countInput.oninput();tripInput.oninput();}
   };
   t.oninput=()=>{
     $('#existingMeeting').close();
@@ -952,7 +957,7 @@ function viewCreate(){
     panel.showModal();
   };
   $('#create').onclick=async()=>{
-    const title=t.value.trim();if(!title){t.focus();t.style.borderColor='var(--sun)';toast('모임 정보를 먼저 입력해 주세요. 모임 이름부터 적어 주세요.');t.scrollIntoView?.({block:'center',behavior:'smooth'});return}t.style.borderColor='';
+    const title=t.value.trim();if(!title){t.focus();t.style.borderColor='var(--sun)';toast('모임 이름을 적어주세요.');t.scrollIntoView?.({block:'center',behavior:'smooth'});return}t.style.borderColor='';
     const expectedCount=Number(countInput.value);
     if(!validateCountLimit()){countInput.focus();return}
     if(!Number.isSafeInteger(expectedCount)||expectedCount<2){$('#expectedCount').focus();toast('참여 예정 인원을 2명 이상의 정수로 입력해 주세요.');return}
@@ -1013,6 +1018,7 @@ function viewCreate(){
       toast('입력 내용은 유지됩니다. 아래 오류를 확인해 주세요.');
     }
   };
+  mountHomeTabs();
   if(resumeCreate&&kakaoUser&&validDraft){resumeCreate=false;return $('#create').onclick()}
   resumeCreate=false;
 }
@@ -1446,15 +1452,52 @@ function viewMain(){
   renderMe();renderTab();renderConfirmation();
   if(SS.get('wmd:new')===sid){SS.del('wmd:new');openShareSheet()}
 }
+let homeTab='create',homeListRequest=0;
+function mountHomeTabs(){
+  const host=$('#homeTabsHost');if(!host)return;
+  if(!kakaoUser){host.innerHTML='';$('#homeCreatePanel').hidden=false;$('#homeListPanel').hidden=true;return;}
+  if(!host.firstElementChild){
+    host.innerHTML='<div class="tabs home-tabs" role="tablist" aria-label="모임 관리"><button type="button" class="tab" id="homeCreateTab" role="tab" aria-controls="homeCreatePanel" data-home-tab="create">모임 생성</button><button type="button" class="tab" id="homeListTab" role="tab" aria-controls="homeListPanel" data-home-tab="list">모임 목록 보기</button></div>';
+    host.onclick=e=>{const tab=e.target.closest('[data-home-tab]');if(tab)selectHomeTab(tab.dataset.homeTab);};
+    host.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const next=e.key==='Home'?'create':e.key==='End'?'list':homeTab==='create'?'list':'create';selectHomeTab(next);$('#'+(next==='create'?'homeCreateTab':'homeListTab')).focus();};
+  }
+  if($('#homeMyMeetings'))$('#homeMyMeetings').hidden=true;
+  selectHomeTab(homeTab);
+}
+function selectHomeTab(tab){
+  if(!kakaoUser||!$('#homeCreatePanel'))return;
+  homeTab=tab==='list'?'list':'create';homeListRequest++;
+  for(const [name,panel,button]of [['create','homeCreatePanel','homeCreateTab'],['list','homeListPanel','homeListTab']]){
+    const active=name===homeTab;$('#'+panel).hidden=!active;$('#'+panel).setAttribute('role','tabpanel');$('#'+panel).setAttribute('aria-labelledby',button);$('#'+button).setAttribute('aria-selected',String(active));$('#'+button).tabIndex=active?0:-1;
+  }
+  if(homeTab==='list')void renderHomeMeetings();
+}
+async function renderHomeMeetings(){
+  const body=$('#homeMeetingList'),userId=kakaoUser?.id,request=++homeListRequest;
+  if(!body||!userId)return;
+  const active=()=>body.isConnected&&!sid&&kakaoUser?.id===userId&&homeTab==='list'&&homeListRequest===request;
+  body.innerHTML=loadingIndicator('모임을 불러오는 중…');
+  $('#homeListPanel').onclick=e=>{const item=e.target.closest('[data-meeting]');if(item){e.preventDefault();navigateToMeeting(item.dataset.meeting);}else if(e.target.closest('[data-home-refresh],[data-retry]'))void renderHomeMeetings();};
+  try{
+    await loadMyProfile();if(!active())return;
+    const results=await Promise.allSettled(Object.keys(myProfile.meetings||{}).map(async id=>await isMeetingDeleted(id)?null:meetingPreview(id,await store.get(`sessions/${id}`),userId)));
+    if(!active())return;
+    const meetings=results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value).sort(window.MeetingListOrder.compare),failed=results.some(r=>r.status==='rejected');
+    body.innerHTML=`${!profileCloudReady?`<p class="hint">${esc(profileSyncIssue||'일부 참여 이력을 확인하지 못했어요.')}</p>`:''}${meetings.map(m=>`<article class="meeting-card" data-meeting="${esc(m.id)}"><div class="meeting-details"><b>${esc(m.title)}</b><small>${esc(m.label)} · ${esc(m.top)}</small><span class="meeting-attendance">참여 ${esc(m.attendance)}명 · ${m.confirmed?'확정됨':m.ended?'후보 날짜 지남':'투표 중'}</span></div><button type="button" class="btn blue view-vote" data-meeting="${esc(m.id)}" aria-label="${esc(m.title)} 열기">${m.confirmed?'일정 보기':'투표 보기'}</button></article>`).join('')||'<p class="empty">아직 참여한 모임이 없어요.</p>'}${failed?'<p class="hint">일부 모임을 불러오지 못했어요.</p><button type="button" class="btn ghost" data-retry>다시 불러오기</button>':''}`;
+  }catch{if(active())body.innerHTML='<p class="empty">모임을 불러오지 못했어요.</p><button type="button" class="btn ghost" data-retry>다시 불러오기</button>';}
+}
 function meetingPreview(id,data,userId){
   if(!data?.meta||!data.members?.[userId])return null;
   const {list}=computeRank(data),best=list[0];
   const tied=best?list.filter(r=>r.unavailable===best.unavailable&&r.count===best.count&&r.score===best.score).length:0;
   const date=best?parseYmd(best.d):null;
-  const top=best?`${date.getFullYear()}.${pad(date.getMonth()+1)}.${pad(date.getDate())} (${WD[date.getDay()]}) ${best.endDate?'~ '+best.endDate+' 여행':SLOT_NAME[best.sl]}${tied>1?' · 공동 1위 '+tied+'개':''}`:'아직 예정된 1위 일시가 없어요';
+  const confirmed=data.meta.confirmed,range=window.VoteTransfer.bounds(data.meta),today=todayStr();
+  const dateKey=confirmed?.date||best?.d||(range?(range.start<today&&range.end>=today?today:range.start):'9999-12-31');
+  const label=confirmed?'확정 일정':best?'현재 1위':'후보 기간';
+  const top=confirmed?periodLabel(confirmed.date,confirmed.endDate||confirmed.date)+(confirmed.endDate?' 여행':' '+SLOT_NAME[confirmed.slot]):best?`${date.getFullYear()}.${pad(date.getMonth()+1)}.${pad(date.getDate())} (${WD[date.getDay()]}) ${best.endDate?'~ '+best.endDate+' 여행':SLOT_NAME[best.sl]}${tied>1?' · 공동 1위 '+tied+'개':''}`:(range?periodLabel(range.start,range.end):'후보 날짜 없음');
   const joined=Object.keys(data.members).length;
   const expected=Number.isSafeInteger(data.meta.expectedCount)&&data.meta.expectedCount>=2&&data.meta.expectedCount<=100?data.meta.expectedCount:null;
-  return {id,title:data.meta.title,top,attendance:expected?`${joined}/${expected}`:String(joined),createdAt:Number(data.meta.createdAt)||0};
+  return {id,title:data.meta.title,top,label,confirmed:Boolean(confirmed),ended:Boolean(range&&range.end<today),dateKey,attendance:expected?`${joined}/${expected}`:String(joined),createdAt:Number(data.meta.createdAt)||0};
 }
 function navigateToMeeting(id){
   if(!validMeetingId(id))return;
@@ -1464,6 +1507,7 @@ function navigateToMeeting(id){
 async function openMyMeetings(){
   await sessionReady;
   if(!kakaoUser){loginKakao('meetings');return}
+  if(!sid&&$('#homeListPanel')){mountHomeTabs();selectHomeTab('list');return;}
   usage('meeting_list_view');
   const userId=kakaoUser.id,previousFocus=document.activeElement;
   const el=document.createElement('div');el.className='sheet my-meetings';
@@ -1493,10 +1537,10 @@ async function openMyMeetings(){
     const ids=Object.keys(myProfile.meetings);
     const results=await Promise.allSettled(ids.map(async id=>await isMeetingDeleted(id)?null:meetingPreview(id,await store.get(`sessions/${id}`),userId)));
     if(!el.isConnected||kakaoUser?.id!==userId)return;
-    const meetings=results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value).sort((a,b)=>b.createdAt-a.createdAt||a.title.localeCompare(b.title));
+    const meetings=results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value).sort(window.MeetingListOrder.compare);
     const failed=results.some(r=>r.status==='rejected');
     body.innerHTML=`${!profileCloudReady?`<p class="hint">${esc(profileSyncIssue||'계정 목록을 동기화하지 못했어요.')} 현재 기기의 참여 이력을 표시합니다.</p><button class="btn ghost" data-retry>동기화 다시 시도</button>`:''}
-      ${meetings.map(m=>`<article class="meeting-card" data-meeting="${esc(m.id)}" ${m.id===sid?'aria-current="page"':''}><div class="meeting-details"><b>${esc(m.title)}</b><small>현재 1위 · ${esc(m.top)}</small><span class="meeting-attendance">참여 ${esc(m.attendance)}명</span></div><button class="btn blue view-vote" data-meeting="${esc(m.id)}" ${m.id===sid?'disabled aria-current="page"':''} aria-label="${esc(m.title)} ${m.id===sid?'보는 중':'투표 보기'}">${m.id===sid?'보는 중':'투표 보기'}</button></article>`).join('')||'<p class="empty">아직 참여한 모임투표가 없어요.<br>모임 링크에서 참여하면 여기에 표시돼요.</p>'}
+      ${meetings.map(m=>`<article class="meeting-card" data-meeting="${esc(m.id)}" ${m.id===sid?'aria-current="page"':''}><div class="meeting-details"><b>${esc(m.title)}</b><small>${esc(m.label)} · ${esc(m.top)}</small><span class="meeting-attendance">참여 ${esc(m.attendance)}명</span></div><button class="btn blue view-vote" data-meeting="${esc(m.id)}" ${m.id===sid?'disabled aria-current="page"':''} aria-label="${esc(m.title)} ${m.id===sid?'보는 중':'투표 보기'}">${m.id===sid?'보는 중':'투표 보기'}</button></article>`).join('')||'<p class="empty">아직 참여한 모임투표가 없어요.<br>모임 링크에서 참여하면 여기에 표시돼요.</p>'}
       ${failed?'<p class="hint">일부 모임을 불러오지 못했어요.</p><button class="btn ghost" data-retry>다시 불러오기</button>':''}`;
   }catch(e){if(el.isConnected)body.innerHTML='<p class="empty">목록을 불러오지 못했어요.</p><button class="btn ghost" data-retry>다시 불러오기</button>'}
 }
@@ -2101,7 +2145,7 @@ function renderRank(){
   if(resumeAdmin||new URLSearchParams(location.search).get('admin')==='1'){if(kakaoUser)location.replace('/admin.html');else loginKakao('admin');return}
   if(immediateHome){
     // Do not replace inputs, scroll position, or keyboard focus after login restores.
-    if(!sid&&$('#homeLogo'))bindAdminLogo();
+    if(!sid&&$('#homeLogo')){bindAdminLogo();mountHomeTabs();}
   }else if(sid)bootSession();
   else viewCreate();
   if(resumeMeetings&&kakaoUser){resumeMeetings=false;await openMyMeetings()}
