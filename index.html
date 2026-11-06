@@ -1614,6 +1614,7 @@ function rankKakaoText(title,status){
   return shortHeading+'\n\n'+body;
 }
 function rankKakaoTemplateArgs(id,title,status){
+  if(!status.dates.length)return null;
   const args={header:'📅 '+title+(status.complete?' 투표 결과':' 투표 현황')+' - '+status.headline,meeting_id:id};
   for(let i=1;i<=5;i++){
     const row=status.dates[i-1];
@@ -1626,7 +1627,6 @@ function rankKakaoTemplateArgs(id,title,status){
     const image=status.total>0&&row.count===status.total?'share-all-available.png':status.total>0&&row.count*5>=status.total*4?'sticker-sparkle.png':status.total>0&&row.count*2>=status.total?'sticker-eyes.png':'sticker-question.png';
     args['THU'+i]=new URL('assets/'+image,PUBLIC_SITE_URL).href;
   }
-  if(!status.dates.length){args.title1='아직 유력 날짜가 없어요';args.desc1='되는 시간에 스티커를 붙여 주세요';args.THU1=new URL('assets/sticker-eyes.png',PUBLIC_SITE_URL).href;}
   return args;
 }
 function shareRankStatus(){
