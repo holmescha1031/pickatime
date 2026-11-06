@@ -9,3 +9,6 @@
 - Keep the cross-poll import action as a compact pill on the left of the save-status row; keep the save status on the right. Show the drag hint below the sticker legend.
 - On the signed-in home screen, use inline “모임 생성 / 모임 목록 보기” tabs; keep guest creation simple. Switching tabs or restoring a session must preserve in-progress inputs. List unconfirmed meetings by the displayed candidate date, then place confirmed meetings below them.
 - Day/trip kind choices have no subtitles. Use the same editable number stepper for participant count and trip days, with space before the date-range section. Keep missing-field notices brief and specific.
+- Put the participant-count editor in a small pencil icon beside the attendance count. Keep the lower bound at the current participant count (and the existing minimum of two); do not show the old count explanation or sticker-voter sentence. Use styled app dialogs for nickname changes.
+- Keep sticker instructions in a compact card with tighter rows and a centered drag hint. The compact import pill uses the previous purple action palette, distinct from the green save status, with a small gap before the calendar. Put an opaque pale-purple backdrop behind the sticky voting tabs.
+- Use “스티커 모두 떼기” for the clear action.

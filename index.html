@@ -153,8 +153,9 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .date-range-fields input{font-size:16px;padding:12px 8px;box-sizing:border-box}
 @media(max-width:350px){.date-range-fields{grid-template-columns:1fr}}
 /* legend */
-.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;font-size:13px;color:var(--sub);margin:2px 2px 12px}
-.legend>span{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.5}
+.sticker-guide{padding:14px;border:1.5px solid var(--line);border-radius:16px;background:var(--card)}
+.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;font-size:13px;color:var(--sub);margin:0}
+.legend>span{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.35}
 .legend>span:last-child{grid-column:1 / -1}
 .legend-sticker{display:inline-flex;width:30px;height:29px;flex:none;padding:0;background:transparent}
 .legend-sticker.l1{color:var(--s1)}.legend-sticker.l2{color:var(--s2)}.legend-sticker.l3{color:var(--s3)}
@@ -325,8 +326,9 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 .confirmed-banner{margin:16px 0;padding:20px 22px;border:1.5px solid #b8dac8;border-radius:24px;background:#eaf7ef;color:#246344}.confirmed-banner p{font-size:22px;font-weight:700;margin:10px 0}.confirmed-banner small{display:block;line-height:1.6}.confirmation-tools{display:flex;justify-content:flex-end;margin:8px 0}.confirm-row{padding:6px 0;font-size:13px;color:var(--s1)}.guest-save{margin-top:10px}.mebar:has(.guest-save){align-items:stretch}.edit-meeting-title[hidden]{display:none}dialog select.inp{appearance:auto}
 .create-top{margin:0 0 22px}.number-stepper{display:grid;grid-template-columns:52px minmax(80px,1fr) 52px;gap:10px;align-items:center}.number-stepper input{text-align:center;font-size:24px;font-weight:700;appearance:textfield}.number-stepper input::-webkit-inner-spin-button{appearance:none}.number-stepper button{height:52px;border:1.5px solid var(--line);border-radius:14px;background:var(--paper);color:var(--s1);font-size:28px;cursor:pointer}.number-stepper button:disabled{opacity:.35}.trip-month .half{height:96px}
 .rank-actions{display:flex;justify-content:flex-end;margin:8px 0 12px}.rank-confirm-action{position:static;padding:8px 10px;font-size:12px;color:var(--s1)}.rank-pick-guide{grid-column:1/-1;margin:0 0 10px;padding:10px;border-radius:10px;background:var(--paper);color:var(--s1);font-size:13px;line-height:1.5}.ranked-date{padding:0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:default}.confirm-candidate{cursor:pointer;outline:1.5px solid #a8a4df}.confirm-candidate .ranked-date{cursor:pointer}.ranked-date:focus-visible{outline:2px solid var(--s1);outline-offset:4px}
-.drag-hint{margin:0 2px;font-size:12px;line-height:1.6}.vote-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0}.vote-toolbar .vote-save-status{flex:1;min-width:0;margin:0;font-size:12px;min-height:34px;align-items:center;overflow-wrap:anywhere}.vote-toolbar .vote-save-status>span{padding:6px 10px;min-height:34px}.reuse-votes{display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:34px;padding:6px 10px;border:1px solid #BCE4CC;border-radius:999px;background:#E7F6ED;color:#187447;font:700 12px/20px var(--body);cursor:pointer}.reuse-votes:disabled{opacity:.4;cursor:default}.reuse-votes[hidden]{display:none}.reuse-votes:focus-visible{outline:2px solid var(--s1);outline-offset:3px}
+.drag-hint{margin:8px 0 0;font-size:12px;line-height:1.35;text-align:center}.vote-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 8px}.vote-toolbar .vote-save-status{flex:1;min-width:0;margin:0;font-size:12px;min-height:34px;align-items:center;overflow-wrap:anywhere}.vote-toolbar .vote-save-status>span{padding:6px 10px;min-height:34px}.reuse-votes{display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:34px;padding:6px 10px;border:1px solid #D5D0EC;border-radius:999px;background:#E3DFF5;color:#484177;font:700 12px/20px var(--body);cursor:pointer}.reuse-votes:disabled{opacity:.4;cursor:default}.reuse-votes[hidden]{display:none}.reuse-votes:focus-visible{outline:2px solid var(--s1);outline-offset:3px}
 .trip-fields{margin-bottom:28px}#chooseDay,#chooseTrip{min-height:58px}.meeting-kind-switch{margin-bottom:24px}.home-panel[hidden],.home-meetings[hidden]{display:none!important}.home-list-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 24px}.home-list-heading h2{margin:0;font-size:22px}.home-tabs{margin-bottom:24px}
+.vote-tabs-wrap{position:sticky;top:0;z-index:6;background:#ECEBFA;margin:0 -16px 14px;padding:8px 16px 10px}.vote-tabs-wrap .tabs{position:static;margin:0}.attendance-number{display:inline-flex;align-items:center;gap:4px}.attendance-edit{display:inline-grid;place-items:center;width:30px;height:30px;padding:5px;border:0;border-radius:8px;background:transparent;color:var(--sub);vertical-align:middle}.attendance-edit svg{width:16px;height:16px}.attendance-edit:hover{background:var(--paper)}.member-editor .dialog-heading{margin-bottom:20px}
 </style>
 <link rel="stylesheet" href="/assets/site-footer.css">
 </head>
@@ -802,6 +804,7 @@ function validateNewMeetingPeriod(range,mode,today=todayStr(),maxDate=null){
   return validateMeetingPeriod(range,today);
 }
 function viewCreate(){
+  closeMemberEditors();
   closeMeetingPeriod();
   setPageLoading(false);
   closeCalSheet();
@@ -1291,6 +1294,7 @@ const meKey=()=>`wmd:me:${sid}`;
 
 let sessionLoad=0;
 async function bootSession(){
+  closeMemberEditors();
   closeMeetingPeriod();
   closeDateConfirmation();
   closeCalSheet();
@@ -1369,6 +1373,7 @@ function refresh(periodChanged=false){
 
 /* ----- 닉네임 선택 ----- */
 function viewEntry(){
+  closeMemberEditors();
   closeMeetingPeriod();
   setPageLoading(false);
   closeCalSheet();
@@ -1418,6 +1423,7 @@ function enter(id){LS.set(meKey(),id);S.me=id;route()}
 
 /* ----- 메인 ----- */
 function viewMain(){
+  closeMemberEditors();
   setPageLoading(false);
   clearAdminLogo();
   $('#app').innerHTML=`
@@ -1431,11 +1437,11 @@ function viewMain(){
     <section id="confirmation" aria-live="polite"></section>
     <section class="attendance" id="attendance" aria-label="모임 참여 현황"></section>
     <div class="mebar" id="mebar"></div>
-    <div class="tabs" role="tablist">
+    <div class="vote-tabs-wrap"><div class="tabs" role="tablist">
       <button class="tab" role="tab" data-t="mine">스티커 붙이기</button>
       <button class="tab" role="tab" data-t="rank">날짜 순위<span class="live" aria-hidden="true"></span></button>
     </div>
-    <div id="body"></div>
+    </div><div id="body"></div>
     <div class="vote-delete-footer" id="deleteControl"></div>`;
   renderDeleteControl();
   bindMeetingTitleEdit();
@@ -1446,7 +1452,7 @@ function viewMain(){
     if(S.tab==='rank')url.searchParams.set('tab','rank');else url.searchParams.delete('tab');
     history.replaceState(null,'',url.pathname+url.search);
     
-    renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'})
+    renderTab();$('.vote-tabs-wrap').scrollIntoView({block:'start',behavior:'smooth'})
   }};
   bindAdminLogo();
   renderMe();renderTab();renderConfirmation();
@@ -1591,40 +1597,65 @@ function attendanceInfo(){
 }
 function renderAttendance(){
   const el=$('#attendance');if(!el)return;
-  const {ids,joined,expected,voted}=attendanceInfo();
+  expectedCountDialog?.syncCount?.();
+  const {ids,joined,expected}=attendanceInfo();
   if(!S.me&&!S.isOwner){el.innerHTML=`<div class="attendance-head"><span class="attendance-count">참여 <b>${joined}${expected?'/'+expected:''}</b>명</span><span class="hint">스티커부터 붙여 보세요</span></div>`;return;}
   const shareStatus=rankShareState();
   const members=S.members||{};
   const sorted=sortedMemberIds(members),colors=memberColorMap(members);
   el.innerHTML=`
     <div class="attendance-head">
-      <span class="attendance-count" aria-live="polite">참여 <b>${joined}${expected?'/'+expected:''}</b>명</span>
+      <span class="attendance-number"><span class="attendance-count" aria-live="polite">참여 <b>${joined}${expected?'/'+expected:''}</b>명</span><button type="button" class="attendance-edit" id="setExpected" aria-label="참여 인원 수정" title="참여 인원 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg></button></span>
       <button class="btn blue invite-btn" id="inviteVote">투표링크 공유하기</button>
     </div>
     <div class="member-stickers">${sorted.map(id=>{const c=colors[id];return `<span class="name-sticker" style="--member-color:${c};--member-bg:${c}12">${esc(members[id].name)}${id===S.me?' <small>(나)</small>':''}</span>`}).join('')||'<span class="hint">참여한 친구들이 여기에 표시돼요.</span>'}</div>
-    <p class="hint">${voted}명이 스티커를 붙였어요.${expected?'':' 예정 인원이 아직 정해지지 않았어요.'}</p>
-    ${'<button class="btn ghost" id="setExpected">'+(expected?'예정 인원 수정':'예정 인원 설정')+'</button>'}
     <div class="vote-results-ready"><b>${esc(shareStatus.complete?'모두 참여했어요! 상위 5개 날짜를 공유해 보세요.':shareStatus.headline)}</b><button class="btn blue invite-btn" id="shareAllResults">${shareStatus.complete?'결과 공유하기':'현재 상황 공유하기'}</button></div>`;
   if($('#shareAllResults'))$('#shareAllResults').onclick=shareRankStatus;
   $('#inviteVote').onclick=()=>share(sid,S.meta.title);
   if($('#setExpected'))$('#setExpected').onclick=openExpectedCountEditor;
 }
+let expectedCountDialog=null,nicknameDialog=null;
+function closeMemberEditors(){
+  expectedCountDialog?.close();expectedCountDialog?.remove();expectedCountDialog=null;
+  nicknameDialog?.close();nicknameDialog?.remove();nicknameDialog=null;
+}
 function openExpectedCountEditor(){
   if(!S.isOwner){toast('모임 정보는 모임장만 수정할 수 있어요');return;}
-  const id=sid,request=sessionLoad,min=Math.max(2,Object.keys(S.members||{}).length),el=document.createElement('dialog');
-  el.className='existing-meeting';el.setAttribute('aria-labelledby','editCountTitle');
-  el.innerHTML=`<div class="dialog-heading"><h2 id="editCountTitle">참여 인원 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div><div class="number-stepper"><button type="button" data-minus aria-label="참여 인원 줄이기">−</button><input class="inp" type="number" inputmode="numeric" min="${min}" max="100" step="1" value="${Math.max(min,S.meta.expectedCount||2)}" aria-label="참여 인원"><button type="button" data-plus aria-label="참여 인원 늘리기">+</button></div><p class="hint">현재 참여한 ${min===2&&Object.keys(S.members||{}).length<2?Object.keys(S.members||{}).length:min}명 이상, 최소 2명으로 설정해 주세요.</p><p data-error role="alert" class="count-error" hidden></p><button type="button" class="btn blue block" data-save>저장하기</button>`;
+  closeMemberEditors();
+  const id=sid,request=sessionLoad,minCount=()=>Math.max(2,Object.keys(S.members||{}).length),el=document.createElement('dialog');
+  expectedCountDialog=el;el.className='existing-meeting member-editor';el.setAttribute('aria-labelledby','editCountTitle');
+  el.innerHTML=`<div class="dialog-heading"><h2 id="editCountTitle">참여 인원 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div><div class="dialog-stack"><div class="number-stepper"><button type="button" data-minus aria-label="참여 인원 줄이기">−</button><input class="inp" type="number" inputmode="numeric" min="${minCount()}" max="100" step="1" value="${Math.max(minCount(),S.meta.expectedCount||2)}" aria-label="참여 인원"><button type="button" data-plus aria-label="참여 인원 늘리기">+</button></div><p data-error role="alert" class="count-error" hidden></p><button type="button" class="btn blue block" data-save>저장하기</button></div>`;
   document.body.appendChild(el);const input=el.querySelector('input'),minus=el.querySelector('[data-minus]'),plus=el.querySelector('[data-plus]');
-  const sync=()=>{minus.disabled=Number(input.value)<=min;plus.disabled=Number(input.value)>=100;};
-  input.oninput=sync;minus.onclick=()=>{input.value=Math.max(min,(Number(input.value)||min)-1);sync()};plus.onclick=()=>{input.value=Math.min(100,(Number(input.value)||min)+1);sync()};sync();
-  el.querySelector('[data-close]').onclick=()=>el.close();el.addEventListener('close',()=>el.remove());el.showModal();
+  const sync=()=>{input.min=minCount();minus.disabled=Number(input.value)<=minCount();plus.disabled=Number(input.value)>=100;};el.syncCount=sync;
+  input.oninput=sync;minus.onclick=()=>{input.value=Math.max(minCount(),(Number(input.value)||minCount())-1);sync()};plus.onclick=()=>{input.value=Math.min(100,(Number(input.value)||minCount())+1);sync()};sync();
+  el.querySelector('[data-close]').onclick=()=>el.close();el.addEventListener('close',()=>{if(expectedCountDialog===el)expectedCountDialog=null;el.remove()});el.showModal();
   el.querySelector('[data-save]').onclick=async()=>{
     if(sid!==id||sessionLoad!==request){el.close();return;}
-    const value=Number(input.value),error=el.querySelector('[data-error]'),button=el.querySelector('[data-save]');
+    const value=Number(input.value),error=el.querySelector('[data-error]'),button=el.querySelector('[data-save]'),min=minCount();
     if(!Number.isSafeInteger(value)||value<min||value>100){error.textContent=`참여 인원은 ${min}~100명의 정수로 입력해 주세요.`;error.hidden=false;return;}
     button.disabled=true;
     try{await meetingAction('update',{sid:id,changes:{expectedCount:value}});el.close();if(sid===id&&sessionLoad===request){S.meta={...S.meta,expectedCount:value};refresh();}}
     catch(e){if(el.isConnected){error.textContent=e.message;error.hidden=false;button.disabled=false;}}
+  };
+}
+function openNicknameEditor(){
+  const member=S.members?.[S.me];if(!member||!kakaoUser)return;
+  closeMemberEditors();
+  const id=sid,request=sessionLoad,userId=kakaoUser.id,el=document.createElement('dialog');nicknameDialog=el;
+  el.className='existing-meeting member-editor';el.setAttribute('aria-labelledby','nicknameTitle');
+  el.innerHTML=`<div class="dialog-heading"><h2 id="nicknameTitle">이름 바꾸기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div><form class="dialog-stack"><div><label class="f" for="nicknameInput">모든 모임에서 사용할 이름</label><input class="inp" id="nicknameInput" maxlength="10" autocomplete="nickname" value="${esc(myProfile.nickname||member.name)}" placeholder="이름 (최대 10자)"></div><p data-error role="alert" class="count-error" hidden></p><button type="submit" class="btn blue block" data-save>저장하기</button></form>`;
+  const input=el.querySelector('input'),error=el.querySelector('[data-error]'),button=el.querySelector('[data-save]');
+  document.body.appendChild(el);el.querySelector('[data-close]').onclick=()=>el.close();el.addEventListener('close',()=>{if(nicknameDialog===el)nicknameDialog=null;el.remove()});el.showModal();input.focus();input.select();
+  el.querySelector('form').onsubmit=async e=>{
+    e.preventDefault();if(button.disabled||e.isComposing)return;
+    if(sid!==id||sessionLoad!==request||kakaoUser?.id!==userId){el.close();return;}
+    const name=input.value.trim();
+    if(!name||[...name].length>10){error.textContent=!name?'이름을 입력해 주세요.':'닉네임은 10자 이내로 입력해 주세요.';error.hidden=false;input.focus();return;}
+    button.disabled=true;input.disabled=true;error.hidden=true;
+    try{
+      const changed=await renameMyNickname(name);el.close();
+      if(sid===id&&sessionLoad===request&&kakaoUser?.id===userId){renderMe();toast(!changed?'일부 모임의 이름을 바꾸지 못했어요. 해당 모임에 다시 들어가 주세요.':'참여한 모임의 닉네임을 바꿨어요.');}
+    }catch{if(el.isConnected){error.textContent='계정 닉네임을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.';error.hidden=false;button.disabled=false;input.disabled=false;}}
   };
 }
 function renderMe(){
@@ -1634,15 +1665,7 @@ function renderMe(){
   if(!m){bar.hidden=false;bar.innerHTML=`<div><b>먼저 되는 시간에 스티커를 붙여 보세요</b><p class="hint">선택은 로그인 후 친구들에게 보여요.</p><button type="button" class="btn guest-save" id="saveGuest" style="background:#FEE500;color:#191919">${S.isCreationPreview?'로그인하고 모임 만들기':kakaoUser?'참여하고 선택 저장하기':'카카오 로그인하고 선택 저장하기'}</button></div>`;$('#saveGuest').onclick=saveGuestVotes;return;}
   bar.hidden=false;
   $('#mebar').innerHTML=`<span class="row">${avatar(m.name,memberColorMap(S.members)[S.me])}<span><b>${esc(m.name)}</b>${ro(m.name)} 참여 중</span></span><button class="btn ghost" id="switch">이름 바꾸기</button>`;
-  $('#switch').onclick=async()=>{
-    const typed=prompt('모든 모임에서 사용할 닉네임을 입력해 주세요. (최대 10자)',myProfile.nickname||m.name);
-    const name=typed?.trim();if(!name)return;
-    if([...name].length>10){toast('닉네임은 10자 이내로 입력해 주세요.');return}
-    try{
-      const changed=await renameMyNickname(name);renderMe();
-      toast(!changed?'일부 모임의 이름을 바꾸지 못했어요. 해당 모임에 다시 들어가 주세요.':'참여한 모임의 닉네임을 바꿨어요.');
-    }catch(e){toast('계정 닉네임을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')}
-  };
+  $('#switch').onclick=openNicknameEditor;
 }
 let detachVoteDrag=null;
 function renderTab(){
@@ -1848,19 +1871,19 @@ function renderCalendar(){
   $('#body').innerHTML=`
     <div class="calbar" id="calbar">${calBarHtml()}</div>
     ${window.TripVotes.trip(S.meta)?`<p class="hint">${S.meta.tripDays-1}박 ${S.meta.tripDays}일 여행 · 하루 전체가 가능한 날에 스티커를 붙여 주세요.</p>`:''}
-    <div class="legend">
+    <section class="sticker-guide" aria-label="스티커 붙이는 방법"><div class="legend">
       <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>한 번 클릭: 아마 가능</span>
       <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>두 번 클릭: 되긴 하는데…</span>
       <span><i class="legend-sticker l4" aria-hidden="true">${meetingSticker(4)}</i>길게 누르기: 어떻게 해도 불가능</span>
     </div>
-    <p class="hint drag-hint">(드래그해서 붙일 수도 있어요)</p>
+    <p class="hint drag-hint">(드래그해서 붙일 수도 있어요)</p></section>
     ${S.me&&Object.keys(S.blocked?.[S.me]||{}).length?'<p class="hint">다른 모임에서 확정된 시간에는 자동 X가 표시돼요. 그 모임의 확정을 바꾸거나 취소하면 해제돼요.</p>':''}
     <div class="vote-toolbar"><button type="button" class="reuse-votes" id="reuseVotes">다른 투표에서 가져오기</button><p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p></div>
     <button type="button" class="btn ghost" id="retryVoteSave" hidden>다시 저장하기</button>
     ${ended?'<p class="calendar-ended-note" role="status">후보 날짜가 모두 지난 투표예요. 상단 날짜 옆 연필로 기간을 바꿀 수 있어요.</p>':''}
     ${S.me&&Object.keys(S.guestVotes).length?'<div class="panel"><p>로그인 전에 선택한 스티커가 아직 저장되지 않았어요.</p><button type="button" class="btn blue block" id="retryGuestDraft">선택 다시 저장하기</button></div>':''}
     ${html}
-    <button class="btn ghost clear" id="clearAll">직접 붙인 스티커 모두 떼기</button>`;
+    <button class="btn ghost clear" id="clearAll">스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
   detachVoteDrag=window.attachVoteDrag($('#body'),(b,l,method)=>setVoteLevel(b,l,method||'drag'),nextVoteLevel);
   $('#reuseVotes').hidden=window.TripVotes.trip(S.meta);

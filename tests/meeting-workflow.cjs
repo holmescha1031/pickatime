@@ -33,6 +33,7 @@ function fixture(){root={};put(`sessions/${target}`,{meta:{title:'Target',start:
  await assert.rejects(act('update',{changes:{title:'Stolen'}},{id:outsider}),e=>e.status===403);
  await assert.rejects(act('confirm',{date:tomorrow,slot:'L'},{id:outsider}),e=>e.status===403);
  await assert.rejects(act('update',{changes:{expectedCount:1}}),e=>e.status===400);
+ put(`sessions/${id}/members/${outsider}`,{name:'Third',joinedAt:1});await assert.rejects(act('update',{changes:{expectedCount:2}}),e=>e.status===400);put(`sessions/${id}/members/${outsider}`,null);
  await act('update',{changes:{title:'Renamed',expectedCount:6}});assert.equal(get(`sessions/${id}/meta/originalTitle`),'Source');assert.equal(get(`sessions/${id}/meta/expectedCount`),6);
  const original=copy(get(`sessions/${target}/votes`));
  // Every member is included, even one whose original vote was impossible.
