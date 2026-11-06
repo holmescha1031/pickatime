@@ -17,7 +17,7 @@ function nextDate(date){return new Date(Date.parse(date+'T00:00:00Z')+dayMs).toI
 function relevant(e,range){return e.a?e.s<new Date(range.to+9*3600000).toISOString().slice(0,10)&&e.e>new Date(range.from+9*3600000).toISOString().slice(0,10):e.s<range.to&&e.e>range.from}
 async function googleGet(path,token){
   const response=await fetch('https://www.googleapis.com/calendar/v3/'+path,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
-  if(!response.ok)throw Error(response.status===401?'구글 연결이 만료됐어요. 다시 연결해 주세요.':response.status===403?'캘린더 읽기 권한을 허용해 주세요. Google Calendar API가 활성화되어 있는지도 확인해 주세요.':'구글 캘린더를 불러오지 못했어요. 다시 시도해 주세요.');
+  if(!response.ok)throw Error(response.status===401?'구글 연결이 만료됐어요. 다시 연결해 주세요.':response.status===403?'캘린더 읽기 권한을 허용해 주세요. 구글 캘린더 API가 활성화되어 있는지도 확인해 주세요.':'구글 캘린더를 불러오지 못했어요. 다시 시도해 주세요.');
   return response.json();
 }
 export async function listGoogle(token){

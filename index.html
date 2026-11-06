@@ -197,14 +197,18 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 @media(prefers-reduced-motion:reduce){.stk{transition:none}}
 .half.busy::before{content:"";position:absolute;z-index:3;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 1.5px #fff}
 .calbar{margin-bottom:12px}
-.calendar-example{margin:0 0 20px}.calendar-example img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:14px}
-.calendar-account-note{margin:22px 0 4px;text-align:center;line-height:1.7;color:var(--sub);font-size:13px}
+.dialog-stack{display:flex;flex-direction:column;gap:24px}.dialog-stack>*{margin:0}.calendar-example{margin:0}
+.calendar-example-demo{padding:10px;border:1px solid var(--line);border-radius:16px;background:#f3f2fd;contain:content}
+.example-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;padding:10px 5px;border:1px solid var(--line);border-radius:13px;background:#fff}
+.example-column{display:flex;flex-direction:column;gap:4px;min-width:0;text-align:center}.example-weekday{color:var(--sub);font-size:11px;line-height:18px;font-weight:700}.example-column:first-child .example-weekday{color:var(--sun)}.example-column:last-child .example-weekday{color:var(--sat)}.example-date{font-size:13px;line-height:18px}
+.example-agenda{display:flex;flex-direction:column;justify-content:center;gap:2px;height:44px;padding:2px;border-radius:9px;background:#f6f5fc;overflow:hidden}.example-event{background:#e2e7fa;color:#353f83;font-size:9px;line-height:15px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.example-empty{font-size:10px;color:var(--sub)}
+.example-cell{height:44px;display:grid;place-items:center;border-radius:10px;background:#eff1fa;font-size:10px;font-weight:600;overflow:hidden}.example-cell .meeting-mark{max-width:52px;background-size:115% auto}
+.calendar-account-note{margin:0;text-align:center;line-height:1.7;color:var(--sub);font-size:13px}.calendar-dialog #calStatus{margin:24px 0 0;text-align:center;line-height:1.7}
 .existing-meeting.calendar-browser-notice{max-width:340px}.calendar-browser-notice p{line-height:1.7;margin:12px 0 22px}.calendar-dialog #calStatus:empty{display:none}
 .calbtn{padding-right:42px}
 .cal-info{position:absolute;top:4px;right:5px;width:32px;height:32px;padding:0;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;border-radius:50%}
 .cal-info span{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#E7E9EE;color:#747A88;font:700 12px/1 system-ui,sans-serif}
 .cal-info:focus-visible{outline:2px solid var(--s1);outline-offset:1px}
-.calendar-example-copy{font-size:16px;line-height:1.65;margin:0 0 16px}.calendar-example{margin:0}.calendar-example img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:14px}.calendar-example figcaption{font-size:12px;color:var(--sub);margin-top:8px}
 .calbtn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;border:1.5px dashed #AEBBD3;background:#fff;border-radius:14px;padding:12px 14px;text-align:left}
 .calbtn .ic{flex:none;width:34px;height:34px;border-radius:10px;background:var(--paper);display:grid;place-items:center;font-size:18px}
 .calbtn .tx{flex:1;min-width:0}
@@ -320,7 +324,7 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 .calendar-dialog [hidden]{display:none!important}
 .confirmed-banner{margin:16px 0;padding:20px 22px;border:1.5px solid #b8dac8;border-radius:24px;background:#eaf7ef;color:#246344}.confirmed-banner p{font-size:22px;font-weight:700;margin:10px 0}.confirmed-banner small{display:block;line-height:1.6}.confirmation-tools{display:flex;justify-content:flex-end;margin:8px 0}.confirm-row{padding:6px 0;font-size:13px;color:var(--s1)}.guest-save{margin-top:10px}.mebar:has(.guest-save){align-items:stretch}.edit-meeting-title[hidden]{display:none}dialog select.inp{appearance:auto}
 .create-top{margin:0 0 22px}.number-stepper{display:grid;grid-template-columns:52px minmax(80px,1fr) 52px;gap:10px;align-items:center}.number-stepper input{text-align:center;font-size:24px;font-weight:700;appearance:textfield}.number-stepper input::-webkit-inner-spin-button{appearance:none}.number-stepper button{height:52px;border:1.5px solid var(--line);border-radius:14px;background:var(--paper);color:var(--s1);font-size:28px;cursor:pointer}.number-stepper button:disabled{opacity:.35}.trip-month .half{height:96px}
-.rk.first-rank{position:relative;padding-top:54px}.rank-confirm-action{position:absolute;right:12px;top:9px;padding:8px 10px;font-size:12px;color:var(--s1)}.rank-pick-guide{grid-column:1/-1;margin:0 0 10px;padding:10px;border-radius:10px;background:var(--paper);color:var(--s1);font-size:13px;line-height:1.5}.ranked-date{padding:0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:default}.confirm-candidate{cursor:pointer;outline:1.5px solid #a8a4df}.confirm-candidate .ranked-date{cursor:pointer}.ranked-date:focus-visible{outline:2px solid var(--s1);outline-offset:4px}
+.rank-actions{display:flex;justify-content:flex-end;margin:8px 0 12px}.rank-confirm-action{position:static;padding:8px 10px;font-size:12px;color:var(--s1)}.rank-pick-guide{grid-column:1/-1;margin:0 0 10px;padding:10px;border-radius:10px;background:var(--paper);color:var(--s1);font-size:13px;line-height:1.5}.ranked-date{padding:0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:default}.confirm-candidate{cursor:pointer;outline:1.5px solid #a8a4df}.confirm-candidate .ranked-date{cursor:pointer}.ranked-date:focus-visible{outline:2px solid var(--s1);outline-offset:4px}
 </style>
 <link rel="stylesheet" href="/assets/site-footer.css">
 </head>
@@ -1920,30 +1924,39 @@ function openCalendarDay(date){
   el.innerHTML=`<div class="dialog-heading"><h2 id="calendarDayTitle">${esc(date)}</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div><div class="agenda-details">${list.length?list.map(e=>`<div><small>${esc(e.tm)}</small><b>${esc(e.t)}</b></div>`).join(''):'<p>가져온 일정이 없는 날이에요.</p>'}</div>`;
   el.setAttribute('aria-labelledby','calendarDayTitle');document.body.appendChild(el);el.querySelector('[data-close]').onclick=closeCalSheet;el.addEventListener('close',()=>{if(calDialog===el)calDialog=null;el.remove()});el.showModal();
 }
+function calendarExampleMarkup(){
+  const labels=['일','월','화','수','목','금','토'],events={1:['팀 회의','운동'],3:['치과예약'],5:['점심약속','친구모임']};
+  return `<figure class="calendar-example"><div class="calendar-example-demo" role="img" aria-label="내 일정 아래 점심·저녁에 스티커를 붙이는 예시 화면"><div class="example-week">${labels.map((label,i)=>`<div class="example-column"><span class="example-weekday">${label}</span><b class="example-date">${8+i}</b><div class="example-agenda">${events[i]?events[i].map(title=>`<span class="example-event">${title}</span>`).join(''):'<span class="example-empty">-</span>'}</div>${['점심','저녁'].map((name,slot)=>`<div class="example-cell">${i===2&&slot===0||i===4&&slot===1?meetingSticker(2):name}</div>`).join('')}</div>`).join('')}</div></div></figure>`;
+}
 function openCalSheet(){
   closeVoteImport();closeCalSheet();
   const c=voteImportContext(),account=kakaoUser?.id||null,bounds=calBounds();if(!bounds||bounds.start>bounds.end){toast('가져올 수 있는 투표 기간이 없어요.');return}
   const el=document.createElement('dialog');el.className='existing-meeting calendar-dialog';calDialog=el;
   const current=personalCalendar();
   el.innerHTML=`<section id="calendarImportPane"><div class="dialog-heading"><h2 id="calendarImportTitle" tabindex="-1">내 캘린더 같이 보기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div>
-    <div id="calConnectIntro"><figure class="calendar-example"><img src="./assets/calendar-preview-v2.webp" width="1170" height="870" alt="날짜 아래 내 일정이 표시되고 점심·저녁 칸에 스티커를 붙이는 화면"></figure>
+    <div id="calConnectIntro" class="dialog-stack">${calendarExampleMarkup()}
     <button type="button" class="btn blue block" id="calGoogle" disabled aria-describedby="calGoogleNote">구글 연결 준비 중…</button>
-    <p class="calendar-account-note" id="calGoogleNote">Google 계정에 저장된 캘린더를 연결할 수 있어요.</p>
+    <p class="calendar-account-note" id="calGoogleNote">구글 계정에 저장된 캘린더를 연결할 수 있어요.</p>
     ${current?'<button type="button" class="btn ghost block" id="calRemove">가져온 일정 지우기</button>':''}</div>
     <div id="calChoices"></div><p id="calStatus" class="hint" role="status" aria-live="polite"></p><div id="calPreview"></div></section>`;
   el.setAttribute('aria-labelledby','calendarImportTitle');document.body.appendChild(el);
-  let token=null,disposed=false,working=false,config=null,googleReady=false;
+  let token=null,disposed=false,working=false,config=null,googleReady=false,connectionAttempted=false;
   const canConnectGoogle=()=>googleReady&&Boolean(config?.clientId)&&config.enabled===true;
   const active=()=>!disposed&&el.isConnected&&sid===c.id&&sessionLoad===c.request&&S.me===c.user&&(kakaoUser?.id||null)===account&&shown==='main'&&S.tab==='mine'&&S.meta?.start===c.start&&S.meta?.end===c.end;
   const dispose=()=>{disposed=true;token=null;el.remove();if(calDialog===el)calDialog=null};
   el.addEventListener('close',dispose);el.addEventListener('cancel',()=>{if(working)token=null});
   el.querySelector('[data-close]').onclick=()=>el.close();
   const status=el.querySelector('#calStatus'),preview=el.querySelector('#calPreview'),choices=el.querySelector('#calChoices');
+  const setStatus=message=>{
+    status.textContent=message||'';
+    el.querySelector('#calGoogleNote').hidden=connectionAttempted||Boolean(message)||el.querySelector('#calConnectIntro').hidden;
+    const button=el.querySelector('#calGoogle');if(message)button.setAttribute('aria-describedby','calStatus');else if(!connectionAttempted)button.setAttribute('aria-describedby','calGoogleNote');else button.removeAttribute('aria-describedby');
+  };
   const controls=()=>[el.querySelector('#calGoogle'),el.querySelector('#calRemove')].filter(Boolean);
   const busy=value=>{working=value;controls().forEach(b=>b.disabled=value||(b.id==='calGoogle'&&!canConnectGoogle()))};
   const showPreview=(engine,events,source)=>{
     if(!active())return;el.querySelector('#calConnectIntro').hidden=true;el.querySelector('#calendarImportTitle').textContent='일정 미리보기';const index=engine.indexEvents(events,bounds.start,bounds.end),dates=Object.keys(index).sort();
-    status.textContent=events.length?`${events.length}개 일정을 가져왔어요.`:'이 기간에 등록된 일정이 없어요.';
+    setStatus(events.length?`${events.length}개 일정을 가져왔어요.`:'이 기간에 등록된 일정이 없어요.');
     choices.innerHTML='';
     preview.innerHTML=`<p><b>${bounds.start} ~ ${bounds.end}</b></p><div class="calendar-preview">${dates.slice(0,3).map(date=>`<div><small>${date}</small>${index[date].slice(0,3).map(e=>`<span>${esc(e.tm)} ${esc(e.t)}</span>`).join('')}</div>`).join('')||'<p class="hint">일정이 없는 날에도 직접 스티커를 붙일 수 있어요.</p>'}</div><button type="button" class="btn blue block" id="calApply">스티커판에 일정 표시하기</button>`;
     preview.querySelector('#calApply').onclick=()=>{if(!active())return;CAL={id:c.id,user:account,source,events,engine};calIndex=null;closeCalSheet();renderCalendar();toast('내 일정을 표시했어요.')};
@@ -1951,40 +1964,41 @@ function openCalSheet(){
   el.querySelector('#calRemove')?.addEventListener('click',()=>{clearCal();closeCalSheet();renderCalendar();toast('가져온 일정을 지웠어요. 스티커는 유지돼요.')});
   const prepareGoogle=async()=>{
     const button=el.querySelector('#calGoogle'),note=el.querySelector('#calGoogleNote');
-    button.disabled=true;button.textContent='구글 연결 준비 중…';
+    button.disabled=true;button.textContent='구글 연결 준비 중…';setStatus('');
     try{
       const data=await calendarConfig();if(!active())return;
       if(!data.enabled||!data.clientId)throw Error('구글 연결 설정이 필요해요. 잠시 후 다시 시도해 주세요.');
       await googleCalendarSDK();if(!active())return;
-      config=data;googleReady=true;button.textContent='구글 캘린더 연결';button.disabled=working;
-      note.textContent='Google 계정에 저장된 캘린더를 연결할 수 있어요.';
+      config=data;googleReady=true;button.textContent='구글 캘린더 연결하기';button.disabled=working;
+      note.textContent='구글 계정에 저장된 캘린더를 연결할 수 있어요.';
     }catch(e){if(active()){
       googleReady=false;calendarConfigPromise=null;button.textContent='연결 준비 다시 시도';button.disabled=false;
-      note.textContent=e.message;
+      setStatus(e.message);
     }}
   };
   void prepareGoogle();
   el.querySelector('#calGoogle').onclick=()=>{
+    connectionAttempted=true;setStatus('');
     if(/KAKAOTALK|Instagram|FBAN|FBAV|NAVER\(/i.test(navigator.userAgent)){showCalendarBrowserNotice();return}
     if(!canConnectGoogle()){void prepareGoogle();return}
     preview.innerHTML='';choices.innerHTML='';
-    busy(true);status.textContent='구글에서 캘린더 읽기를 허용해 주세요.';
+    busy(true);setStatus('구글에서 캘린더 읽기를 허용해 주세요.');
     window.google.accounts.oauth2.initTokenClient({client_id:config.clientId,scope:'https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar.events.readonly',include_granted_scopes:false,
       callback:async response=>{
         if(!active())return;
-        if(response.error||!response.access_token){status.textContent='구글 연결을 취소했거나 읽기 권한이 허용되지 않았어요.';busy(false);return}
-        token=response.access_token;status.textContent='캘린더 목록을 불러오는 중…';
+        if(response.error||!response.access_token){setStatus('구글 연결을 취소했거나 읽기 권한이 허용되지 않았어요.');busy(false);return}
+        token=response.access_token;setStatus('캘린더 목록을 불러오는 중…');
         try{const engine=await calendarModule(),calendars=await engine.listGoogle(token);if(!active())return;if(!calendars.length)throw Error('읽을 수 있는 캘린더가 없어요.');
           el.querySelector('#calConnectIntro').hidden=true;el.querySelector('#calendarImportTitle').textContent='가져올 캘린더';
-          choices.innerHTML=`${calendars.map((cal,i)=>`<label class="calendar-choice"><input type="checkbox" value="${i}" ${cal.selected?'checked':''}><span>${esc(cal.name)}</span></label>`).join('')}<button type="button" class="btn blue block" id="calFetch">선택한 캘린더 가져오기</button>`;status.textContent='';
+          choices.innerHTML=`${calendars.map((cal,i)=>`<label class="calendar-choice"><input type="checkbox" value="${i}" ${cal.selected?'checked':''}><span>${esc(cal.name)}</span></label>`).join('')}<button type="button" class="btn blue block" id="calFetch">선택한 캘린더 가져오기</button>`;setStatus('');
           el.querySelector('#calendarImportTitle').focus();
           choices.querySelector('#calFetch').onclick=async()=>{
-            const selected=Array.from(choices.querySelectorAll('input:checked')).map(input=>calendars[Number(input.value)]);if(!selected.length){status.textContent='캘린더를 하나 이상 선택해 주세요.';return}
-            busy(true);choices.querySelectorAll('input,button').forEach(input=>input.disabled=true);status.textContent='모임 기간의 일정을 불러오는 중…';
-            try{const events=await engine.fetchGoogle(token,selected,engine.windowFor(bounds.start,bounds.end));if(active()){token=null;showPreview(engine,events,'구글 캘린더')}}catch(e){if(active())status.textContent=e.message}finally{if(active()){busy(false);choices.querySelectorAll('input,button').forEach(input=>input.disabled=false)}}
+            const selected=Array.from(choices.querySelectorAll('input:checked')).map(input=>calendars[Number(input.value)]);if(!selected.length){setStatus('캘린더를 하나 이상 선택해 주세요.');return}
+            busy(true);choices.querySelectorAll('input,button').forEach(input=>input.disabled=true);setStatus('모임 기간의 일정을 불러오는 중…');
+            try{const events=await engine.fetchGoogle(token,selected,engine.windowFor(bounds.start,bounds.end));if(active()){token=null;showPreview(engine,events,'구글 캘린더')}}catch(e){if(active())setStatus(e.message)}finally{if(active()){busy(false);choices.querySelectorAll('input,button').forEach(input=>input.disabled=false)}}
           };
-        }catch(e){if(active())status.textContent=e.message}finally{if(active())busy(false)}
-      },error_callback:()=>{if(active()){status.textContent='구글 로그인 창이 닫혔어요. 팝업이 차단되어 있다면 허용 후 다시 눌러 주세요.';busy(false)}}
+        }catch(e){if(active())setStatus(e.message)}finally{if(active())busy(false)}
+      },error_callback:()=>{if(active()){setStatus('구글 로그인 창이 닫혔어요. 팝업이 차단되어 있다면 허용 후 다시 눌러 주세요.');busy(false)}}
     }).requestAccessToken();
   };
   el.showModal();
@@ -2041,15 +2055,15 @@ function renderRank(){
     <p class="sum">${esc(sum)}</p>
     <div class="people">${sorted.map(id=>{const c=cnt(id);return `<span class="pp${c?'':' wait'}" style="--member-color:${colors[id]}">${avatar(members[id].name,colors[id])}${esc(members[id].name)} <em>${c?c+'칸':'아직'}</em></span>`}).join('')}</div>
     <p class="hint rank-color-key">색은 참여자, 빗금은 애매함, ×는 불가능을 뜻해요.</p>
-    ${list.length?`<ol class="rank">${shownList.map((r,i)=>{
+    ${list.length?`<div class="rank-actions"><button type="button" class="btn ghost rank-confirm-action" data-arm-confirm ${S.confirmBusy?'disabled':''}>${S.confirmBusy?'확정 중…':S.confirmPicking?'선택 취소':S.meta.confirmed?'확정 날짜 변경':'모임 날짜 확정하기'}</button></div>${S.confirmPicking?'<p class="rank-pick-guide" role="status">아래에서 확정된 날짜를 눌러주세요</p>':''}<ol class="rank">${shownList.map((r,i)=>{
       const dt=parseYmd(r.d),dow=dt.getDay(),isAll=r.count===total&&total>0;
       const segs=sorted.map(id=>{const label=members[id].name+': '+(LEVEL_TEXT[r.lv[id]]||'미응답');return `<i class="b${r.lv[id]||0}" style="--member-color:${colors[id]}" title="${esc(label)}" role="img" aria-label="${esc(label)}"></i>`}).join('')+'<i class="b0" role="img" aria-label="아직 참여하지 않은 인원"></i>'.repeat(Math.max(0,total-ids.length));
       const miss=sorted.filter(id=>!r.lv[id]).map(id=>members[id].name);
       const vague=sorted.filter(id=>r.lv[id]===3).map(id=>members[id].name);
       const unavailable=sorted.filter(id=>r.lv[id]===4).map(id=>members[id].name);
       const notes=[unavailable.length?`불가능: ${unavailable.map(esc).join(', ')}`:'',miss.length?`미응답: ${miss.map(esc).join(', ')}`:'',vague.length?`애매해요: ${vague.map(esc).join(', ')}`:''].filter(Boolean).join('<br>');
-      return `<li class="rk${isAll?' all':''}${i===0?' first-rank':''}${S.confirmPicking?' confirm-candidate':''}" data-rank-date="${r.d}" data-rank-slot="${r.sl}">
-        ${i===0?`<button type="button" class="btn ghost rank-confirm-action" data-arm-confirm ${S.confirmBusy?'disabled':''}>${S.confirmBusy?'확정 중…':S.confirmPicking?'선택 취소':S.meta.confirmed?'확정 날짜 변경':'모임 날짜 확정하기'}</button>${S.confirmPicking?'<p class="rank-pick-guide" role="status">아래에서 확정된 날짜를 눌러주세요</p>':''}`:''}
+      return `<li class="rk${isAll?' all':''}${S.confirmPicking?' confirm-candidate':''}" data-rank-date="${r.d}" data-rank-slot="${r.sl}">
+
         <div class="pos">${i+1}</div>
         <div><button type="button" class="rdate ranked-date" aria-disabled="${!S.confirmPicking}" aria-label="${esc(r.d+(r.endDate?' ~ '+r.endDate:' '+SLOT_NAME[r.sl]))} 선택" ${S.confirmBusy?'disabled':''}>${dt.getMonth()+1}월 ${dt.getDate()}일${r.endDate?' ~ '+Number(r.endDate.slice(5,7))+'월 '+Number(r.endDate.slice(8))+'일':''}<small class="${dow===0||holidayName(r.d)?'sun':dow===6?'sat':''}" title="${esc(holidayName(r.d))}">${WD[dow]}</small><span class="slot ${r.sl}">${r.endDate?'여행':SLOT_NAME[r.sl]}</span></button>
           <div class="bar">${segs}</div>${notes?`<div class="missing">${notes}</div>`:''}</div>
