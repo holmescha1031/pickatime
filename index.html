@@ -70,7 +70,8 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 /* Small branded walker for data-loading states. */
 .loading-indicator{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:28px 16px;color:var(--sub);text-align:center}
 .loading-label{margin:0;font-size:14px;line-height:1.5}
-.loading-walker{position:relative;display:block;width:88px;height:84px;flex:none;overflow:visible}
+.loading-walker{visibility:hidden;position:relative;display:block;width:88px;height:84px;flex:none;overflow:visible}
+.walker-ready .loading-walker{visibility:visible}
 .walker-shadow{position:absolute;left:18px;bottom:3px;width:52px;height:7px;border-radius:50%;background:rgba(77,80,186,.12);animation:walker-shadow .68s ease-in-out infinite}
 .walker-body{position:absolute;inset:0;overflow:visible;animation:walker-sway 1.36s ease-in-out infinite}
 .walker-eyes{position:absolute;z-index:2;left:8px;top:0;width:72px;height:72px;background-image:url('./assets/loading-eyes.png');background-repeat:no-repeat;background-size:contain;background-position:center;animation:walker-bob .68s ease-in-out infinite}
@@ -182,6 +183,7 @@ label.f{display:block;font-weight:700;font-size:14px;margin:0 0 8px}
 .half{position:relative;border:0;padding:0;height:48px;border-radius:11px;background:var(--vote-bg,#EFF1FA);display:grid;place-items:center;overflow:visible}
 .half:disabled{background:transparent;cursor:default}
 .half:disabled .lb{opacity:0}
+.half.confirmed-readonly:disabled{background:var(--vote-bg,#EFF1FA)}.half.confirmed-readonly:disabled .lb{opacity:1}
 .half .lb{position:relative;z-index:2;font-size:10px;font-weight:600;color:#14132B;white-space:nowrap}
 .half[data-l]:not([data-l="0"]) .lb{display:none}
 .stk{position:absolute;z-index:1;inset:0;border:0;padding:1px 3px;background:transparent;
@@ -329,6 +331,8 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 .drag-hint{margin:8px 0 0;font-size:12px;line-height:1.35;text-align:center}.vote-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 8px}.vote-toolbar .vote-save-status{flex:1;min-width:0;margin:0;font-size:12px;min-height:34px;align-items:center;overflow-wrap:anywhere}.vote-toolbar .vote-save-status>span{padding:6px 10px;min-height:34px}.reuse-votes{display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:34px;padding:6px 10px;border:1px solid #D5D0EC;border-radius:999px;background:#E3DFF5;color:#484177;font:700 12px/20px var(--body);cursor:pointer}.reuse-votes:disabled{opacity:.4;cursor:default}.reuse-votes[hidden]{display:none}.reuse-votes:focus-visible{outline:2px solid var(--s1);outline-offset:3px}
 .trip-fields{margin-bottom:28px}#chooseDay,#chooseTrip,#chooseMonths,#chooseDates{min-height:58px}.meeting-kind-switch{margin-bottom:24px}.home-panel[hidden],.home-meetings[hidden]{display:none!important}.home-list-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 24px}.home-list-heading h2{margin:0;font-size:22px}.home-tabs{margin-bottom:24px}
 .vote-tabs-wrap{position:sticky;top:0;z-index:6;  background-color:var(--paper);  background-image:radial-gradient(ellipse at 8% 0%,#E0E5FC 0,transparent 48%),radial-gradient(ellipse at 100% 24%,#EBEAFE 0,transparent 45%),linear-gradient(160deg,#F8F9FF,#EFF1FC);  background-attachment:fixed;;margin:0 -16px 14px;padding:8px 16px 10px}.vote-tabs-wrap .tabs{position:static;margin:0}.attendance-number{display:inline-flex;align-items:center;gap:4px}.attendance-edit{display:inline-grid;place-items:center;width:30px;height:30px;padding:5px;border:0;border-radius:8px;background:transparent;color:var(--sub);vertical-align:middle}.attendance-edit svg{width:16px;height:16px}.attendance-edit:hover{background:var(--paper)}.member-editor .dialog-heading{margin-bottom:20px}
+.home-refresh svg{width:22px;height:22px}.confirmed-actions{display:flex;flex-wrap:nowrap;gap:6px;margin-top:16px}.confirmed-actions .btn{flex:1;min-width:0;white-space:nowrap;padding:10px 2px;border:1px solid #B9D8C6;border-radius:10px;background:#fff;color:#246344;font-size:clamp(10px,2.8vw,13px);font-weight:700}.rk.rk-confirmed{border:2px solid #41956B;background:#F0FAF4;box-shadow:none}.rank-confirmed-tag{display:inline-block;margin-left:6px;padding:3px 6px;border-radius:6px;background:#D5EFDF;color:#246344;font:700 11px/1.3 var(--body)}.confirmed-rank-summary{grid-template-columns:34px 1fr}.confirmed-rank-summary p{margin:0;font-size:14px;line-height:1.6}
+.meeting-card.meeting-card-confirmed{background:#F0F1F6;border-color:#E1E3EB;color:#777C91}.meeting-card.meeting-card-confirmed .view-vote{background:#DDDDEB;color:#666A86}.meeting-card.meeting-card-confirmed .meeting-attendance{background:#E5E6EF;color:#757A90}.meeting-card.meeting-card-confirmed:hover{background:#EAECF3;border-color:#CFD2DF}.vote-surface{position:relative}.confirmed-vote-notice{position:absolute;inset:0;z-index:3;display:flex;align-items:flex-start;justify-content:center;padding:80px 12px 0;background:rgba(243,244,255,.62);border-radius:16px}.confirmed-vote-notice p{margin:0;padding:18px 12px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);font-size:clamp(10px,3vw,13px);font-weight:600;line-height:1.8;text-align:center;box-shadow:0 4px 16px #20234C12}
 </style>
 <link rel="stylesheet" href="/assets/site-footer.css">
 </head>
@@ -787,7 +791,16 @@ function setPageLoading(loading){
   $('#app')?.setAttribute('aria-busy',String(loading));
 }
 function showPageLoading(message){setPageLoading(true);$('#app').innerHTML=loadingIndicator(message)}
+let loadingArtworkReady=null;
+function prepareLoadingArtwork(){
+  if(loadingArtworkReady)return loadingArtworkReady;
+  loadingArtworkReady=(async()=>{
+    const image=new Image();image.src=new URL('./assets/loading-eyes.png',location.href).href;
+    await image.decode();document.documentElement.classList.add('walker-ready');
+  })().catch(()=>{});return loadingArtworkReady;
+}
 function loadingIndicator(message='불러오는 중…'){
+  void prepareLoadingArtwork();
   const leg='<svg class="walker-leg left" viewBox="0 0 22 27" fill="none" aria-hidden="true"><path d="M10 2v17" stroke="#031238" stroke-width="3.5" stroke-linecap="round"/><path d="M7 18h7l2.5 3H19a3 3 0 0 1 3 3v1H7a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2Z" fill="#FFD23F" stroke="#031238" stroke-width="1.7" stroke-linejoin="round"/><path d="M6 24h15M10 20h3" stroke="#031238" stroke-width="1.2" stroke-linecap="round"/></svg>';
   return `<div class="loading-indicator" role="status" aria-live="polite" aria-busy="true"><span class="loading-walker" aria-hidden="true"><span class="walker-shadow"></span><span class="walker-body">${leg}${leg.replace('walker-leg left','walker-leg right')}<span class="walker-eyes"></span></span></span><p class="loading-label">${esc(message)}</p></div>`;
 }
@@ -873,9 +886,9 @@ function viewCreate(){
         <p class="hint" id="selectedDateHint" aria-live="polite" hidden></p>
       </div>
     </section>
-    <button type="button" class="btn blue block create-bottom" id="create">모임 생성하기</button><p class="hint" id="createError" role="alert" hidden></p>
+    <button type="button" class="btn blue block create-bottom" id="create">날짜 투표하기</button><p class="hint" id="createError" role="alert" hidden></p>
     <button class="btn block home-meetings" id="homeMyMeetings">투표중인 모임 보기</button>
-    <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog></section><section id="homeListPanel" class="home-panel" hidden aria-label="내 모임 목록"><div class="home-list-heading"><h2>내 모임</h2><button type="button" class="btn ghost" data-home-refresh>새로고침</button></div><div id="homeMeetingList" class="meeting-list" aria-live="polite"></div></section>`;
+    <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog></section><section id="homeListPanel" class="home-panel" hidden aria-label="내 모임 목록"><div class="home-list-heading"><h2>내 모임</h2><button type="button" class="btn ghost icon-btn home-refresh" data-home-refresh aria-label="모임 목록 새로고침" title="새로고침"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1"/></svg></button></div><div id="homeMeetingList" class="meeting-list" aria-live="polite"></div></section>`;
   $('#homeMyMeetings').onclick=()=>openMyMeetings();
   void bindAdminLogo();
   const countInput=$('#expectedCount');
@@ -945,7 +958,7 @@ function viewCreate(){
   const showExistingMeeting=id=>{
     const url=shareUrl(id),panel=$('#existingMeeting');
     lockCreateFields(false);$('#create').disabled=false;
-    $('#create').textContent='모임 생성하기';
+    $('#create').textContent='날짜 투표하기';
     $('#createError').hidden=true;
     panel.innerHTML=`<div class="dialog-heading"><h2 id="existingMeetingTitle">이미 만든 모임이 있어요</h2>
       <button class="btn ghost icon-btn" id="closeExistingMeeting" aria-label="기존 모임 안내 닫기" autofocus>✕</button></div>
@@ -982,7 +995,7 @@ function viewCreate(){
     lockCreateFields(true);btn.disabled=true;btn.textContent='로그인 확인 중…';
     await sessionReady;
     if($('#create')!==btn||sid)return;
-    if(!kakaoUser){lockCreateFields(false);btn.disabled=false;btn.textContent='모임 생성하기';viewCreationPreview({title,...selected,expectedCount});return}
+    if(!kakaoUser){lockCreateFields(false);btn.disabled=false;btn.textContent='날짜 투표하기';viewCreationPreview({title,...selected,expectedCount});return}
     btn.textContent='만드는 중…';
     let id;
     try{
@@ -1258,7 +1271,7 @@ function renderConfirmation(){
   const el=$('#confirmation');if(!el)return;const c=S.meta?.confirmed;
   if(!c){el.innerHTML='';return;}
   const d=parseYmd(c.date),label=c.endDate?periodLabel(c.date,c.endDate)+' 여행':`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${WD[d.getDay()]}요일 ${SLOT_NAME[c.slot]}`;
-  el.innerHTML=`<div class="confirmed-banner"><b>✓ 모임 날짜가 정해졌어요</b><p>${esc(label)}</p><small>${S.meta.syncPending?'다른 모임에 자동 X를 반영 중이에요…':'참여자의 다른 모임에는 이 시간에 자동 X가 표시돼요.'}</small><div><button type="button" class="btn ghost" id="shareFinalDate">확정 일정 공유</button></div>${S.isOwner?'<div><button type="button" class="btn ghost" id="changeFinalDate">확정 날짜 변경</button><button type="button" class="btn ghost" id="cancelFinalDate">확정 취소</button></div>':''}</div>`;
+  el.innerHTML=`<div class="confirmed-banner"><b>✓ 모임 날짜가 정해졌어요</b><p>${esc(label)}</p><small>(다른 모임에는 이 시간에 자동으로 불가능하다고 표시돼요)</small>${S.meta.syncPending?'<small role="status">다른 모임에 반영 중이에요…</small>':''}<div class="confirmed-actions"><button type="button" class="btn" id="shareFinalDate">확정 일정 공유</button>${S.isOwner?'<button type="button" class="btn" id="changeFinalDate">확정 날짜 변경</button><button type="button" class="btn" id="cancelFinalDate">확정 취소</button>':''}</div></div>`;
   if($('#shareFinalDate'))$('#shareFinalDate').onclick=shareRankStatus;
   if($('#changeFinalDate'))$('#changeFinalDate').onclick=()=>{S.tab='rank';S.confirmPicking=true;renderTab();toast('아래에서 확정된 날짜를 눌러주세요');$('.rank')?.scrollIntoView({block:'start',behavior:'smooth'});};
   if($('#cancelFinalDate'))$('#cancelFinalDate').onclick=async()=>{
@@ -1474,7 +1487,7 @@ function mountHomeTabs(){
   const host=$('#homeTabsHost');if(!host)return;
   if(!kakaoUser){host.innerHTML='';$('#homeCreatePanel').hidden=false;$('#homeListPanel').hidden=true;return;}
   if(!host.firstElementChild){
-    host.innerHTML='<div class="tabs home-tabs" role="tablist" aria-label="모임 관리"><button type="button" class="tab" id="homeCreateTab" role="tab" aria-controls="homeCreatePanel" data-home-tab="create">모임 생성</button><button type="button" class="tab" id="homeListTab" role="tab" aria-controls="homeListPanel" data-home-tab="list">모임 목록 보기</button></div>';
+    host.innerHTML='<div class="tabs home-tabs" role="tablist" aria-label="모임 관리"><button type="button" class="tab" id="homeCreateTab" role="tab" aria-controls="homeCreatePanel" data-home-tab="create">모임 만들기</button><button type="button" class="tab" id="homeListTab" role="tab" aria-controls="homeListPanel" data-home-tab="list">모임 목록 보기</button></div>';
     host.onclick=e=>{const tab=e.target.closest('[data-home-tab]');if(tab)selectHomeTab(tab.dataset.homeTab);};
     host.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const next=e.key==='Home'?'create':e.key==='End'?'list':homeTab==='create'?'list':'create';selectHomeTab(next);$('#'+(next==='create'?'homeCreateTab':'homeListTab')).focus();};
   }
@@ -1502,7 +1515,7 @@ async function renderHomeMeetings(){
     if(!active())return;
     body.dataset.loadedUser=userId;
     const meetings=results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value).sort(window.MeetingListOrder.compare),failed=results.some(r=>r.status==='rejected');
-    body.innerHTML=`${!profileCloudReady?`<p class="hint">${esc(profileSyncIssue||'일부 참여 이력을 확인하지 못했어요.')}</p>`:''}${meetings.map(m=>`<article class="meeting-card" data-meeting="${esc(m.id)}"><div class="meeting-details"><b>${esc(m.title)}</b><small>${esc(m.label)} · ${esc(m.top)}</small><span class="meeting-attendance">참여 ${esc(m.attendance)}명 · ${m.confirmed?'확정됨':m.ended?'후보 날짜 지남':'투표 중'}</span></div><button type="button" class="btn blue view-vote" data-meeting="${esc(m.id)}" aria-label="${esc(m.title)} 열기">${m.confirmed?'일정 보기':'투표 보기'}</button></article>`).join('')||'<p class="empty">아직 참여한 모임이 없어요.</p>'}${failed?'<p class="hint">일부 모임을 불러오지 못했어요.</p><button type="button" class="btn ghost" data-retry>다시 불러오기</button>':''}`;
+    body.innerHTML=`${!profileCloudReady?`<p class="hint">${esc(profileSyncIssue||'일부 참여 이력을 확인하지 못했어요.')}</p>`:''}${meetings.map(m=>`<article class="meeting-card${m.confirmed?' meeting-card-confirmed':''}" data-meeting="${esc(m.id)}"><div class="meeting-details"><b>${esc(m.title)}</b><small>${esc(m.label)} · ${esc(m.top)}</small><span class="meeting-attendance">참여 ${esc(m.attendance)}명 · ${m.confirmed?'확정됨':m.ended?'후보 날짜 지남':'투표 중'}</span></div><button type="button" class="btn blue view-vote" data-meeting="${esc(m.id)}" aria-label="${esc(m.title)} 열기">투표 보기</button></article>`).join('')||'<p class="empty">아직 참여한 모임이 없어요.</p>'}${failed?'<p class="hint">일부 모임을 불러오지 못했어요.</p><button type="button" class="btn ghost" data-retry>다시 불러오기</button>':''}`;
   }catch{if(active())body.innerHTML='<p class="empty">모임을 불러오지 못했어요.</p><button type="button" class="btn ghost" data-retry>다시 불러오기</button>';}finally{if(homeListRequest===request)body.listPending=false;}
 }
 function meetingPreview(id,data,userId){
@@ -1559,7 +1572,7 @@ async function openMyMeetings(){
     const meetings=results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value).sort(window.MeetingListOrder.compare);
     const failed=results.some(r=>r.status==='rejected');
     body.innerHTML=`${!profileCloudReady?`<p class="hint">${esc(profileSyncIssue||'계정 목록을 동기화하지 못했어요.')} 현재 기기의 참여 이력을 표시합니다.</p><button class="btn ghost" data-retry>동기화 다시 시도</button>`:''}
-      ${meetings.map(m=>`<article class="meeting-card" data-meeting="${esc(m.id)}" ${m.id===sid?'aria-current="page"':''}><div class="meeting-details"><b>${esc(m.title)}</b><small>${esc(m.label)} · ${esc(m.top)}</small><span class="meeting-attendance">참여 ${esc(m.attendance)}명</span></div><button class="btn blue view-vote" data-meeting="${esc(m.id)}" ${m.id===sid?'disabled aria-current="page"':''} aria-label="${esc(m.title)} ${m.id===sid?'보는 중':'투표 보기'}">${m.id===sid?'보는 중':'투표 보기'}</button></article>`).join('')||'<p class="empty">아직 참여한 모임투표가 없어요.<br>모임 링크에서 참여하면 여기에 표시돼요.</p>'}
+      ${meetings.map(m=>`<article class="meeting-card${m.confirmed?' meeting-card-confirmed':''}" data-meeting="${esc(m.id)}" ${m.id===sid?'aria-current="page"':''}><div class="meeting-details"><b>${esc(m.title)}</b><small>${esc(m.label)} · ${esc(m.top)}</small><span class="meeting-attendance">참여 ${esc(m.attendance)}명</span></div><button class="btn blue view-vote" data-meeting="${esc(m.id)}" ${m.id===sid?'disabled aria-current="page"':''} aria-label="${esc(m.title)} ${m.id===sid?'보는 중':'투표 보기'}">${m.id===sid?'보는 중':'투표 보기'}</button></article>`).join('')||'<p class="empty">아직 참여한 모임투표가 없어요.<br>모임 링크에서 참여하면 여기에 표시돼요.</p>'}
       ${failed?'<p class="hint">일부 모임을 불러오지 못했어요.</p><button class="btn ghost" data-retry>다시 불러오기</button>':''}`;
   }catch(e){if(el.isConnected)body.innerHTML='<p class="empty">목록을 불러오지 못했어요.</p><button class="btn ghost" data-retry>다시 불러오기</button>'}
 }
@@ -1887,7 +1900,7 @@ function renderCalendar(){
       const halves=(window.TripVotes.trip(S.meta)?[['L','하루']]:SLOTS).map(([sl,name])=>{
         const l=past&&!ended?0:calendarLevel(mv,ds,sl),r=(hash(ds+sl)%9)-4,busy=dayEv.some(e=>window.TripVotes.trip(S.meta)?e.L||e.D:e[sl]),count=heat.counts[ds+'|'+sl]||0;
         const voteLabel=calendarVoteLabel(ds,sl,l,count,heat.total,busy);
-        return `<button class="half${busy?' busy':''}" data-d="${ds}" data-s="${sl}" aria-keyshortcuts="Shift+Enter Shift+Space" data-l="${l}" data-votes="${count}" data-vote-total="${heat.total}" style="--vote-bg:${calendarHeatColor(count,heat.total)}" ${past||S.meta.confirmed?'disabled':''}
+        return `<button class="half${S.meta.confirmed?' confirmed-readonly':''}${busy?' busy':''}" data-d="${ds}" data-s="${sl}" aria-keyshortcuts="Shift+Enter Shift+Space" data-l="${l}" data-votes="${count}" data-vote-total="${heat.total}" style="--vote-bg:${calendarHeatColor(count,heat.total)}" ${past||S.meta.confirmed?'disabled':''}
           title="${esc(voteLabel)}" aria-label="${esc(voteLabel)}"><i class="stk" style="--r:${r}deg" aria-hidden="true">${meetingSticker()}</i><span class="lb">${name}</span></button>`}).join('');
       cells.push({past,ds,dow,m,d,h:`<div title="${esc(holiday)}" class="day${holiday?' holiday':''}${dow===0?' sun':''}${dow===6?' sat':''}${ds===today?' today':''}${past?' past':''}"><span class="n">${d}</span>${calendarDayHtml(ds,dayEv)}${halves}</div>`});
     }
@@ -1897,7 +1910,7 @@ function renderCalendar(){
     return `<section class="month${window.TripVotes.trip(S.meta)?' trip-month':''}${ended?' calendar-ended':''}"><h2>${y===new Date().getFullYear()?'':y+'년 '}${m}월</h2>
       <div class="wk">${WD.map(w=>`<div>${w}</div>`).join('')}</div><div class="grid" style="row-gap:6px">${rows}</div></section>`;
   }).join('');
-  $('#body').innerHTML=`
+  $('#body').innerHTML=`<section class="vote-surface"><div class="vote-surface-content" ${S.meta.confirmed?'inert':''}>
     <div class="calbar" id="calbar">${calBarHtml()}</div>
     ${window.TripVotes.trip(S.meta)?`<p class="hint">${S.meta.tripDays-1}박 ${S.meta.tripDays}일 여행 · 하루 전체가 가능한 날에 스티커를 붙여 주세요.</p>`:''}
     <section class="sticker-guide" aria-label="스티커 붙이는 방법"><div class="legend">
@@ -1912,7 +1925,7 @@ function renderCalendar(){
     ${ended?'<p class="calendar-ended-note" role="status">후보 날짜가 모두 지난 투표예요. 상단 날짜 옆 연필로 기간을 바꿀 수 있어요.</p>':''}
     ${S.me&&Object.keys(S.guestVotes).length?'<div class="panel"><p>로그인 전에 선택한 스티커가 아직 저장되지 않았어요.</p><button type="button" class="btn blue block" id="retryGuestDraft">선택 다시 저장하기</button></div>':''}
     ${html}
-    <button class="btn ghost clear" id="clearAll">스티커 모두 떼기</button>`;
+    <button class="btn ghost clear" id="clearAll">스티커 모두 떼기</button></div>${S.meta.confirmed?'<div class="confirmed-vote-notice" role="status"><p>모임 날짜가 확정되어 수정할 수 없어요.<br>수정하려면 확정 취소해주세요.</p></div>':''}</section>`;
   $('#body').onclick=onDayTap;
   detachVoteDrag=window.attachVoteDrag($('#body'),(b,l,method)=>setVoteLevel(b,l,method||'drag'),nextVoteLevel);
   $('#reuseVotes').hidden=window.TripVotes.trip(S.meta);
@@ -2147,22 +2160,29 @@ function renderRank(){
   else if(waiting.length)sum=`${waiting.length}명이 아직 스티커를 안 붙였어요`;
   else sum=expected?`전원이 가능한 시간은 아직 없어요. 최대 ${maxCount}명이 만날 수 있어요`:`현재 참여한 사람 중 최대 ${maxCount}명이 만날 수 있어요`;
 
-  const shownList=S.showAll?list:list.slice(0,10);
+  const confirmed=S.meta.confirmed;
+  const isConfirmedRow=r=>Boolean(confirmed&&r.d===confirmed.date&&(confirmed.endDate?r.endDate===confirmed.endDate:!r.endDate&&r.sl===confirmed.slot));
+  const shownList=S.showAll?[...list]:list.slice(0,10);
+  const confirmedRow=confirmed?list.find(isConfirmedRow):null;
+  if(confirmedRow&&!shownList.some(isConfirmedRow))shownList.push(confirmedRow);
+  const confirmedDate=confirmed?parseYmd(confirmed.date):null;
+  const confirmedLabel=confirmed?confirmed.endDate?periodLabel(confirmed.date,confirmed.endDate)+' 여행':(confirmedDate.getMonth()+1)+'월 '+confirmedDate.getDate()+'일 ('+WD[confirmedDate.getDay()]+') '+SLOT_NAME[confirmed.slot]:'';
+  const fallback=confirmed&&!confirmedRow?`<li class="rk rk-confirmed confirmed-rank-summary"><span class="rank-confirmed-tag">확정</span><p>${esc(confirmedLabel)}</p></li>`:'';
   $('#body').innerHTML=`
     <p class="sum">${esc(sum)}</p>
     <div class="people">${sorted.map(id=>{const c=cnt(id);return `<span class="pp${c?'':' wait'}" style="--member-color:${colors[id]}">${avatar(members[id].name,colors[id])}${esc(members[id].name)} <em>${c?c+'칸':'아직'}</em></span>`}).join('')}</div>
     <p class="hint rank-color-key">색은 참여자, 빗금은 애매함, ×는 불가능을 뜻해요.</p>
-    ${list.length?`<div class="rank-actions"><button type="button" class="btn ghost rank-confirm-action" data-arm-confirm ${S.confirmBusy?'disabled':''}>${S.confirmBusy?'확정 중…':S.confirmPicking?'선택 취소':S.meta.confirmed?'확정 날짜 변경':'모임 날짜 확정하기'}</button></div>${S.confirmPicking?'<p class="rank-pick-guide" role="status">아래에서 확정된 날짜를 눌러주세요</p>':''}<ol class="rank">${shownList.map((r,i)=>{
+    ${list.length||confirmed?`<div class="rank-actions"><button type="button" class="btn ghost rank-confirm-action" data-arm-confirm ${S.confirmBusy?'disabled':''}>${S.confirmBusy?'확정 중…':S.confirmPicking?'선택 취소':S.meta.confirmed?'확정 날짜 변경':'모임 날짜 확정하기'}</button></div>${S.confirmPicking?'<p class="rank-pick-guide" role="status">아래에서 확정된 날짜를 눌러주세요</p>':''}<ol class="rank">${fallback}${shownList.map((r,i)=>{
       const dt=parseYmd(r.d),dow=dt.getDay(),isAll=r.count===total&&total>0;
       const segs=sorted.map(id=>{const label=members[id].name+': '+(LEVEL_TEXT[r.lv[id]]||'미응답');return `<i class="b${r.lv[id]||0}" style="--member-color:${colors[id]}" title="${esc(label)}" role="img" aria-label="${esc(label)}"></i>`}).join('')+'<i class="b0" role="img" aria-label="아직 참여하지 않은 인원"></i>'.repeat(Math.max(0,total-ids.length));
       const miss=sorted.filter(id=>!r.lv[id]).map(id=>members[id].name);
       const vague=sorted.filter(id=>r.lv[id]===3).map(id=>members[id].name);
       const unavailable=sorted.filter(id=>r.lv[id]===4).map(id=>members[id].name);
       const notes=[unavailable.length?`불가능: ${unavailable.map(esc).join(', ')}`:'',miss.length?`미응답: ${miss.map(esc).join(', ')}`:'',vague.length?`애매해요: ${vague.map(esc).join(', ')}`:''].filter(Boolean).join('<br>');
-      return `<li class="rk${isAll?' all':''}${S.confirmPicking?' confirm-candidate':''}" data-rank-date="${r.d}" data-rank-slot="${r.sl}">
+      return `<li class="rk${isConfirmedRow(r)?' rk-confirmed':''}${isAll?' all':''}${S.confirmPicking?' confirm-candidate':''}" data-rank-date="${r.d}" data-rank-slot="${r.sl}">
 
-        <div class="pos">${i+1}</div>
-        <div><button type="button" class="rdate ranked-date" aria-disabled="${!S.confirmPicking}" aria-label="${esc(r.d+(r.endDate?' ~ '+r.endDate:' '+SLOT_NAME[r.sl]))} 선택" ${S.confirmBusy?'disabled':''}>${dt.getMonth()+1}월 ${dt.getDate()}일${r.endDate?' ~ '+Number(r.endDate.slice(5,7))+'월 '+Number(r.endDate.slice(8))+'일':''}<small class="${dow===0||holidayName(r.d)?'sun':dow===6?'sat':''}" title="${esc(holidayName(r.d))}">${WD[dow]}</small><span class="slot ${r.sl}">${r.endDate?'여행':SLOT_NAME[r.sl]}</span></button>
+        <div class="pos">${list.indexOf(r)+1}</div>
+        <div><button type="button" class="rdate ranked-date" aria-disabled="${!S.confirmPicking}" aria-label="${esc(r.d+(r.endDate?' ~ '+r.endDate:' '+SLOT_NAME[r.sl]))} 선택" ${S.confirmBusy?'disabled':''}>${dt.getMonth()+1}월 ${dt.getDate()}일${r.endDate?' ~ '+Number(r.endDate.slice(5,7))+'월 '+Number(r.endDate.slice(8))+'일':''}<small class="${dow===0||holidayName(r.d)?'sun':dow===6?'sat':''}" title="${esc(holidayName(r.d))}">${WD[dow]}</small><span class="slot ${r.sl}">${r.endDate?'여행':SLOT_NAME[r.sl]}</span>${isConfirmedRow(r)?'<span class="rank-confirmed-tag">확정</span>':''}</button>
           <div class="bar">${segs}</div>${notes?`<div class="missing">${notes}</div>`:''}</div>
         <div>${isAll?`<span class="allstk">${expected?'다 되는<br>시간!':'현재 참여자<br>모두 가능'}</span>`:`<div class="cnt">${r.count}<small>/${total}명</small></div>`}</div>
       </li>`}).join('')}</ol>
@@ -2181,6 +2201,7 @@ function renderRank(){
 
 /* ---------- 시작 ---------- */
 (async()=>{
+  void prepareLoadingArtwork();
   const publicUrl=new URL(PUBLIC_SITE_URL);
   const query=new URLSearchParams(location.search);
   if(location.origin!==publicUrl.origin&&!query.has('code')&&!query.has('error')){
