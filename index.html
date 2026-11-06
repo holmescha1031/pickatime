@@ -888,7 +888,7 @@ function viewCreate(){
     </section>
     <button type="button" class="btn blue block create-bottom" id="create">날짜 투표하기</button><p class="hint" id="createError" role="alert" hidden></p>
     <button class="btn block home-meetings" id="homeMyMeetings">투표중인 모임 보기</button>
-    <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog></section><section id="homeListPanel" class="home-panel" hidden aria-label="내 모임 목록"><div class="home-list-heading"><h2>내 모임</h2><button type="button" class="btn ghost icon-btn home-refresh" data-home-refresh aria-label="모임 목록 새로고침" title="새로고침"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1"/></svg></button></div><div id="homeMeetingList" class="meeting-list" aria-live="polite"></div></section>`;
+    <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog></section><section id="homeListPanel" class="home-panel" hidden aria-label="내 모임 목록"><div class="home-list-heading"><h2>내 모임</h2><button type="button" class="btn ghost icon-btn home-refresh" data-home-refresh aria-label="모임 목록 새로고침" title="새로고침"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.9 1 6.7 2.8L21 8"/><path d="M21 3v5h-5"/></svg></button></div><div id="homeMeetingList" class="meeting-list" aria-live="polite"></div></section>`;
   $('#homeMyMeetings').onclick=()=>openMyMeetings();
   void bindAdminLogo();
   const countInput=$('#expectedCount');
@@ -1271,7 +1271,7 @@ function renderConfirmation(){
   const el=$('#confirmation');if(!el)return;const c=S.meta?.confirmed;
   if(!c){el.innerHTML='';return;}
   const d=parseYmd(c.date),label=c.endDate?periodLabel(c.date,c.endDate)+' 여행':`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${WD[d.getDay()]}요일 ${SLOT_NAME[c.slot]}`;
-  el.innerHTML=`<div class="confirmed-banner"><b>✓ 모임 날짜가 정해졌어요</b><p>${esc(label)}</p><small>(다른 모임에는 이 시간에 자동으로 불가능하다고 표시돼요)</small>${S.meta.syncPending?'<small role="status">다른 모임에 반영 중이에요…</small>':''}<div class="confirmed-actions"><button type="button" class="btn" id="shareFinalDate">확정 일정 공유</button>${S.isOwner?'<button type="button" class="btn" id="changeFinalDate">확정 날짜 변경</button><button type="button" class="btn" id="cancelFinalDate">확정 취소</button>':''}</div></div>`;
+  el.innerHTML=`<div class="confirmed-banner"><b>✓ 모임 날짜가 정해졌어요</b><p>${esc(label)}</p><small>다른 모임에는 자동으로 이 시간에 불가능하다고 표시돼요</small>${S.meta.syncPending?'<small role="status">다른 모임에 반영 중이에요…</small>':''}<div class="confirmed-actions"><button type="button" class="btn" id="shareFinalDate">확정 일정 공유</button>${S.isOwner?'<button type="button" class="btn" id="changeFinalDate">확정 날짜 변경</button><button type="button" class="btn" id="cancelFinalDate">확정 취소</button>':''}</div></div>`;
   if($('#shareFinalDate'))$('#shareFinalDate').onclick=shareRankStatus;
   if($('#changeFinalDate'))$('#changeFinalDate').onclick=()=>{S.tab='rank';S.confirmPicking=true;renderTab();toast('아래에서 확정된 날짜를 눌러주세요');$('.rank')?.scrollIntoView({block:'start',behavior:'smooth'});};
   if($('#cancelFinalDate'))$('#cancelFinalDate').onclick=async()=>{
