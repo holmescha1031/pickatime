@@ -333,6 +333,7 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 .vote-tabs-wrap{position:sticky;top:0;z-index:6;  background-color:var(--paper);  background-image:radial-gradient(ellipse at 8% 0%,#E0E5FC 0,transparent 48%),radial-gradient(ellipse at 100% 24%,#EBEAFE 0,transparent 45%),linear-gradient(160deg,#F8F9FF,#EFF1FC);  background-attachment:fixed;;margin:0 -16px 14px;padding:8px 16px 10px}.vote-tabs-wrap .tabs{position:static;margin:0}.attendance-number{display:inline-flex;align-items:center;gap:4px}.attendance-edit{display:inline-grid;place-items:center;width:30px;height:30px;padding:5px;border:0;border-radius:8px;background:transparent;color:var(--sub);vertical-align:middle}.attendance-edit svg{width:16px;height:16px}.attendance-edit:hover{background:var(--paper)}.member-editor .dialog-heading{margin-bottom:20px}
 .home-refresh svg{width:22px;height:22px}.confirmed-actions{display:flex;flex-wrap:nowrap;gap:6px;margin-top:16px}.confirmed-actions .btn{flex:1;min-width:0;white-space:nowrap;padding:10px 2px;border:1px solid #B9D8C6;border-radius:10px;background:#fff;color:#246344;font-size:clamp(10px,2.8vw,13px);font-weight:700}.rk.rk-confirmed{border:2px solid #41956B;background:#F0FAF4;box-shadow:none}.rank-confirmed-tag{display:inline-block;margin-left:6px;padding:3px 6px;border-radius:6px;background:#D5EFDF;color:#246344;font:700 11px/1.3 var(--body)}.confirmed-rank-summary{grid-template-columns:34px 1fr}.confirmed-rank-summary p{margin:0;font-size:14px;line-height:1.6}
 .meeting-card.meeting-card-confirmed{background:#F0F1F6;border-color:#E1E3EB;color:#777C91}.meeting-card.meeting-card-confirmed .view-vote{background:#DDDDEB;color:#666A86}.meeting-card.meeting-card-confirmed .meeting-attendance{background:#E5E6EF;color:#757A90}.meeting-card.meeting-card-confirmed:hover{background:#EAECF3;border-color:#CFD2DF}.vote-surface{position:relative}.confirmed-vote-notice{position:absolute;inset:0;z-index:3;display:flex;align-items:flex-start;justify-content:center;padding:80px 12px 0;background:rgba(243,244,255,.62);border-radius:16px}.confirmed-vote-notice p{margin:0;padding:18px 12px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);font-size:clamp(10px,3vw,13px);font-weight:600;line-height:1.8;text-align:center;box-shadow:0 4px 16px #20234C12}
+.calendar-dialog #calRemove{color:var(--sun)}
 </style>
 <link rel="stylesheet" href="/assets/site-footer.css">
 </head>
@@ -1726,7 +1727,7 @@ function openShareSheet(){
     <button class="btn blue block" id="sh">링크 공유하기</button>
     <button class="btn ghost block" id="cl" style="margin-top:6px">나중에 할게요</button></div>`;
   document.body.appendChild(el);
-  const close=()=>{el.remove();void offerVoteImport()};
+  const close=()=>el.remove();
   el.onclick=e=>{if(e.target===el)close()};
   el.querySelector('#cl').onclick=close;
   el.querySelector('#sh').onclick=async()=>{await share(sid,S.meta.title);close()};
@@ -1748,6 +1749,7 @@ async function voteImportSource(id,c,current){
   return plan.cells.length?{id,meta,plan}:null;
 }
 async function offerVoteImport(manual=false){
+  if(!manual)return;
   if(S.meta?.confirmed||window.TripVotes.trip(S.meta))return;
   if(!window.VoteTransfer||!S.me||S.me!==kakaoUser?.id||!S.meta||S.tab!=='mine'||shown!=='main')return;
   const saveState=voteSaves.info(voteSaveKey());if(saveState.pending||saveState.failed)return;
@@ -1934,7 +1936,6 @@ function renderCalendar(){
   if($('#retryGuestDraft'))$('#retryGuestDraft').onclick=saveGuestVotes;
   $('#retryVoteSave').onclick=retryVoteSaves;
   renderVoteSaveState();
-  if(!calDialog)void offerVoteImport();
 }
 function onDayTap(e){
   const agenda=e.target.closest('[data-agenda]');if(agenda)return openCalendarDay(agenda.dataset.agenda);
