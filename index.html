@@ -642,7 +642,9 @@ function canShareToKakao(){
 function shareToKakao(sid,title,options={}){
   const payload=shareContent(sid,title,options),url=payload.url;
   if(options.kakaoTemplateArgs){
-    return window.Kakao.Share.sendCustom({templateId:138674,templateArgs:options.kakaoTemplateArgs});
+    const count=[1,2,3,4,5].filter(i=>options.kakaoTemplateArgs['title'+i]).length||1;
+    const templateId=[138691,138690,138689,138688,138674][count-1];
+    return window.Kakao.Share.sendCustom({templateId,templateArgs:options.kakaoTemplateArgs});
   }
   if(options.kakaoText){
     return window.Kakao.Share.sendDefault({

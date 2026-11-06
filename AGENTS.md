@@ -20,3 +20,4 @@
 - Confirmed home-list cards use a subdued palette but remain clickable with “투표 보기”. The confirmed sticker tab dims the whole content area, makes it inert, and overlays “모임 날짜가 확정되어 수정할 수 없어요.” / “수정하려면 확정 취소해주세요.”; cancellation restores the active board.
 - Sharing thumbnails use the calendar/wordmark logo without the three round smiling characters at upper left, keeping the existing four eye-sticker people at lower right. Confirmed-date share CTA is “투표 보기”. Version thumbnail asset URLs when artwork changes.
 - Open cross-poll sticker import only from the explicit “다른 투표에서 가져오기” action. Never auto-open it after calendar import/removal, calendar re-render, or closing the creation share sheet. Show “가져온 일정 지우기” in red.
+- Select Kakao ranking templates by actual populated candidate count: 1=138691, 2=138690, 3=138689, 4=138688, 5=138674. Use the one-item template for the no-candidate explanatory card; retain existing argument names and availability images.
