@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 const origin=process.argv[2];
 assert(origin && new URL(origin).protocol==='https:','Pass the deployed HTTPS origin.');
 async function check(path,status,verify,options={}) {
- const response=await fetch(new URL(path,origin),{redirect:'manual',signal:AbortSignal.timeout(15000),...options});
+ let response;
+ for(let attempt=0;attempt<4;attempt++){
+  response=await fetch(new URL(path,origin),{redirect:'manual',signal:AbortSignal.timeout(15000),...options});
+  if(response.status!==503||attempt===3)break;
+  await response.arrayBuffer();await new Promise(resolve=>setTimeout(resolve,1000));
+ }
  assert.equal(response.status,status,`${path}: unexpected status ${response.status}`);
  if(verify)await verify(response);
  console.log(`PASS ${status} ${path}`);

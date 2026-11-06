@@ -1160,8 +1160,13 @@ async function meetingAction(action,values={}){
     if(action==='sync')return {};
     throw Error('이 기능은 실제 모임에서 사용할 수 있어요.');
   }
-  const r=await fetch(new URL('/api/meeting',window.APP_CONFIG.authServer),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid,action,...values})});
-  const data=await r.json();if(!r.ok)throw Error(data.error||'변경 내용을 저장하지 못했어요.');return data;
+  const body=JSON.stringify({sid,action,...values});
+  for(let attempt=0;attempt<8;attempt++){
+    const r=await fetch(new URL('/api/meeting',window.APP_CONFIG.authServer),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body});
+    const data=await r.json();
+    if(r.status===409&&data.retryable===true&&attempt<7){await new Promise(resolve=>setTimeout(resolve,250+attempt*100+Math.random()*200));continue;}
+    if(!r.ok)throw Error(data.error||'변경 내용을 저장하지 못했어요.');return data;
+  }
 }
 async function finishMeetingSync(id){
   for(let step=0;step<500;step++){
@@ -1526,13 +1531,14 @@ function renderAttendance(){
   if($('#shareAllResults'))$('#shareAllResults').onclick=shareRankStatus;
   $('#inviteVote').onclick=()=>share(sid,S.meta.title);
   if($('#setExpected'))$('#setExpected').onclick=async()=>{
+    const id=sid,request=sessionLoad;
     const value=prompt('나를 포함한 전체 인원을 입력해 주세요. (2명 이상)',String(expected||Math.max(2,joined)));
     if(value===null)return;
     const count=Number(value);
     if(count>100){toast('참여 인원은 100명을 초과할 수 없어요.');return}
     if(!Number.isSafeInteger(count)||count<Math.max(2,joined)){toast('예정 인원은 현재 참여 인원 이상, 최소 2명으로 입력해 주세요.');return}
     try{
-      await meetingAction('update',{changes:{expectedCount:count}});
+      await meetingAction('update',{sid:id,changes:{expectedCount:count}});if(sid!==id||sessionLoad!==request)return;
       S.meta={...S.meta,expectedCount:count};renderMe();renderTab();
     }catch(e){toast(e.message||'인원을 저장하지 못했어요. 다시 시도해 주세요.')}
   };

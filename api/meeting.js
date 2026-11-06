@@ -58,7 +58,7 @@ module.exports=async function handler(req,res){
       await require('../lib/firebase-admin-rest').eraseMeeting(id,fresh,user.id,secret,conflicts);
     });
     return res.status(200).json({deleted:true});
-  }catch(e){if(e.status&&e.status>=400&&e.status<500&&e.message!=='DATABASE_ERROR')return res.status(e.status).json({error:e.message});if(e.message==='FIREBASE_ADMIN_CONFIG_REQUIRED')return res.status(503).json({error:'DB 실제 삭제를 위한 서버 인증 설정이 필요해요. 아직 삭제되지 않았습니다.'});return res.status(503).json({error:e.status===401||e.status===403?'투표 삭제 정보를 저장할 권한이 없습니다. Firebase 규칙을 확인해 주세요.':'서버 연결에 실패했어요. 잠시 후 다시 시도해 주세요.'});}
+  }catch(e){if(e.status&&e.status>=400&&e.status<500&&e.message!=='DATABASE_ERROR')return res.status(e.status).json({error:e.message,retryable:e.retryable===true});if(e.message==='FIREBASE_ADMIN_CONFIG_REQUIRED')return res.status(503).json({error:'DB 실제 삭제를 위한 서버 인증 설정이 필요해요. 아직 삭제되지 않았습니다.'});return res.status(503).json({error:e.status===401||e.status===403?'투표 삭제 정보를 저장할 권한이 없습니다. Firebase 규칙을 확인해 주세요.':'서버 연결에 실패했어요. 잠시 후 다시 시도해 주세요.'});}
 };
 
 
