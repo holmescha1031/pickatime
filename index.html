@@ -325,6 +325,7 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 .confirmed-banner{margin:16px 0;padding:20px 22px;border:1.5px solid #b8dac8;border-radius:24px;background:#eaf7ef;color:#246344}.confirmed-banner p{font-size:22px;font-weight:700;margin:10px 0}.confirmed-banner small{display:block;line-height:1.6}.confirmation-tools{display:flex;justify-content:flex-end;margin:8px 0}.confirm-row{padding:6px 0;font-size:13px;color:var(--s1)}.guest-save{margin-top:10px}.mebar:has(.guest-save){align-items:stretch}.edit-meeting-title[hidden]{display:none}dialog select.inp{appearance:auto}
 .create-top{margin:0 0 22px}.number-stepper{display:grid;grid-template-columns:52px minmax(80px,1fr) 52px;gap:10px;align-items:center}.number-stepper input{text-align:center;font-size:24px;font-weight:700;appearance:textfield}.number-stepper input::-webkit-inner-spin-button{appearance:none}.number-stepper button{height:52px;border:1.5px solid var(--line);border-radius:14px;background:var(--paper);color:var(--s1);font-size:28px;cursor:pointer}.number-stepper button:disabled{opacity:.35}.trip-month .half{height:96px}
 .rank-actions{display:flex;justify-content:flex-end;margin:8px 0 12px}.rank-confirm-action{position:static;padding:8px 10px;font-size:12px;color:var(--s1)}.rank-pick-guide{grid-column:1/-1;margin:0 0 10px;padding:10px;border-radius:10px;background:var(--paper);color:var(--s1);font-size:13px;line-height:1.5}.ranked-date{padding:0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:default}.confirm-candidate{cursor:pointer;outline:1.5px solid #a8a4df}.confirm-candidate .ranked-date{cursor:pointer}.ranked-date:focus-visible{outline:2px solid var(--s1);outline-offset:4px}
+.drag-hint{margin:0 2px;font-size:12px;line-height:1.6}.vote-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0}.vote-toolbar .vote-save-status{flex:1;min-width:0;margin:0;font-size:12px;min-height:34px;align-items:center;overflow-wrap:anywhere}.vote-toolbar .vote-save-status>span{padding:6px 10px;min-height:34px}.reuse-votes{display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:34px;padding:6px 10px;border:1px solid #BCE4CC;border-radius:999px;background:#E7F6ED;color:#187447;font:700 12px/20px var(--body);cursor:pointer}.reuse-votes:disabled{opacity:.4;cursor:default}.reuse-votes[hidden]{display:none}.reuse-votes:focus-visible{outline:2px solid var(--s1);outline-offset:3px}
 </style>
 <link rel="stylesheet" href="/assets/site-footer.css">
 </head>
@@ -1802,15 +1803,15 @@ function renderCalendar(){
   }).join('');
   $('#body').innerHTML=`
     <div class="calbar" id="calbar">${calBarHtml()}</div>
-    <button type="button" class="btn block" id="reuseVotes" style="margin-bottom:16px;background:var(--paper);color:var(--s1);border:1.5px solid var(--line)">다른 투표에서 가져오기</button>
     ${window.TripVotes.trip(S.meta)?`<p class="hint">${S.meta.tripDays-1}박 ${S.meta.tripDays}일 여행 · 하루 전체가 가능한 날에 스티커를 붙여 주세요.</p>`:''}
     <div class="legend">
       <span><i class="legend-sticker l2" aria-hidden="true">${meetingSticker(2)}</i>한 번 클릭: 아마 가능</span>
       <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>두 번 클릭: 되긴 하는데…</span>
       <span><i class="legend-sticker l4" aria-hidden="true">${meetingSticker(4)}</i>길게 누르기: 어떻게 해도 불가능</span>
     </div>
+    <p class="hint drag-hint">(드래그해서 붙일 수도 있어요)</p>
     ${S.me&&Object.keys(S.blocked?.[S.me]||{}).length?'<p class="hint">다른 모임에서 확정된 시간에는 자동 X가 표시돼요. 그 모임의 확정을 바꾸거나 취소하면 해제돼요.</p>':''}
-    <p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p>
+    <div class="vote-toolbar"><button type="button" class="reuse-votes" id="reuseVotes">다른 투표에서 가져오기</button><p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p></div>
     <button type="button" class="btn ghost" id="retryVoteSave" hidden>다시 저장하기</button>
     ${ended?'<p class="calendar-ended-note" role="status">후보 날짜가 모두 지난 투표예요. 상단 날짜 옆 연필로 기간을 바꿀 수 있어요.</p>':''}
     ${S.me&&Object.keys(S.guestVotes).length?'<div class="panel"><p>로그인 전에 선택한 스티커가 아직 저장되지 않았어요.</p><button type="button" class="btn blue block" id="retryGuestDraft">선택 다시 저장하기</button></div>':''}
