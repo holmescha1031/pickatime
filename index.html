@@ -328,7 +328,7 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 .rank-actions{display:flex;justify-content:flex-end;margin:8px 0 12px}.rank-confirm-action{position:static;padding:8px 10px;font-size:12px;color:var(--s1)}.rank-pick-guide{grid-column:1/-1;margin:0 0 10px;padding:10px;border-radius:10px;background:var(--paper);color:var(--s1);font-size:13px;line-height:1.5}.ranked-date{padding:0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:default}.confirm-candidate{cursor:pointer;outline:1.5px solid #a8a4df}.confirm-candidate .ranked-date{cursor:pointer}.ranked-date:focus-visible{outline:2px solid var(--s1);outline-offset:4px}
 .drag-hint{margin:8px 0 0;font-size:12px;line-height:1.35;text-align:center}.vote-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 8px}.vote-toolbar .vote-save-status{flex:1;min-width:0;margin:0;font-size:12px;min-height:34px;align-items:center;overflow-wrap:anywhere}.vote-toolbar .vote-save-status>span{padding:6px 10px;min-height:34px}.reuse-votes{display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:34px;padding:6px 10px;border:1px solid #D5D0EC;border-radius:999px;background:#E3DFF5;color:#484177;font:700 12px/20px var(--body);cursor:pointer}.reuse-votes:disabled{opacity:.4;cursor:default}.reuse-votes[hidden]{display:none}.reuse-votes:focus-visible{outline:2px solid var(--s1);outline-offset:3px}
 .trip-fields{margin-bottom:28px}#chooseDay,#chooseTrip{min-height:58px}.meeting-kind-switch{margin-bottom:24px}.home-panel[hidden],.home-meetings[hidden]{display:none!important}.home-list-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 24px}.home-list-heading h2{margin:0;font-size:22px}.home-tabs{margin-bottom:24px}
-.vote-tabs-wrap{position:sticky;top:0;z-index:6;background:#ECEBFA;margin:0 -16px 14px;padding:8px 16px 10px}.vote-tabs-wrap .tabs{position:static;margin:0}.attendance-number{display:inline-flex;align-items:center;gap:4px}.attendance-edit{display:inline-grid;place-items:center;width:30px;height:30px;padding:5px;border:0;border-radius:8px;background:transparent;color:var(--sub);vertical-align:middle}.attendance-edit svg{width:16px;height:16px}.attendance-edit:hover{background:var(--paper)}.member-editor .dialog-heading{margin-bottom:20px}
+.vote-tabs-wrap{position:sticky;top:0;z-index:6;  background-color:var(--paper);  background-image:radial-gradient(ellipse at 8% 0%,#E0E5FC 0,transparent 48%),radial-gradient(ellipse at 100% 24%,#EBEAFE 0,transparent 45%),linear-gradient(160deg,#F8F9FF,#EFF1FC);  background-attachment:fixed;;margin:0 -16px 14px;padding:8px 16px 10px}.vote-tabs-wrap .tabs{position:static;margin:0}.attendance-number{display:inline-flex;align-items:center;gap:4px}.attendance-edit{display:inline-grid;place-items:center;width:30px;height:30px;padding:5px;border:0;border-radius:8px;background:transparent;color:var(--sub);vertical-align:middle}.attendance-edit svg{width:16px;height:16px}.attendance-edit:hover{background:var(--paper)}.member-editor .dialog-heading{margin-bottom:20px}
 </style>
 <link rel="stylesheet" href="/assets/site-footer.css">
 </head>
@@ -826,14 +826,12 @@ function viewCreate(){
   const savedStart=validDraft&&draft.start.length===10?draft.start:'';
   const savedEnd=validDraft&&draft.end.length===10?draft.end:'';
   $('#app').innerHTML=`
-    <div id="homeTabsHost"></div><section id="homeCreatePanel" class="home-panel">
     <div class="hero">
       <span class="brand brand--hero" id="homeLogo" aria-label="언제돼?"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></span>
       <h1 class="home-headline">되는 날에 스티커만 붙여줘</h1>
       <p>모임을 만들고 링크를 보내면, 친구들이 달력에 스티커를 붙여요.<br>다 같이 되는 날이 바로 보여요.</p>
     </div>
-    <button type="button" class="btn blue block create-top" id="create">모임 생성하기</button>
-    <p class="hint" id="createError" role="alert" hidden></p>
+    <div id="homeTabsHost"></div><section id="homeCreatePanel" class="home-panel">
     <section class="panel">
       <label class="f" for="title">모임 이름</label>
       <input class="inp" id="title" maxlength="30" placeholder="예) 고등학교 친구들 송년회" autocomplete="off" value="${esc(validDraft?draft.title:'')}">
@@ -849,7 +847,7 @@ function viewCreate(){
         <button type="button" class="period-option" id="chooseDay"><span class="period-option-title">하루 보기</span></button>
         <button type="button" class="period-option" id="chooseTrip"><span class="period-option-title">여행 가기</span></button>
       </div>
-      <div id="tripFields" class="trip-fields" hidden><label class="f" for="tripDays">며칠 동안 여행하나요? (일)</label><div class="number-stepper"><button type="button" id="tripMinus" aria-label="여행 일수 줄이기">−</button><input class="inp" id="tripDays" type="number" min="2" max="30" step="1" inputmode="numeric" value="${Number.isSafeInteger(draft?.tripDays)&&draft.tripDays>=2&&draft.tripDays<=30?draft.tripDays:2}"><button type="button" id="tripPlus" aria-label="여행 일수 늘리기">+</button></div></div>
+      <div id="tripFields" class="trip-fields" hidden><label class="f" for="tripDays">며칠 동안 여행하나요?</label><div class="number-stepper"><button type="button" id="tripMinus" aria-label="여행 일수 줄이기">−</button><input class="inp" id="tripDays" type="number" min="2" max="30" step="1" inputmode="numeric" value="${Number.isSafeInteger(draft?.tripDays)&&draft.tripDays>=2&&draft.tripDays<=30?draft.tripDays:2}"><button type="button" id="tripPlus" aria-label="여행 일수 늘리기">+</button></div></div>
       <label class="f">언제 중에 고를까요?</label>
       <div class="period-switch" role="group" aria-label="투표 기간 선택 방식">
         <button type="button" class="period-option" id="chooseMonths" aria-controls="monthChoice">
@@ -871,6 +869,7 @@ function viewCreate(){
         <p class="hint" id="selectedDateHint" aria-live="polite" hidden></p>
       </div>
     </section>
+    <button type="button" class="btn blue block create-bottom" id="create">모임 생성하기</button><p class="hint" id="createError" role="alert" hidden></p>
     <button class="btn block home-meetings" id="homeMyMeetings">투표중인 모임 보기</button>
     <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog></section><section id="homeListPanel" class="home-panel" hidden aria-label="내 모임 목록"><div class="home-list-heading"><h2>내 모임</h2><button type="button" class="btn ghost" data-home-refresh>새로고침</button></div><div id="homeMeetingList" class="meeting-list" aria-live="polite"></div></section>`;
   $('#homeMyMeetings').onclick=()=>openMyMeetings();
@@ -1293,7 +1292,10 @@ const S={isCreationPreview:false,meta:null,me:null,members:null,votes:{},blocked
 const meKey=()=>`wmd:me:${sid}`;
 
 let sessionLoad=0;
-async function bootSession(){
+async function loadMeetingSnapshot(id){
+  try{const [deleted,data]=await Promise.all([isMeetingDeleted(id),store.get(`sessions/${id}`)]);return {deleted,data};}catch(error){return {error};}
+}
+async function bootSession(prefetched=null){
   closeMemberEditors();
   closeMeetingPeriod();
   closeDateConfirmation();
@@ -1309,8 +1311,10 @@ async function bootSession(){
   showPageLoading('투표를 불러오는 중…');
   let data;
   try{
-    if(await isMeetingDeleted(id)){if(request===sessionLoad)showDeletedMeeting();return}
-    data=await store.get(`sessions/${id}`);
+    const result=await (prefetched?.id===id?prefetched.promise:loadMeetingSnapshot(id));
+    if(result.error)throw result.error;
+    if(result.deleted){if(request===sessionLoad)showDeletedMeeting();return}
+    data=result.data;
   }catch(e){
     if(request===sessionLoad){setPageLoading(false);$('#app').innerHTML='<p class="empty">투표를 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p><a class="btn blue block" href="'+esc(shareUrl(id))+'">다시 불러오기</a>';}
     return;
@@ -1325,6 +1329,9 @@ async function bootSession(){
   S.members=data.members||{};S.votes=data.votes||{};S.blocked=data.blocked||{};
   S.guestVotes=readGuestDraft();
   S.isOwner=Boolean(kakaoUser&&await meetingIdFor(kakaoUser.id,S.meta.originalTitle||S.meta.title)===id);
+  // Render existing choices before private-profile synchronization and join bookkeeping.
+  if(kakaoUser&&S.members[kakaoUser.id])S.me=kakaoUser.id;
+  document.title=`${S.meta.title} · 언제돼?`;route();
   if(kakaoUser){
     await loadMyProfile();
     if(request!==sessionLoad)return;
@@ -1472,25 +1479,27 @@ function mountHomeTabs(){
 }
 function selectHomeTab(tab){
   if(!kakaoUser||!$('#homeCreatePanel'))return;
-  homeTab=tab==='list'?'list':'create';homeListRequest++;
+  homeTab=tab==='list'?'list':'create';
   for(const [name,panel,button]of [['create','homeCreatePanel','homeCreateTab'],['list','homeListPanel','homeListTab']]){
     const active=name===homeTab;$('#'+panel).hidden=!active;$('#'+panel).setAttribute('role','tabpanel');$('#'+panel).setAttribute('aria-labelledby',button);$('#'+button).setAttribute('aria-selected',String(active));$('#'+button).tabIndex=active?0:-1;
   }
-  if(homeTab==='list')void renderHomeMeetings();
+  if(homeTab==='list'){const body=$('#homeMeetingList');if(body.dataset.loadedUser!==kakaoUser.id&&!body.listPending)void renderHomeMeetings();}
 }
 async function renderHomeMeetings(){
   const body=$('#homeMeetingList'),userId=kakaoUser?.id,request=++homeListRequest;
   if(!body||!userId)return;
-  const active=()=>body.isConnected&&!sid&&kakaoUser?.id===userId&&homeTab==='list'&&homeListRequest===request;
+  body.listPending=true;
+  const active=()=>body.isConnected&&!sid&&kakaoUser?.id===userId&&homeListRequest===request;
   body.innerHTML=loadingIndicator('모임을 불러오는 중…');
   $('#homeListPanel').onclick=e=>{const item=e.target.closest('[data-meeting]');if(item){e.preventDefault();navigateToMeeting(item.dataset.meeting);}else if(e.target.closest('[data-home-refresh],[data-retry]'))void renderHomeMeetings();};
   try{
     await loadMyProfile();if(!active())return;
-    const results=await Promise.allSettled(Object.keys(myProfile.meetings||{}).map(async id=>await isMeetingDeleted(id)?null:meetingPreview(id,await store.get(`sessions/${id}`),userId)));
+    const results=await Promise.allSettled(Object.keys(myProfile.meetings||{}).map(async id=>{const result=await loadMeetingSnapshot(id);if(result.error)throw result.error;return result.deleted?null:meetingPreview(id,result.data,userId);}));
     if(!active())return;
+    body.dataset.loadedUser=userId;
     const meetings=results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value).sort(window.MeetingListOrder.compare),failed=results.some(r=>r.status==='rejected');
     body.innerHTML=`${!profileCloudReady?`<p class="hint">${esc(profileSyncIssue||'일부 참여 이력을 확인하지 못했어요.')}</p>`:''}${meetings.map(m=>`<article class="meeting-card" data-meeting="${esc(m.id)}"><div class="meeting-details"><b>${esc(m.title)}</b><small>${esc(m.label)} · ${esc(m.top)}</small><span class="meeting-attendance">참여 ${esc(m.attendance)}명 · ${m.confirmed?'확정됨':m.ended?'후보 날짜 지남':'투표 중'}</span></div><button type="button" class="btn blue view-vote" data-meeting="${esc(m.id)}" aria-label="${esc(m.title)} 열기">${m.confirmed?'일정 보기':'투표 보기'}</button></article>`).join('')||'<p class="empty">아직 참여한 모임이 없어요.</p>'}${failed?'<p class="hint">일부 모임을 불러오지 못했어요.</p><button type="button" class="btn ghost" data-retry>다시 불러오기</button>':''}`;
-  }catch{if(active())body.innerHTML='<p class="empty">모임을 불러오지 못했어요.</p><button type="button" class="btn ghost" data-retry>다시 불러오기</button>';}
+  }catch{if(active())body.innerHTML='<p class="empty">모임을 불러오지 못했어요.</p><button type="button" class="btn ghost" data-retry>다시 불러오기</button>';}finally{if(homeListRequest===request)body.listPending=false;}
 }
 function meetingPreview(id,data,userId){
   if(!data?.meta||!data.members?.[userId])return null;
@@ -1541,7 +1550,7 @@ async function openMyMeetings(){
     await loadMyProfile();
     if(!el.isConnected||kakaoUser?.id!==userId)return;
     const ids=Object.keys(myProfile.meetings);
-    const results=await Promise.allSettled(ids.map(async id=>await isMeetingDeleted(id)?null:meetingPreview(id,await store.get(`sessions/${id}`),userId)));
+    const results=await Promise.allSettled(ids.map(async id=>{const result=await loadMeetingSnapshot(id);if(result.error)throw result.error;return result.deleted?null:meetingPreview(id,result.data,userId);}));
     if(!el.isConnected||kakaoUser?.id!==userId)return;
     const meetings=results.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value).sort(window.MeetingListOrder.compare);
     const failed=results.some(r=>r.status==='rejected');
@@ -2160,6 +2169,7 @@ function renderRank(){
   }
   const immediateHome=!sid&&!query.has('code')&&!query.has('error')&&!query.has('admin');
   const initialRoute=sessionLoad;
+  const initialPoll=sid?{id:sid,promise:loadMeetingSnapshot(sid)}:null;
   // The creation form needs no account data. Render it once, before network work.
   if(immediateHome)viewCreate();else showPageLoading();
   sessionReady=(async()=>{await restoreKakaoSession();await completeKakaoLogin()})();
@@ -2169,7 +2179,7 @@ function renderRank(){
   if(immediateHome){
     // Do not replace inputs, scroll position, or keyboard focus after login restores.
     if(!sid&&$('#homeLogo')){bindAdminLogo();mountHomeTabs();}
-  }else if(sid)bootSession();
+  }else if(sid)bootSession(initialPoll);
   else viewCreate();
   if(resumeMeetings&&kakaoUser){resumeMeetings=false;await openMyMeetings()}
 })();
