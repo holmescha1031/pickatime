@@ -7,13 +7,13 @@ const owner='kakao_123',other='kakao_456',title='A disposable test';
 const id='m_'+crypto.createHash('sha256').update(JSON.stringify([owner,title])).digest('hex');
 const key=s=>'u_'+crypto.createHmac('sha256',secret).update(s).digest('hex');
 const marker='profiles/'+key('pickatime:deleted-meeting:v1:'+id)+'/meetings/'+id;
-let session,deleted,patches,tokenCalls,failPatch,failToken,calls;
+let session,deleted,patches,tokenCalls,failPatch,failToken,calls,lock;
 const fixture=()=>({meta:{title:'Renamed',originalTitle:title},members:{[owner]:{name:'A'},[other]:{name:'B'}},votes:{[other]:{'2026-12-01':{L:4}}}});
-function reset(){session=fixture();deleted=false;patches=[];calls=[];tokenCalls=0;failPatch=false;failToken=false;}
+function reset(){session=fixture();deleted=false;patches=[];calls=[];tokenCalls=0;lock=null;failPatch=false;failToken=false;}
 function auth(userId){const payload=Buffer.from(JSON.stringify({id:userId,exp:Date.now()+60000})).toString('base64url');return 'wmd_session='+payload+'.'+crypto.createHmac('sha256',secret).update('pickatime:session:v1:'+payload).digest('base64url');}
 global.fetch=async(url,options={})=>{
  calls.push({url,options});
- const response=(ok,body)=>({ok,status:ok?200:403,json:async()=>body});
+ const response=(ok,body)=>new Response(JSON.stringify(body),{status:ok?200:403,headers:{etag:'test-etag'}});
  if(url==='https://oauth2.googleapis.com/token'){
   tokenCalls++;
   assert.equal(options.method,'POST');
@@ -23,6 +23,8 @@ global.fetch=async(url,options={})=>{
   return response(!failToken,{access_token:'server-only-token',expires_in:3600});
  }
  const path=new URL(url).pathname;
+ if(path==='/workflowLocks/changes.json'){if(options.method==='PUT')lock=JSON.parse(options.body);return response(true,lock);}
+ if(path===`/workflowJobs/${id}.json`)return response(true,null);
  if(options.method==='PATCH'){
   assert.equal(path,'/.json');assert.equal(options.headers.Authorization,'Bearer server-only-token');
   assert(!url.includes('server-only-token'));
@@ -46,16 +48,16 @@ let publicKey;
  assert.equal((await run({cookie:''})).code,401);assert.equal(calls.length,0);
  assert.equal((await run({origin:'https://evil.example'})).code,403);
  assert.equal((await run({sid:'../other'})).code,400);
- assert.equal((await run({cookie:auth(other)})).code,403);assert.equal(patches.length,0);
+
  const missing=await run();assert.equal(missing.code,503);assert.match(missing.body.error,/아직 삭제되지/);assert.deepEqual(session,fixture());assert.equal(deleted,false);
  const keys=crypto.generateKeyPairSync('rsa',{modulusLength:2048});publicKey=keys.publicKey;
  process.env.FIREBASE_SERVICE_ACCOUNT_JSON=JSON.stringify({project_id:'wrong-project',client_email:'test@test.iam.gserviceaccount.com',private_key:keys.privateKey.export({type:'pkcs8',format:'pem'})});
  assert.equal((await run()).code,503);assert.equal(tokenCalls,0);
  const account=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);account.project_id='pickatime-meet';process.env.FIREBASE_SERVICE_ACCOUNT_JSON=JSON.stringify(account);
  failToken=true;assert.equal((await run()).code,503);assert.equal(patches.length,0);assert.equal(deleted,false);
- failToken=false;failPatch=true;assert.equal((await run()).code,503);assert.deepEqual(session,fixture());assert.equal(deleted,false);
+ failToken=false;assert.equal((await run({cookie:auth(other)})).code,403);assert.equal(patches.length,0);failPatch=true;assert.equal((await run()).code,503);assert.deepEqual(session,fixture());assert.equal(deleted,false);
  failPatch=false;assert.equal((await run()).code,200);assert.equal(session,null);assert.equal(deleted,true);
- const patch=patches.at(-1);assert.equal(Object.keys(patch).length,5);
+ const patch=patches.at(-1);assert.equal(Object.keys(patch).length,6);assert.equal(patch['workflowJobs/'+id],null);
  assert.equal(patch['sessions/'+id],null);assert.equal(patch[marker],true);
  for(const who of [owner,other])assert.equal(patch['profiles/'+key('pickatime:profile:v1:'+who.slice(6))+'/meetings/'+id],null);
  assert.equal(patch['profiles/'+key('pickatime:admin-meeting-index:v1')+'/meetings/'+id],null);
@@ -64,3 +66,4 @@ let publicKey;
  const html=readFileSync(root+'/index.html','utf8');assert(html.includes('복구할 수 없어요.'));assert(html.includes('else{sessionLoad++;showDeletedMeeting()}'));
  console.log('Passed: signed owner authorization, rejected origins/IDs/non-owners, missing credentials, JWT signature, token failure retry, atomic deletion failure, session and index erasure, idempotency, old-link status, live-tab handling.');
 })().catch(e=>{console.error(e);process.exitCode=1});
+

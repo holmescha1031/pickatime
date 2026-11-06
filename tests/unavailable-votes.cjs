@@ -3,7 +3,7 @@ const dir=require('path').join(__dirname,'..')+'/',html=fs.readFileSync(dir+'ind
 for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g))if(!/\bsrc=|type=["']module/.test(m[1]))new vm.Script(m[2]);
 for(const p of ['assets/vote-drag-v3.js','assets/vote-import-v3.js','assets/admin.js','assets/analytics.js','lib/admin-stats.js'])new vm.Script(fs.readFileSync(dir+p,'utf8'));
 const data={meta:{start:'2027-01',end:'2027-01',expectedCount:4,createdAt:Date.parse('2026-10-29')},members:{kakao_1:{name:'A'},kakao_2:{name:'B'},kakao_3:{name:'C'},kakao_4:{name:'D'}},votes:{kakao_1:{'2027-01-01':{L:2},'2027-01-02':{L:2},'2027-01-03':{L:4},'2027-01-04':{L:3}},kakao_2:{'2027-01-01':{L:2},'2027-01-02':{L:4}},kakao_3:{'2027-01-01':{L:4}},kakao_4:{'2027-01-01':{L:4}}}};
-const ctx={S:data,window:{},todayStr:()=> '2026-10-29',inMeetingRange:d=>d>='2027-01-01'&&d<='2027-01-31',parseYmd:d=>new Date(d+'T12:00:00'),pad:n=>String(n).padStart(2,'0'),WD:['일','월','화','수','목','금','토']};vm.createContext(ctx);
+const ctx={S:data,window:{MeetingState:require('../assets/meeting-state')},todayStr:()=> '2026-10-29',inMeetingRange:d=>d>='2027-01-01'&&d<='2027-01-31',parseYmd:d=>new Date(d+'T12:00:00'),pad:n=>String(n).padStart(2,'0'),WD:['일','월','화','수','목','금','토']};vm.createContext(ctx);
 vm.runInContext(html.slice(html.indexOf('const LEVEL_TEXT='),html.indexOf('function renderCalendar('))+html.slice(html.indexOf('function computeRank('),html.indexOf('function renderRank('))+html.slice(html.indexOf('function rankShareState('),html.indexOf('function attendanceInfo(')),ctx);
 const list=ctx.computeRank(data).list;assert.deepEqual(Array.from(list,r=>r.d),['2027-01-04','2027-01-02','2027-01-01']);assert.equal(list.at(-1).count,2);assert.equal(list.at(-1).unavailable,2);assert.equal(list.at(-1).score,0);assert(!list.some(r=>r.d==='2027-01-03'));
 const share=ctx.rankShareState(data);assert.equal(share.voted,4);assert.equal(share.complete,true);assert.equal(share.dates[0].d,'2027-01-04');
@@ -34,11 +34,12 @@ console.log('PASS gestures: quick click, desktop and touch hold, hold removal, d
 (async()=>{
  const core={window:{}};vm.createContext(core);vm.runInContext(fs.readFileSync(dir+'assets/vote-save-state.js','utf8'),core);
  const tracker=core.window.createVoteSaveTracker(),writes=[],counts=[],analytics=[];let denied=true;
- const state={me:'kakao_1',members:{kakao_1:{},kakao_2:{}},votes:{kakao_2:{'2027-01-01':{L:2}}}},cell={dataset:{d:'2027-01-01',s:'L',l:'0'}};
- const w={S:state,sid:'poll',inMeetingRange:()=>true,voteSaves:tracker,voteSaveKey:()=> 'poll:kakao_1',voteFinishBusy:null,myVotes:()=>state.votes.kakao_1||{},normalizeVoteLevel:n=>n,applyCalendarHeat:(b,n)=>counts.push(n),calendarVoteTotal:()=>2,navigator:{vibrate(){}},store:{set:async(p,v)=>{if(denied)throw Error('PERMISSION_DENIED');writes.push([p,v])}},usage:(...args)=>analytics.push(args)};
+ const state={meta:{},me:'kakao_1',members:{kakao_1:{},kakao_2:{}},votes:{kakao_2:{'2027-01-01':{L:2}}}},cell={dataset:{d:'2027-01-01',s:'L',l:'0'}};
+ const w={S:state,isAutoBlocked:()=>false,sid:'poll',inMeetingRange:()=>true,voteSaves:tracker,voteSaveKey:()=> 'poll:kakao_1',voteFinishBusy:null,myVotes:()=>state.votes.kakao_1||{},effectiveVotes:()=>state.votes,normalizeVoteLevel:n=>n,applyCalendarHeat:(b,n)=>counts.push(n),calendarVoteTotal:()=>2,navigator:{vibrate(){}},store:{set:async(p,v)=>{if(denied)throw Error('PERMISSION_DENIED');writes.push([p,v])}},usage:(...args)=>analytics.push(args)};
  vm.createContext(w);vm.runInContext(html.slice(html.indexOf('function setVoteLevel('),html.indexOf('function syncCalendar(')),w);
  w.setVoteLevel(cell,4,'long_press');await tracker.settle('poll:kakao_1');assert.equal(state.votes.kakao_1['2027-01-01'].L,4);assert.equal(counts.at(-1),1);assert.equal(tracker.info('poll:kakao_1').failed,1);assert.equal(analytics.length,0);
  denied=false;await tracker.retry('poll:kakao_1');assert.equal(tracker.info('poll:kakao_1').failed,0);assert.equal(writes.at(-1)[1],4);
  w.setVoteLevel(cell,0);await tracker.settle('poll:kakao_1');assert.equal(writes.at(-1)[1],null);assert(!state.votes.kakao_1['2027-01-01']);
  console.log('PASS acknowledged saves: unavailable persisted, excluded from available count, denied writes remain failed until retry, deletion clears selection');
 })().catch(error=>{console.error(error);process.exitCode=1});
+

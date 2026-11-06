@@ -1,47 +1,25 @@
 {
   "rules": {
+    ".read": false,
+    ".write": false,
     "sessions": {
       "$sid": {
         ".read": true,
         "meta": {
-          ".write": "auth != null && !data.exists()",
-          ".validate": "newData.hasChildren(['title','start','end','createdAt'])",
-          "title": {
-            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100",
-            ".write": "auth != null && (data.exists() && root.child('sessions').child($sid).child('meta').child('originalTitle').exists())"
-          },
-          "start": {
-            ".validate": "newData.isString()",
-            ".write": "auth != null && (data.exists() && newData.isString() && root.child('sessions').child($sid).child('meta').exists())"
-          },
-          "end": {
-            ".validate": "newData.isString()",
-            ".write": "auth != null && (data.exists() && newData.isString() && root.child('sessions').child($sid).child('meta').exists())"
-          },
-          "createdAt": {
-            ".validate": "newData.isNumber()"
-          },
-          "$other": {
-            ".validate": false
-          },
-          "expectedCount": {
-            ".write": "auth != null && (!data.exists() && root.child('sessions').child($sid).child('meta').exists())",
-            ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 100 && newData.val() % 1 === 0"
-          },
-          "originalTitle": {
-            ".write": "auth != null && (!data.exists() && root.child('sessions').child($sid).child('meta').child('title').exists())",
-            ".validate": "newData.isString() && newData.val() === root.child('sessions').child($sid).child('meta').child('title').val()"
-          }
+          ".write": false
+        },
+        "blocked": {
+          ".write": false
         },
         "members": {
           "$mid": {
-            ".write": "auth != null && auth.uid === $mid && (root.child('sessions').child($sid).child('meta').exists())",
+            ".write": "auth != null && auth.uid === $mid && data.exists() && newData.exists() && root.child('sessions').child($sid).child('meta').exists()",
             ".validate": "newData.hasChildren(['name','joinedAt'])",
             "name": {
               ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
             },
             "joinedAt": {
-              ".validate": "newData.isNumber()"
+              ".validate": "newData.isNumber() && (data.exists() ? newData.val() === data.val() : newData.val() >= now - 300000 && newData.val() <= now + 300000)"
             },
             "$other": {
               ".validate": false
@@ -50,26 +28,30 @@
         },
         "votes": {
           "$mid": {
-            ".write": "auth != null && auth.uid === $mid && (root.child('sessions').child($sid).child('members').child($mid).exists())",
+            ".write": "auth != null && auth.uid === $mid && root.child('sessions').child($sid).child('members').child($mid).exists() && !root.child('sessions').child($sid).child('meta').child('confirmed').exists()",
             "$date": {
+              ".validate": "$date.matches(/^([0-9]{4}-((01|03|05|07|08|10|12)-(0[1-9]|[12][0-9]|3[01])|(04|06|09|11)-(0[1-9]|[12][0-9]|30)|02-(0[1-9]|1[0-9]|2[0-8]))|([0-9]{2}(0[48]|[2468][048]|[13579][26])|([02468][048]|[13579][26])00)-02-29)$/) && (newData.child('L').val() === data.child('L').val() && newData.child('D').val() === data.child('D').val() || ($date >= root.child('sessions').child($sid).child('meta').child('start').val() && (root.child('sessions').child($sid).child('meta').child('end').val().length === 7 ? $date <= root.child('sessions').child($sid).child('meta').child('end').val() + '-31' : $date <= root.child('sessions').child($sid).child('meta').child('end').val())))",
               "$slot": {
                 ".validate": "($slot === 'L' || $slot === 'D') && newData.isNumber() && (newData.val() === 1 || newData.val() === 2 || newData.val() === 3 || newData.val() === 4)"
               }
             }
           }
+        },
+        "$other": {
+          ".validate": false
         }
       }
     },
     "profiles": {
       "$profileKey": {
-        ".read": "$profileKey.matches(/^u_[a-f0-9]{64}$/)",
-        ".write": "$profileKey.matches(/^u_[a-f0-9]{64}$/)",
+        ".read": "auth != null && auth.token.profileKey === $profileKey",
+        ".write": "auth != null && auth.token.profileKey === $profileKey",
         "nickname": {
           ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 10"
         },
         "meetings": {
           "$meetingId": {
-            ".validate": "$meetingId.matches(/^[A-Za-z0-9_-]{1,100}$/) && newData.val() === true"
+            ".validate": "$meetingId.matches(/^m_[a-f0-9]{64}$/) && newData.val() === true && root.child('sessions').child($meetingId).child('meta').exists() && root.child('sessions').child($meetingId).child('members').child(auth.uid).exists()"
           }
         },
         "$other": {

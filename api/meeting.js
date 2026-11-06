@@ -33,16 +33,13 @@ module.exports=async function handler(req,res){
   if(!validId(id))return res.status(400).json({error:'잘못된 투표 주소입니다.'});
   const privateKey='u_'+crypto.createHmac('sha256',secret).update('pickatime:deleted-meeting:v1:'+id).digest('hex');
   const marker=`profiles/${privateKey}/meetings/${id}`;
-  const db=async(path,options={})=>{
-    const r=await fetch(`${DB}/${path}.json`,{...options,signal:AbortSignal.timeout(8000)});
-    if(!r.ok)throw Object.assign(new Error('DATABASE_ERROR'),{status:r.status});
-    return r.json();
-  };
+  const db=require('../lib/firebase-admin-rest').db;
   try{
     if(req.method==='GET')return res.status(200).json({deleted:(await db(marker))===true});
     if(!origin)return res.status(403).json({error:'허용되지 않은 요청입니다.'});
     const user=sessionUser(req,secret);
     if(!user)return res.status(401).json({error:'다시 로그인한 뒤 삭제해 주세요.'});
+    if(['create','update','confirm','cancel','sync','join','advance'].includes(body?.action))return res.status(200).json(await require('../lib/meeting-workflow').run(body,user));
     if(!['delete','register'].includes(body?.action))return res.status(400).json({error:'잘못된 요청입니다.'});
     const session=await db(`sessions/${id}`);
     const meta=session?.meta;
@@ -55,9 +52,13 @@ module.exports=async function handler(req,res){
       await require('../lib/admin-index').registerMeeting(id);
       return res.status(200).json({indexed:true});
     }
-    await require('../lib/firebase-admin-rest').eraseMeeting(id,session,user.id,secret);
+    await require('../lib/meeting-workflow').locked(id,async()=>{
+      const fresh=await db(`sessions/${id}`);if(!fresh)return;
+      const conflicts=await require('../lib/meeting-workflow').conflictPatch(id,fresh,null);
+      await require('../lib/firebase-admin-rest').eraseMeeting(id,fresh,user.id,secret,conflicts);
+    });
     return res.status(200).json({deleted:true});
-  }catch(e){if(e.message==='FIREBASE_ADMIN_CONFIG_REQUIRED')return res.status(503).json({error:'DB 실제 삭제를 위한 서버 인증 설정이 필요해요. 아직 삭제되지 않았습니다.'});return res.status(503).json({error:e.status===401||e.status===403?'투표 삭제 정보를 저장할 권한이 없습니다. Firebase 규칙을 확인해 주세요.':'서버 연결에 실패했어요. 잠시 후 다시 시도해 주세요.'});}
+  }catch(e){if(e.status&&e.status>=400&&e.status<500&&e.message!=='DATABASE_ERROR')return res.status(e.status).json({error:e.message});if(e.message==='FIREBASE_ADMIN_CONFIG_REQUIRED')return res.status(503).json({error:'DB 실제 삭제를 위한 서버 인증 설정이 필요해요. 아직 삭제되지 않았습니다.'});return res.status(503).json({error:e.status===401||e.status===403?'투표 삭제 정보를 저장할 권한이 없습니다. Firebase 규칙을 확인해 주세요.':'서버 연결에 실패했어요. 잠시 후 다시 시도해 주세요.'});}
 };
 
 

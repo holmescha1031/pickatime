@@ -315,6 +315,7 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 .cal-help-button svg{display:block;width:24px;height:24px}.cal-help-button:hover{color:var(--s1);background:var(--paper)}
 .calendar-help-heading{gap:8px}.calendar-help-heading h2{flex:1;font-size:22px;margin:0}
 .calendar-dialog [hidden]{display:none!important}
+.confirmed-banner{margin:16px 0;padding:20px 22px;border:1.5px solid #b8dac8;border-radius:24px;background:#eaf7ef;color:#246344}.confirmed-banner p{font-size:22px;font-weight:700;margin:10px 0}.confirmed-banner small{display:block;line-height:1.6}.confirmation-tools{display:flex;justify-content:flex-end;margin:8px 0}.confirm-row{padding:6px 0;font-size:13px;color:var(--s1)}.guest-save{margin-top:10px}.mebar:has(.guest-save){align-items:stretch}.edit-meeting-title[hidden]{display:none}dialog select.inp{appearance:auto}
 </style>
 <link rel="stylesheet" href="/assets/site-footer.css">
 </head>
@@ -328,6 +329,7 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 <script src="./assets/vote-drag-v3.js"></script>
 <script src="./assets/vote-import-v3.js"></script>
 <script src="./assets/vote-save-state.js"></script>
+<script src="./assets/meeting-state.js"></script>
 <script src="./assets/analytics.js"></script>
 
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.9/kakao.min.js"></script>
@@ -413,7 +415,7 @@ function makeStore(){
     const authorizeWrite=async()=>{if(window.APP_CONFIG?.requireFirebaseAuth){const id=kakaoUser?.id;await window.FirebaseIdentity.ensure(id);if(kakaoUser?.id!==id)throw Error('계정이 변경됐어요. 다시 시도해 주세요.')}};
     return {
       demo:false,
-      get:p=>db.ref(p).once('value').then(s=>s.val()),
+      get:async p=>{if(p.startsWith('profiles/'))await authorizeWrite();return db.ref(p).once('value').then(s=>s.val())},
       set:async(p,v)=>{await authorizeWrite();return db.ref(p).set(v)},
       update:async(p,v)=>{await authorizeWrite();return db.ref(p).update(v)},
       putVoteIfEmpty:async(p,v)=>{await authorizeWrite();return db.ref(p).transaction(current=>current===null||current===0?v:undefined,undefined,false)},
@@ -444,8 +446,12 @@ function makeStore(){
 }
 const store = makeStore();
 if(!store.update)store.update=async(p,values)=>{
-  const current=await store.get(p);if(!current)throw Error('MISSING_MEETING');
-  await store.set(p,{...current,...values});
+  const current=await store.get(p)||{},merged=JSON.parse(JSON.stringify(current));
+  for(const [path,value]of Object.entries(values)){
+    const parts=path.split('/');let row=merged;for(const key of parts.slice(0,-1))row=row[key]??={};
+    if(value===null)delete row[parts.at(-1)];else row[parts.at(-1)]=value;
+  }
+  await store.set(p,merged);
 };
 if(!store.putVoteIfEmpty)store.putVoteIfEmpty=async(p,v)=>{
   const current=await store.get(p);
@@ -511,8 +517,8 @@ async function rememberMeeting(id){
 }
 async function joinWithNickname(id,name){
   const old=await store.get(`sessions/${id}/members/${kakaoUser.id}`);
-  const member={name,joinedAt:old?.joinedAt||Date.now()};
-  await store.set(`sessions/${id}/members/${kakaoUser.id}`,member);
+  const member=store.demo?{name,joinedAt:old?.joinedAt||Date.now()}:(await meetingAction('join',{sid:id,name})).member;
+  if(store.demo)await store.set(`sessions/${id}/members/${kakaoUser.id}`,member);
   if(myProfile.nickname!==name)await saveMyNickname(name);
   await rememberMeeting(id);
   if(!old)usage('meeting_join');
@@ -740,6 +746,7 @@ async function renderDeleteControl(){
     try{
       const r=await fetch(new URL('/api/meeting',window.APP_CONFIG.authServer),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',sid:id})});
       const result=await r.json();if(!r.ok)throw new Error(result.error||'삭제하지 못했어요.');
+      try{await finishMeetingSync(id)}catch{toast('투표는 삭제됐어요. 자동 X 해제는 서버가 이어서 처리해요.');}
       delete myProfile.meetings[id];cacheMyProfile();LS.del('wmd:me:'+id);SS.del('wmd:new');
       if(sid!==id)return;
       sessionLoad++;stopMeetingStatusWatch();detachVoteDrag?.();detachVoteDrag=null;
@@ -838,7 +845,7 @@ function viewCreate(){
         <p class="hint" id="selectedDateHint" aria-live="polite" hidden></p>
       </div>
     </section>
-    <button class="btn blue block" id="create">모임 만들고 링크 공유</button>
+    <button class="btn blue block" id="create">다음: 되는 시간 고르기</button>
     <p class="hint" id="createError" role="alert" hidden></p>
     <button class="btn block home-meetings" id="homeMyMeetings">투표중인 모임 보기</button>
     <dialog class="existing-meeting" id="existingMeeting" aria-labelledby="existingMeetingTitle"></dialog>`;
@@ -905,7 +912,7 @@ function viewCreate(){
   const showExistingMeeting=id=>{
     const url=shareUrl(id),panel=$('#existingMeeting');
     lockCreateFields(false);$('#create').disabled=false;
-    $('#create').textContent='모임 만들고 링크 공유';
+    $('#create').textContent='다음: 되는 시간 고르기';
     $('#createError').hidden=true;
     panel.innerHTML=`<div class="dialog-heading"><h2 id="existingMeetingTitle">이미 만든 모임이 있어요</h2>
       <button class="btn ghost icon-btn" id="closeExistingMeeting" aria-label="기존 모임 안내 닫기" autofocus>✕</button></div>
@@ -936,7 +943,7 @@ function viewCreate(){
     lockCreateFields(true);btn.disabled=true;btn.textContent='로그인 확인 중…';
     await sessionReady;
     if($('#create')!==btn||sid)return;
-    if(!kakaoUser){lockCreateFields(false);btn.disabled=false;btn.textContent='모임 만들고 링크 공유';loginKakao('create');return}
+    if(!kakaoUser){lockCreateFields(false);btn.disabled=false;btn.textContent='다음: 되는 시간 고르기';viewCreationPreview({title,...selected,expectedCount});return}
     btn.textContent='만드는 중…';
     let id;
     try{
@@ -950,9 +957,10 @@ function viewCreate(){
       }
       const periodError=validateNewMeetingPeriod(selected,selectedMode,todayStr(),maxDate);
       if(periodError)throw Object.assign(new Error(periodError),{code:'INVALID_PERIOD'});
-      await store.set(`sessions/${id}/meta`,{title,...selected,expectedCount,createdAt:Date.now()});
+      await meetingAction('create',{sid:id,meta:{title,...selected,expectedCount}});
       usage('meeting_create',{period_mode:selectedMode,month_count:monthsBetween(selected.start,selected.end).length,expected_count:expectedCount});
       void registerAdminMeeting(id,{title});
+      const draftVotes=SS.get('wmd:createGuestVotes');if(draftVotes){SS.set('wmd:guest-votes:'+id,draftVotes);SS.del('wmd:createGuestVotes');}
       SS.del('wmd:createDraft');
       SS.set('wmd:new',id);
       try{history.pushState(null,'',`?s=${id}`)}catch(e){}
@@ -984,7 +992,7 @@ function viewCreate(){
 let meetingRenameDialog=null;
 function closeMeetingRename(){meetingRenameDialog?.close();meetingRenameDialog?.remove();meetingRenameDialog=null}
 function meetingTitleMarkup(id){
-  return `<div class="meeting-title-row"><h1 class="stitle" id="${id}">${esc(S.meta.title)}</h1><button type="button" class="edit-meeting-title" aria-label="모임 이름 수정" title="모임 이름 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg></button></div>`;
+  return `<div class="meeting-title-row"><h1 class="stitle" id="${id}">${esc(S.meta.title)}</h1><button type="button" class="edit-meeting-title" ${S.isOwner?'':'hidden'} aria-label="모임 이름 수정" title="모임 이름 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg></button></div>`;
 }
 function bindMeetingTitleEdit(){const button=$('.edit-meeting-title');if(button)button.onclick=openMeetingRename}
 async function findMyMeetingByTitle(title,except=null){
@@ -998,7 +1006,7 @@ async function findMyMeetingByTitle(title,except=null){
   return null;
 }
 function openMeetingRename(){
-  if(!sid||!S.meta||meetingRenameDialog)return;
+  if(!sid||!S.meta||meetingRenameDialog||!S.isOwner)return;
   closeMeetingPeriod();
   const id=sid,request=sessionLoad,el=document.createElement('dialog');
   el.className='existing-meeting';el.setAttribute('aria-labelledby','renameMeetingHeading');
@@ -1018,12 +1026,7 @@ function openMeetingRename(){
       if(!active())return;if(!meta)throw new Error('MISSING_MEETING');
       if(title===meta.title){close();return}
       if(kakaoUser&&await meetingIdFor(kakaoUser.id,meta.originalTitle||meta.title)===id&&await findMyMeetingByTitle(title,id))throw new Error('DUPLICATE_TITLE');
-      if(!meta.originalTitle){
-        try{await store.set(`sessions/${id}/meta/originalTitle`,meta.title)}
-        catch(e){meta=await store.get(`sessions/${id}/meta`);if(!meta?.originalTitle)throw e}
-      }
-      if(!active())return;
-      await store.set(`sessions/${id}/meta/title`,title);
+      await meetingAction('update',{sid:id,changes:{title}});
       if(!active())return;
       S.meta={...S.meta,originalTitle:meta.originalTitle||meta.title,title};document.title=title+' · 언제돼?';refresh();renderDeleteControl();close();toast('투표 이름을 수정했어요');
     }catch(e){if(active()){error.textContent=e.message==='DUPLICATE_TITLE'?'이미 같은 이름으로 만든 투표가 있어요. 다른 이름을 입력해 주세요.':e.message==='DELETED_MEETING'?'삭제된 투표는 수정할 수 없어요.':'이름을 수정하지 못했어요. 잠시 후 다시 시도해 주세요.';error.hidden=false}}
@@ -1036,7 +1039,7 @@ function openMeetingRename(){
 let meetingPeriodDialog=null;
 function closeMeetingPeriod(){meetingPeriodDialog?.close();meetingPeriodDialog?.remove();meetingPeriodDialog=null}
 function meetingPeriodMarkup(){
-  return `<div class="meeting-period-row"><p class="speriod" id="meetingPeriodLabel">${esc(periodLabel(S.meta.start,S.meta.end))}</p><button type="button" class="edit-meeting-title edit-meeting-period" aria-label="투표 후보 날짜 수정" title="투표 후보 날짜 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg></button></div>`;
+  return `<div class="meeting-period-row"><p class="speriod" id="meetingPeriodLabel">${esc(periodLabel(S.meta.start,S.meta.end))}</p><button type="button" class="edit-meeting-title edit-meeting-period" ${S.isOwner?'':'hidden'} aria-label="투표 후보 날짜 수정" title="투표 후보 날짜 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg></button></div>`;
 }
 function validateMeetingPeriod(range,minimumDate=null){
   if(!range?.start||!range?.end)return '시작과 종료를 모두 선택해 주세요.';
@@ -1058,10 +1061,11 @@ function receiveMeetingMeta(meta){
     closeCalSheet();closeVoteImport();clearCal();
     if(hadCalendar)toast('후보 날짜가 바뀌었어요. 캘린더를 다시 가져와 주세요.');
   }
-  S.meta=meta;refresh(Boolean(changed));
+  const confirmationChanged=JSON.stringify(S.meta?.confirmed)!==JSON.stringify(meta.confirmed);
+  S.meta=meta;refresh(Boolean(changed||confirmationChanged));
 }
 function openMeetingPeriod(){
-  if(!sid||!S.meta||meetingPeriodDialog)return;
+  if(!sid||!S.meta||meetingPeriodDialog||!S.isOwner)return;
   closeMeetingRename();closeCalSheet();closeVoteImport();
   const id=sid,request=sessionLoad,original={start:S.meta.start,end:S.meta.end},bounds=window.VoteTransfer.bounds(original);
   if(!bounds){toast('현재 후보 날짜를 확인하지 못했어요. 다시 불러와 주세요.');return}
@@ -1140,7 +1144,7 @@ function openMeetingPeriod(){
       if(!latest)throw Error('MISSING_MEETING');
       if(latest.start!==original.start||latest.end!==original.end)throw Error('CHANGED_PERIOD');
       // A single update avoids exposing a half-written start/end range to listeners.
-      await store.update(`sessions/${id}/meta`,range);if(!active())return;
+      const result=await meetingAction('update',{sid:id,changes:range});if(result.pending)await finishMeetingSync(id);if(!active())return;
       closeMeetingPeriod();receiveMeetingMeta({...S.meta,...range});toast('투표 후보 날짜를 수정했어요.');
     }catch(e){if(active())showError(e.message==='CHANGED_PERIOD'?'다른 참여자가 후보 날짜를 수정했어요. 닫고 다시 열어 주세요.':e.message==='DELETED_MEETING'?'삭제된 투표는 수정할 수 없어요.':e.message==='UNSAVED_VOTES'?'저장하지 못한 스티커가 있어요. 다시 저장한 뒤 수정해 주세요.':'후보 날짜를 수정하지 못했어요. 연결과 저장 권한을 확인해 주세요.')}
     finally{if(el.isConnected)lock(false)}
@@ -1149,12 +1153,103 @@ function openMeetingPeriod(){
 }
 
 /* ---------- 2. 세션 ---------- */
-const S={meta:null,me:null,members:null,votes:{},tab:'mine',showAll:false};
+async function meetingAction(action,values={}){
+  if(store.demo){
+    if(action==='create'){await store.set(`sessions/${values.sid}/meta`,{...values.meta,originalTitle:values.meta.title,createdAt:Date.now()});return {meta:values.meta};}
+    if(action==='update'){await store.update(`sessions/${values.sid||sid}/meta`,values.changes);return {};}
+    if(action==='sync')return {};
+    throw Error('이 기능은 실제 모임에서 사용할 수 있어요.');
+  }
+  const r=await fetch(new URL('/api/meeting',window.APP_CONFIG.authServer),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid,action,...values})});
+  const data=await r.json();if(!r.ok)throw Error(data.error||'변경 내용을 저장하지 못했어요.');return data;
+}
+async function finishMeetingSync(id){
+  for(let step=0;step<500;step++){
+    const state=await meetingAction('advance',{sid:id});if(!state.pending)return;
+  }
+  throw Error('자동 X는 계속 반영 중이에요. 잠시 후 완료돼요.');
+}
+function viewCreationPreview(meta){
+  S.isCreationPreview=true;S.meta=meta;S.me=null;S.members={};S.votes={};S.blocked={};S.isOwner=false;S.tab='mine';S.guestVotes=readGuestDraft();shown='main';
+  $('#app').innerHTML=`<a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></a><h1 class="stitle">${esc(meta.title)}</h1><p class="speriod">${esc(periodLabel(meta.start,meta.end))}</p><p class="hint">먼저 내 스티커를 붙인 뒤 로그인하면 모임이 만들어져요.</p><div class="mebar" id="mebar"></div><div id="body"></div><button type="button" class="btn ghost block" id="backToCreate">모임 정보 다시 수정</button>`;
+  $('#backToCreate').onclick=()=>{writeGuestDraft();S.isCreationPreview=false;viewCreate()};renderMe();renderCalendar();window.scrollTo(0,0);
+}
+function draftKey(){return S.isCreationPreview?'wmd:createGuestVotes':'wmd:guest-votes:'+sid}
+function readGuestDraft(){
+  try{const b=window.VoteTransfer.bounds(S.meta);if(!b)return {};return window.MeetingState.cleanDraft(JSON.parse(SS.get(draftKey())),[b.start,todayStr()].sort().at(-1),b.end)}catch{return {}}
+}
+function writeGuestDraft(){SS.set(draftKey(),JSON.stringify({at:Date.now(),votes:S.guestVotes}))}
+async function applyGuestDraft(){
+  if(!S.me||!Object.keys(S.guestVotes).length||S.meta.confirmed)return;
+  const id=sid,uid=S.me,key=draftKey(),stored=SS.get(key),changes={};
+  for(const [d,slots]of Object.entries(S.guestVotes))if(d>=todayStr()&&inMeetingRange(d))for(const [sl,l]of Object.entries(slots))if(['L','D'].includes(sl)&&[2,3,4].includes(l))changes[d+'/'+sl]=l;
+  S.draftSaving=true;
+  try{
+    if(Object.keys(changes).length)await store.update(`sessions/${id}/votes/${uid}`,changes);
+    if(SS.get(key)===stored)SS.del(key);
+    if(sid!==id||S.me!==uid)return;
+    S.guestVotes={};const votes=await store.get(`sessions/${id}/votes/${uid}`);
+    if(sid===id&&S.me===uid)S.votes={...S.votes,[uid]:votes||{}};
+  }finally{if(sid===id&&S.me===uid)S.draftSaving=false;}
+}
+async function saveGuestVotes(){
+  writeGuestDraft();
+  if(S.isCreationPreview){loginKakao('create');return;}
+  if(!kakaoUser){loginKakao('join');return;}
+  const id=sid,uid=kakaoUser.id;
+  document.querySelectorAll('#saveGuest,#saveGuestBottom,#retryGuestDraft').forEach(b=>b.disabled=true);
+  try{
+    const name=myProfile.nickname||[...(kakaoUser.name||'참여자').trim()].slice(0,10).join('');
+    const member=await joinWithNickname(id,name);if(sid!==id||kakaoUser?.id!==uid)return;
+    S.members={...S.members,[uid]:member};S.me=uid;
+    await applyGuestDraft();shown=null;route();toast('선택한 스티커를 저장했어요.');
+  }catch(e){toast(e.message||'저장하지 못했어요. 임시 선택은 유지돼요.');document.querySelectorAll('#saveGuest,#saveGuestBottom,#retryGuestDraft').forEach(b=>b.disabled=false);}
+}
+function isAutoBlocked(uid,date,slot){return Object.values(S.blocked?.[uid]||{}).some(b=>b.date===date&&b.slot===slot)}
+function renderConfirmation(){
+  const el=$('#confirmation');if(!el)return;const c=S.meta?.confirmed;
+  if(!c){el.innerHTML=S.isOwner?'<div class="confirmation-tools"><button type="button" class="btn ghost" id="chooseFinalDate">모임 날짜 확정하기</button></div>':'';if($('#chooseFinalDate'))$('#chooseFinalDate').onclick=()=>openDateConfirmation();return;}
+  const d=parseYmd(c.date),label=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${WD[d.getDay()]}요일 ${SLOT_NAME[c.slot]}`;
+  el.innerHTML=`<div class="confirmed-banner"><b>✓ 모임 날짜가 정해졌어요</b><p>${esc(label)}</p><small>${S.meta.syncPending?'다른 모임에 자동 X를 반영 중이에요…':'참여자의 다른 모임에는 이 시간에 자동 X가 표시돼요.'}</small><div><button type="button" class="btn ghost" id="shareFinalDate">확정 일정 공유</button></div>${S.isOwner?'<div><button type="button" class="btn ghost" id="changeFinalDate">확정 날짜 변경</button><button type="button" class="btn ghost" id="cancelFinalDate">확정 취소</button></div>':''}</div>`;
+  if($('#shareFinalDate'))$('#shareFinalDate').onclick=shareRankStatus;
+  if($('#changeFinalDate'))$('#changeFinalDate').onclick=()=>openDateConfirmation(c.date,c.slot);
+  if($('#cancelFinalDate'))$('#cancelFinalDate').onclick=async()=>{
+    if(!confirm('날짜 확정을 취소할까요? 다른 모임의 자동 X도 해제되고 원래 스티커가 다시 보여요.'))return;
+    const id=sid,button=$('#cancelFinalDate');button.disabled=true;
+    try{await meetingAction('cancel',{sid:id});if(sid===id)receiveMeetingMeta({...S.meta,confirmed:null});await finishMeetingSync(id);toast('날짜 확정과 자동 X를 해제했어요.');}catch(e){toast(e.message);if(button.isConnected)button.disabled=false;}
+  };
+}
+let dateConfirmDialog=null;
+function closeDateConfirmation(){dateConfirmDialog?.close();dateConfirmDialog?.remove();dateConfirmDialog=null}
+function openDateConfirmation(date='',slot='D'){
+  if(!S.isOwner||!S.meta)return;closeDateConfirmation();
+  const id=sid,request=sessionLoad,b=window.VoteTransfer.bounds(S.meta),el=document.createElement('dialog');
+  if(!b)return;
+  el.className='existing-meeting';el.setAttribute('aria-labelledby','confirmDateHeading');
+  el.innerHTML=`<div class="dialog-heading"><h2 id="confirmDateHeading">모임 날짜 확정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">✕</button></div><label class="f" for="finalDate">날짜</label><input class="inp" type="date" id="finalDate" min="${[b.start,todayStr()].sort().at(-1)}" max="${b.end}" value="${esc(date)}"><label class="f" for="finalSlot">시간</label><select class="inp" id="finalSlot"><option value="L" ${slot==='L'?'selected':''}>점심</option><option value="D" ${slot==='D'?'selected':''}>저녁</option></select><p class="hint">확정하면 스티커 수정을 마쳐요. 이 모임의 모든 참여자는 다른 모임 투표의 같은 날짜·시간에 자동 X가 붙어요. 확정을 취소하면 원래 선택이 복원돼요.</p><p data-error role="alert" class="count-error" hidden></p><button type="button" class="btn blue block" data-save>이 날짜로 확정하기</button>`;
+  document.body.appendChild(el);dateConfirmDialog=el;el.querySelector('[data-close]').onclick=closeDateConfirmation;
+  el.addEventListener('cancel',e=>{e.preventDefault();closeDateConfirmation()});el.showModal();
+  el.querySelector('[data-save]').onclick=async()=>{
+    const date=el.querySelector('#finalDate').value,slot=el.querySelector('#finalSlot').value,error=el.querySelector('[data-error]'),button=el.querySelector('[data-save]');
+    if(!date||!inMeetingRange(date)||date<todayStr()){error.textContent='후보 기간 안에서 오늘 이후 날짜를 선택해 주세요.';error.hidden=false;return;}
+    button.disabled=true;error.hidden=true;
+    try{
+      if(S.me){const state=await voteSaves.settle(voteSaveKey());if(state.failed)throw Error('저장하지 못한 스티커를 먼저 다시 저장해 주세요.');}
+      const result=await meetingAction('confirm',{sid:id,date,slot});
+      if(sid!==id||sessionLoad!==request){closeDateConfirmation();return;}
+      if(result.pending){button.textContent='다른 모임에 자동 X 반영 중…';await finishMeetingSync(id);}
+      closeDateConfirmation();if(sid===id)receiveMeetingMeta({...S.meta,confirmed:result.confirmed});toast('모임 날짜를 확정했어요.');
+    }catch(e){if(el.isConnected){error.textContent=e.message;error.hidden=false;button.disabled=false;}}
+  };
+}
+
+const S={isCreationPreview:false,meta:null,me:null,members:null,votes:{},blocked:{},guestVotes:{},isOwner:false,tab:'mine',showAll:false};
 const meKey=()=>`wmd:me:${sid}`;
 
 let sessionLoad=0;
 async function bootSession(){
   closeMeetingPeriod();
+  closeDateConfirmation();
   closeCalSheet();
   clearAdminLogo();
   closeMeetingRename();
@@ -1163,7 +1258,7 @@ async function bootSession(){
   detachVoteDrag?.();detachVoteDrag=null;
   const id=sid,request=++sessionLoad;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];
-  shown=null;S.me=null;S.members={};S.votes={};S.tab=new URLSearchParams(location.search).get('tab')==='rank'?'rank':'mine';
+  shown=null;S.isCreationPreview=false;S.me=null;S.isOwner=false;S.blocked={};S.guestVotes={};S.draftSaving=false;S.members={};S.votes={};S.tab=new URLSearchParams(location.search).get('tab')==='rank'?'rank':'mine';
   showPageLoading('투표를 불러오는 중…');
   let data;
   try{
@@ -1180,19 +1275,23 @@ async function bootSession(){
     $('#app').innerHTML=`<div class="hero"><a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></a><h1>모임을 찾을 수 없어요</h1><p>링크가 잘렸거나 모임을 불러올 수 없어요. 링크를 다시 확인해 주세요.</p></div><a class="btn block" href="./">새 모임 만들기</a>`;
     return;
   }
-  S.members=data.members||{};S.votes=data.votes||{};
+  S.members=data.members||{};S.votes=data.votes||{};S.blocked=data.blocked||{};
+  S.guestVotes=readGuestDraft();
+  S.isOwner=Boolean(kakaoUser&&await meetingIdFor(kakaoUser.id,S.meta.originalTitle||S.meta.title)===id);
   if(kakaoUser){
     await loadMyProfile();
     if(request!==sessionLoad)return;
     const old=S.members[kakaoUser.id];
-    const name=myProfile.nickname||old?.name;
-    if(S.tab==='rank'){
+    const name=myProfile.nickname||old?.name||[...(kakaoUser.name||'참여자').trim()].slice(0,10).join('');
+    if((S.tab==='rank'&&!Object.keys(S.guestVotes).length)||S.meta.confirmed){
       if(old){S.me=kakaoUser.id;await rememberMeeting(id)}
     }else if(name){
       try{
         const member=await joinWithNickname(id,name);
         if(request!==sessionLoad)return;
         S.members={...S.members,[kakaoUser.id]:member};S.me=kakaoUser.id;
+        await applyGuestDraft();
+
       }catch(e){toast('참여 정보를 저장하지 못했어요. 다시 참여하기를 눌러 주세요.')}
     }
   }
@@ -1206,12 +1305,12 @@ async function bootSession(){
     S.members=v||{};
     if(S.me&&!S.members[S.me]){S.me=null;LS.del(meKey())}
     route();
-  }),store.on(`sessions/${id}/votes`,v=>{if(request!==sessionLoad)return;S.votes=v||{};refresh()})];
+  }),store.on(`sessions/${id}/votes`,v=>{if(request!==sessionLoad)return;S.votes=v||{};refresh()}),store.on(`sessions/${id}/blocked`,v=>{if(request!==sessionLoad)return;S.blocked=v||{};refresh()})];
 }
 
 let shown=null;
 function route(){
-  const want=S.me||S.tab==='rank'?'main':'entry';
+  const want='main';
   if(want!==shown){shown=want;want==='main'?viewMain():viewEntry()}
   else refresh();
 }
@@ -1222,7 +1321,7 @@ function refresh(periodChanged=false){
     if(title)title.textContent=S.meta.title;
     if(period)period.textContent=periodLabel(S.meta.start,S.meta.end);
   }
-  if(shown==='main'){const title=$('#meetingTitle'),period=$('#meetingPeriodLabel');if(title)title.textContent=S.meta.title;if(period)period.textContent=periodLabel(S.meta.start,S.meta.end);document.title=S.meta.title+' · 언제돼?';renderMe();S.tab==='mine'?(periodChanged?renderCalendar():syncCalendar()):renderRank();renderVoteSaveState()}
+  if(shown==='main'){const title=$('#meetingTitle'),period=$('#meetingPeriodLabel');if(title)title.textContent=S.meta.title;if(period)period.textContent=periodLabel(S.meta.start,S.meta.end);document.title=S.meta.title+' · 언제돼?';renderConfirmation();renderMe();S.tab==='mine'?(periodChanged?renderCalendar():syncCalendar()):renderRank();renderVoteSaveState()}
 }
 
 /* ----- 닉네임 선택 ----- */
@@ -1286,6 +1385,7 @@ function viewMain(){
     ${meetingTitleMarkup('meetingTitle')}
     ${meetingPeriodMarkup()}
     ${store.demo?`<div class="demo">체험 모드예요. 지금은 이 브라우저에만 저장돼서 친구에게 보이지 않아요. 새 탭에서 같은 링크를 열어 다른 닉네임으로 테스트해 볼 수 있어요.</div>`:''}
+    <section id="confirmation" aria-live="polite"></section>
     <section class="attendance" id="attendance" aria-label="모임 참여 현황"></section>
     <div class="mebar" id="mebar"></div>
     <div class="tabs" role="tablist">
@@ -1302,11 +1402,11 @@ function viewMain(){
     S.tab=b.dataset.t;const url=new URL(location.href);
     if(S.tab==='rank')url.searchParams.set('tab','rank');else url.searchParams.delete('tab');
     history.replaceState(null,'',url.pathname+url.search);
-    if(!S.me&&S.tab==='mine'){route();return}
+    
     renderTab();window.scrollTo({top:$('.tabs').offsetTop-8,behavior:'smooth'})
   }};
   bindAdminLogo();
-  renderMe();renderTab();
+  renderMe();renderTab();renderConfirmation();
   if(SS.get('wmd:new')===sid){SS.del('wmd:new');openShareSheet()}
 }
 function meetingPreview(id,data,userId){
@@ -1365,7 +1465,7 @@ async function openMyMeetings(){
 }
 function rankShareState(data=S,ranked=computeRank(data).list){
   const ids=Object.keys(data.members||{}),voters=new Set();
-  for(const id of ids)for(const [date,slots] of Object.entries(data.votes?.[id]||{})){
+  for(const id of ids)for(const [date,slots] of Object.entries(effectiveVotes(data)[id]||{})){
     if(date<todayStr()||!inMeetingRange(date,data.meta)||!slots||typeof slots!=='object')continue;
     if(['L','D'].some(slot=>normalizeVoteLevel(slots[slot])>0))voters.add(id);
   }
@@ -1397,6 +1497,7 @@ function rankKakaoText(title,status){
   return shortHeading+'\n\n'+body;
 }
 function shareRankStatus(){
+  const c=S.meta?.confirmed;if(c){const d=parseYmd(c.date);return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+' 확정 일정',description:`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]}) ${SLOT_NAME[c.slot]}`,buttonTitle:'확정 일정 보기',copyMessage:true,analyticsType:'confirmed'});}
   const status=rankShareState();
   return share(sid,S.meta.title,{tab:'rank',title:'📅 '+S.meta.title+(status.complete?' 투표 결과':' 투표 상황'),description:status.description,buttonTitle:'투표 보기',copyMessage:true,kakaoText:rankKakaoText(S.meta.title,status),analyticsType:status.complete?'result':'status'});
 }
@@ -1409,6 +1510,7 @@ function attendanceInfo(){
 function renderAttendance(){
   const el=$('#attendance');if(!el)return;
   const {ids,joined,expected,voted}=attendanceInfo();
+  if(!S.me&&!S.isOwner){el.innerHTML=`<div class="attendance-head"><span class="attendance-count">참여 <b>${joined}${expected?'/'+expected:''}</b>명</span><span class="hint">스티커부터 붙여 보세요</span></div>`;return;}
   const shareStatus=rankShareState();
   const members=S.members||{};
   const sorted=sortedMemberIds(members),colors=memberColorMap(members);
@@ -1419,25 +1521,28 @@ function renderAttendance(){
     </div>
     <div class="member-stickers">${sorted.map(id=>{const c=colors[id];return `<span class="name-sticker" style="--member-color:${c};--member-bg:${c}12">${esc(members[id].name)}${id===S.me?' <small>(나)</small>':''}</span>`}).join('')||'<span class="hint">참여한 친구들이 여기에 표시돼요.</span>'}</div>
     <p class="hint">${voted}명이 스티커를 붙였어요.${expected?'':' 예정 인원이 아직 정해지지 않았어요.'}</p>
-    ${expected?'':'<button class="btn ghost" id="setExpected">예정 인원 설정</button>'}
+    ${S.isOwner?'<button class="btn ghost" id="setExpected">'+(expected?'예정 인원 수정':'예정 인원 설정')+'</button>':''}
     <div class="vote-results-ready"><b>${esc(shareStatus.complete?'모두 참여했어요! 상위 5개 날짜를 공유해 보세요.':shareStatus.headline)}</b><button class="btn blue invite-btn" id="shareAllResults">${shareStatus.complete?'결과 공유하기':'현재 상황 공유하기'}</button></div>`;
   if($('#shareAllResults'))$('#shareAllResults').onclick=shareRankStatus;
   $('#inviteVote').onclick=()=>share(sid,S.meta.title);
   if($('#setExpected'))$('#setExpected').onclick=async()=>{
-    const value=prompt('나를 포함한 전체 인원을 입력해 주세요. (2명 이상)',String(Math.max(2,joined)));
+    const value=prompt('나를 포함한 전체 인원을 입력해 주세요. (2명 이상)',String(expected||Math.max(2,joined)));
     if(value===null)return;
     const count=Number(value);
     if(count>100){toast('참여 인원은 100명을 초과할 수 없어요.');return}
-    if(!Number.isSafeInteger(count)||count<2){toast('예정 인원을 2명 이상의 정수로 입력해 주세요.');return}
+    if(!Number.isSafeInteger(count)||count<Math.max(2,joined)){toast('예정 인원은 현재 참여 인원 이상, 최소 2명으로 입력해 주세요.');return}
     try{
-      await store.set(`sessions/${sid}/meta/expectedCount`,count);
+      await meetingAction('update',{changes:{expectedCount:count}});
       S.meta={...S.meta,expectedCount:count};renderMe();renderTab();
-    }catch(e){toast('인원을 저장하지 못했어요. Firebase 규칙을 업데이트해 주세요.')}
+    }catch(e){toast(e.message||'인원을 저장하지 못했어요. 다시 시도해 주세요.')}
   };
 }
 function renderMe(){
   renderAttendance();
-  const m=S.members?.[S.me],bar=$('#mebar');if(!bar)return;bar.hidden=!m;if(!m)return;
+  const m=S.members?.[S.me],bar=$('#mebar');if(!bar)return;
+  if(!m&&S.meta.confirmed){bar.hidden=true;return;}
+  if(!m){bar.hidden=false;bar.innerHTML=`<div><b>먼저 되는 시간에 스티커를 붙여 보세요</b><p class="hint">선택은 로그인 후 친구들에게 보여요.</p><button type="button" class="btn guest-save" id="saveGuest" style="background:#FEE500;color:#191919">${S.isCreationPreview?'로그인하고 모임 만들기':kakaoUser?'참여하고 선택 저장하기':'카카오 로그인하고 선택 저장하기'}</button></div>`;$('#saveGuest').onclick=saveGuestVotes;return;}
+  bar.hidden=false;
   $('#mebar').innerHTML=`<span class="row">${avatar(m.name,memberColorMap(S.members)[S.me])}<span><b>${esc(m.name)}</b>${ro(m.name)} 참여 중</span></span><button class="btn ghost" id="switch">이름 바꾸기</button>`;
   $('#switch').onclick=async()=>{
     const typed=prompt('모든 모임에서 사용할 닉네임을 입력해 주세요. (최대 10자)',myProfile.nickname||m.name);
@@ -1488,6 +1593,7 @@ async function voteImportSource(id,c,current){
   return plan.cells.length?{id,meta,plan}:null;
 }
 async function offerVoteImport(manual=false){
+  if(S.meta?.confirmed)return;
   if(!window.VoteTransfer||!S.me||S.me!==kakaoUser?.id||!S.meta||S.tab!=='mine'||shown!=='main')return;
   const saveState=voteSaves.info(voteSaveKey());if(saveState.pending||saveState.failed)return;
   const c=voteImportContext(),key=[c.user,c.id].join(':'),seenKey='wmd:vote-import-seen:'+key,token=key+':'+c.request;
@@ -1556,13 +1662,14 @@ function showVoteImport(c,sources){
 const voteSaves=window.createVoteSaveTracker(()=>renderVoteSaveState());
 const voteSaveKey=(id=sid,user=S.me)=>id+':'+user;
 function renderVoteSaveState(){
-  if(!S.me||shown!=='main'||S.tab!=='mine')return;
+  if(shown!=='main'||S.tab!=='mine')return;
+  if(!S.me){document.querySelectorAll('[data-vote-save-status]').forEach(el=>{el.textContent='임시 선택 · 로그인하면 저장돼요';el.classList.remove('is-saved')});return;}
   const state=voteSaves.info(voteSaveKey());
   const text=state.pending?'저장 중…':state.failed?'저장하지 못했어요. 다시 저장해 주세요.':state.saved||myCount(S.me)>0?'저장됨 ✓':'스티커를 붙이면 자동으로 저장돼요';
   document.querySelectorAll('[data-vote-save-status]').forEach(el=>{let label=el.querySelector('span');if(!label){label=document.createElement('span');el.replaceChildren(label)}label.textContent=text;el.classList.toggle('save-error',state.failed>0&&!state.pending);el.classList.toggle('is-saved',!state.pending&&!state.failed&&(state.saved||myCount(S.me)>0))});
   const retry=$('#retryVoteSave');if(retry){retry.hidden=!state.failed;retry.disabled=state.pending>0}
-  const clear=$('#clearAll');if(clear)clear.disabled=state.pending>0||state.failed>0;
-  const reuse=$('#reuseVotes');if(reuse)reuse.disabled=state.pending>0||state.failed>0;
+  const clear=$('#clearAll');if(clear)clear.disabled=Boolean(S.meta.confirmed)||state.pending>0||state.failed>0;
+  const reuse=$('#reuseVotes');if(reuse)reuse.disabled=Boolean(S.meta.confirmed)||state.pending>0||state.failed>0;
   document.querySelectorAll('.half').forEach(b=>{if(!b.hasAttribute('data-save-disabled')&&b.disabled)return;if(state.rootBlocked){b.setAttribute('data-save-disabled','');b.disabled=true}else if(b.hasAttribute('data-save-disabled')){b.removeAttribute('data-save-disabled');b.disabled=false}});
 }
 async function retryVoteSaves(){
@@ -1588,7 +1695,8 @@ const normalizeVoteLevel=level=>level===1?2:level===2||level===3||level===4?leve
 const nextVoteLevel=level=>Number(level)===2?3:Number(level)===3||Number(level)===4?0:2;
 const SLOTS=[['L','점심'],['D','저녁']];
 const SLOT_NAME={L:'점심',D:'저녁'};
-function myVotes(){return S.votes?.[S.me]||{}}
+function effectiveVotes(data=S){return window.MeetingState.effectiveVotes(data.votes,data.blocked)}
+function myVotes(){return S.me?(effectiveVotes()[S.me]||{}):S.guestVotes}
 const lvOf=(v,d,sl)=>(v&&typeof v[d]==='object'&&v[d])?normalizeVoteLevel(v[d][sl]):0;
 function calendarVoteTotal(data=S){
   const expected=data.meta?.expectedCount;
@@ -1630,7 +1738,7 @@ function renderCalendar(){
       const halves=SLOTS.map(([sl,name])=>{
         const l=past&&!ended?0:lvOf(mv,ds,sl),r=(hash(ds+sl)%9)-4,busy=dayEv.some(e=>e[sl]),count=heat.counts[ds+'|'+sl]||0;
         const voteLabel=calendarVoteLabel(ds,sl,l,count,heat.total,busy);
-        return `<button class="half${busy?' busy':''}" data-d="${ds}" data-s="${sl}" aria-keyshortcuts="Shift+Enter Shift+Space" data-l="${l}" data-votes="${count}" data-vote-total="${heat.total}" style="--vote-bg:${calendarHeatColor(count,heat.total)}" ${past?'disabled':''}
+        return `<button class="half${busy?' busy':''}" data-d="${ds}" data-s="${sl}" aria-keyshortcuts="Shift+Enter Shift+Space" data-l="${l}" data-votes="${count}" data-vote-total="${heat.total}" style="--vote-bg:${calendarHeatColor(count,heat.total)}" ${past||S.meta.confirmed?'disabled':''}
           title="${esc(voteLabel)}" aria-label="${esc(voteLabel)}"><i class="stk" style="--r:${r}deg" aria-hidden="true">${meetingSticker()}</i><span class="lb">${name}</span></button>`}).join('');
       cells.push({past,ds,dow,m,d,h:`<div title="${esc(holiday)}" class="day${holiday?' holiday':''}${dow===0?' sun':''}${dow===6?' sat':''}${ds===today?' today':''}${past?' past':''}"><span class="n">${d}</span>${calendarDayHtml(ds,dayEv)}${halves}</div>`});
     }
@@ -1648,14 +1756,18 @@ function renderCalendar(){
       <span><i class="legend-sticker l3" aria-hidden="true">${meetingSticker(3)}</i>두 번 클릭: 되긴 하는데…</span>
       <span><i class="legend-sticker l4" aria-hidden="true">${meetingSticker(4)}</i>길게 누르기: 어떻게 해도 불가능</span>
     </div>
+    ${S.me&&Object.keys(S.blocked?.[S.me]||{}).length?'<p class="hint">다른 모임에서 확정된 시간에는 자동 X가 표시돼요. 그 모임의 확정을 바꾸거나 취소하면 해제돼요.</p>':''}
     <p class="vote-save-status" data-vote-save-status role="status" aria-live="polite"></p>
     <button type="button" class="btn ghost" id="retryVoteSave" hidden>다시 저장하기</button>
     ${ended?'<p class="calendar-ended-note" role="status">후보 날짜가 모두 지난 투표예요. 상단 날짜 옆 연필로 기간을 바꿀 수 있어요.</p>':''}
+    ${S.me&&Object.keys(S.guestVotes).length?'<div class="panel"><p>로그인 전에 선택한 스티커가 아직 저장되지 않았어요.</p><button type="button" class="btn blue block" id="retryGuestDraft">선택 다시 저장하기</button></div>':''}
     ${html}
-    <button class="btn ghost clear" id="clearAll">내 스티커 모두 떼기</button>`;
+    <button class="btn ghost clear" id="clearAll">직접 붙인 스티커 모두 떼기</button>`;
   $('#body').onclick=onDayTap;
   detachVoteDrag=window.attachVoteDrag($('#body'),(b,l,method)=>setVoteLevel(b,l,method||'drag'),nextVoteLevel);
-  $('#reuseVotes').onclick=()=>offerVoteImport(true);
+  $('#reuseVotes').onclick=()=>S.me?offerVoteImport(true):toast('선택을 저장한 뒤 다른 투표에서 가져올 수 있어요.');
+  if($('#saveGuestBottom'))$('#saveGuestBottom').onclick=saveGuestVotes;
+  if($('#retryGuestDraft'))$('#retryGuestDraft').onclick=saveGuestVotes;
   $('#retryVoteSave').onclick=retryVoteSaves;
   renderVoteSaveState();
   if(!calDialog)void offerVoteImport();
@@ -1668,6 +1780,8 @@ function onDayTap(e){
   if(act==='help')return openCalendarHelp();
   if(act==='open')return openCalSheet();
   if(e.target.id==='clearAll'){
+    if(S.meta.confirmed){toast('날짜가 확정된 투표예요.');return}
+    if(!S.me){S.guestVotes={};writeGuestDraft();renderCalendar();return}
     if(!Object.keys(myVotes()).length){toast('붙인 스티커가 없어요');return}
     const state=voteSaves.info(voteSaveKey());if(state.pending||state.failed)return;
     if(confirm('내가 붙인 스티커를 모두 뗄까요?')){
@@ -1680,16 +1794,18 @@ function onDayTap(e){
   setVoteLevel(b,nextVoteLevel(b.dataset.l));
 }
 function setVoteLevel(b,next,inputMethod='tap'){
-  if(!b||b.disabled||!S.me||!inMeetingRange(b.dataset.d))return;
+  if(!b||b.disabled||S.draftSaving||S.meta.confirmed||!inMeetingRange(b.dataset.d))return;
+  if(S.me&&isAutoBlocked(S.me,b.dataset.d,b.dataset.s)){toast('확정된 다른 모임과 겹치는 시간이에요. 그 모임의 확정을 바꾸면 자동으로 해제돼요.');return}
   if(voteSaves.info(voteSaveKey()).rootBlocked)return;
   if(Number(b.dataset.l)===next)return;
   const d=b.dataset.d,sl=b.dataset.s;
   b.dataset.l=next;
-  const mv={...myVotes()};const day={...(typeof mv[d]==='object'&&mv[d]?mv[d]:{})};
+  const mv={...(S.me?S.votes?.[S.me]||{}:S.guestVotes)};const day={...(typeof mv[d]==='object'&&mv[d]?mv[d]:{})};
   if(next)day[sl]=next;else delete day[sl];
   if(Object.keys(day).length)mv[d]=day;else delete mv[d];
+  if(!S.me){S.guestVotes=mv;writeGuestDraft();renderVoteSaveState();navigator.vibrate?.(8);return;}
   S.votes={...S.votes,[S.me]:mv};
-  const count=Object.keys(S.members||{}).filter(id=>[2,3].includes(normalizeVoteLevel(S.votes?.[id]?.[d]?.[sl]))).length;
+  const count=Object.keys(S.members||{}).filter(id=>[2,3].includes(normalizeVoteLevel(effectiveVotes()[id]?.[d]?.[sl]))).length;
   applyCalendarHeat(b,count,calendarVoteTotal());
   navigator.vibrate?.(8);
   const path=`sessions/${sid}/votes/${S.me}/${d}/${sl}`;
@@ -1705,7 +1821,7 @@ function syncCalendar(){
 }
 function myCount(id){
   const t=todayStr();let n=0;
-  for(const[d,v] of Object.entries(S.votes?.[id]||{}))if(d>=t&&inMeetingRange(d)&&v&&typeof v==='object')n+=['L','D'].filter(slot=>normalizeVoteLevel(v[slot])>0).length;
+  for(const[d,v] of Object.entries(effectiveVotes()[id]||{}))if(d>=t&&inMeetingRange(d)&&v&&typeof v==='object')n+=['L','D'].filter(slot=>normalizeVoteLevel(v[slot])>0).length;
   return n;
 }
 
@@ -1828,7 +1944,7 @@ function openCalSheet(){
 function computeRank(data=S){
   const ids=Object.keys(data.members||{}),today=todayStr(),map={};
   for(const id of ids){
-    for(const [d,v] of Object.entries(data.votes?.[id]||{})){
+    for(const [d,v] of Object.entries(effectiveVotes(data)[id]||{})){
       if(!v||typeof v!=='object'||d<today||!inMeetingRange(d,data.meta))continue;
       for(const [sl,storedLevel] of Object.entries(v)){
         const l=normalizeVoteLevel(storedLevel);
@@ -1871,12 +1987,13 @@ function renderRank(){
       return `<li class="rk${isAll?' all':''}">
         <div class="pos">${i+1}</div>
         <div><div class="rdate">${dt.getMonth()+1}월 ${dt.getDate()}일<small class="${dow===0||holidayName(r.d)?'sun':dow===6?'sat':''}" title="${esc(holidayName(r.d))}">${WD[dow]}</small><span class="slot ${r.sl}">${SLOT_NAME[r.sl]}</span></div>
-          <div class="bar">${segs}</div>${notes?`<div class="missing">${notes}</div>`:''}</div>
+          <div class="bar">${segs}</div>${S.isOwner?`<button type="button" class="btn ghost confirm-row" data-confirm-date="${r.d}" data-confirm-slot="${r.sl}">${S.meta.confirmed?.date===r.d&&S.meta.confirmed?.slot===r.sl?'확정한 시간 ✓':'이 시간으로 확정'}</button>`:''}${notes?`<div class="missing">${notes}</div>`:''}</div>
         <div>${isAll?`<span class="allstk">${expected?'다 되는<br>시간!':'현재 참여자<br>모두 가능'}</span>`:`<div class="cnt">${r.count}<small>/${total}명</small></div>`}</div>
       </li>`}).join('')}</ol>
       ${list.length>10?`<button class="btn ghost more" id="more">${S.showAll?'상위 10개만 보기':`전체 ${list.length}개 보기`}</button>`:''}`
     :`<div class="empty">‘스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}
     <p class="hint" style="text-align:center;margin-top:14px">불가능한 사람이 적은 순, 가능한 사람이 많은 순, 합계 점수가 높은 순이에요. 아마 가능 2점 · 되긴 하는데… 1점 · 불가능 -2점. 미응답은 불가능으로 세지 않아요.</p>`;
+  document.querySelectorAll('[data-confirm-date]').forEach(button=>button.onclick=()=>openDateConfirmation(button.dataset.confirmDate,button.dataset.confirmSlot));
   const more=$('#more');if(more)more.onclick=()=>{S.showAll=!S.showAll;renderRank()};
 }
 

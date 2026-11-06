@@ -17,7 +17,8 @@ module.exports=async(req,res)=>{
   const payload=encode({alg:'RS256',typ:'JWT'})+'.'+encode({
    iss:account.client_email,sub:account.client_email,
    aud:'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit',
-   iat:now,exp:Math.min(now+3600,Math.floor(user.exp/1000)),uid:user.id
+   iat:now,exp:Math.min(now+3600,Math.floor(user.exp/1000)),uid:user.id,
+   claims:{profileKey:'u_'+crypto.createHmac('sha256',process.env.KAKAO_CLIENT_SECRET).update('pickatime:profile:v1:'+user.id.slice(6)).digest('hex')}
   });
   const token=payload+'.'+crypto.sign('RSA-SHA256',Buffer.from(payload),account.private_key).toString('base64url');
   return res.status(200).json({token,uid:user.id});

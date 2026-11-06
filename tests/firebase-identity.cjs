@@ -12,7 +12,7 @@ async function call(headers={},method='POST'){
 (async()=>{
  let r=await call();assert.equal(r.code,200);assert.match(r.headers['Cache-Control'],/no-store/);
  const [h,p,sig]=r.body.token.split('.');assert(crypto.verify('RSA-SHA256',Buffer.from(h+'.'+p),publicKey,Buffer.from(sig,'base64url')));
- const payload=JSON.parse(Buffer.from(p,'base64url'));assert.equal(payload.uid,'kakao_123');assert(payload.exp-payload.iat<=60);assert.equal(r.body.uid,'kakao_123');
+ const payload=JSON.parse(Buffer.from(p,'base64url'));assert.equal(payload.uid,'kakao_123');assert.equal(payload.claims.profileKey,'u_'+crypto.createHmac('sha256',process.env.KAKAO_CLIENT_SECRET).update('pickatime:profile:v1:123').digest('hex'));assert(payload.exp-payload.iat<=60);assert.equal(r.body.uid,'kakao_123');
  assert.equal((await call({origin:'https://attacker.example'})).code,403);
  assert.equal((await call({origin:''})).code,403);assert.equal((await call({cookie:''})).code,401);
  assert.equal((await call({cookie:cookie()+'bad'})).code,401);assert.equal((await call({cookie:cookie('kakao_123',Date.now()-1)})).code,401);
@@ -30,7 +30,7 @@ async function call(headers={},method='POST'){
  ctx.fetch=async()=>({ok:true,json:async()=>({uid:'kakao_123',token:'good'})});await ctx.window.FirebaseIdentity.ensure('kakao_123');assert.equal(auth.currentUser.uid,'kakao_123');
  const rules=JSON.parse(fs.readFileSync(require('node:path').join(__dirname,'../database.secure.rules.json'))).rules.sessions.$sid;
  for(const group of ['votes','members']){
-  const expression=rules[group].$mid['.write'];const evaluate=(uid,mid,exists)=>new Function('auth','$mid','$sid','root','return '+expression)(uid?{uid}:null,mid,'test-session',{child(){return this},exists:()=>exists});
+  const expression=rules[group].$mid['.write'];const evaluate=(uid,mid,exists)=>new Function('auth','$mid','$sid','root','data','newData','return '+expression)(uid?{uid}:null,mid,'test-session',{path:'',child(k){return {...this,path:this.path+'/'+k}},exists(){return this.path.endsWith('/confirmed')?false:exists}},{exists:()=>true},{exists:()=>true});
   assert.equal(evaluate(null,'kakao_123',true),false);assert.equal(evaluate('kakao_999','kakao_123',true),false);assert.equal(evaluate('kakao_123','kakao_123',false),false);assert.equal(evaluate('kakao_123','kakao_123',true),true);
  }
  assert(!rules['.write']);assert(!rules.votes['.write']);
