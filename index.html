@@ -1858,7 +1858,7 @@ function googleCalendarSDK(){
   }).catch(e=>{googleCalendarSdkPromise=null;throw e});
   return googleCalendarSdkPromise;
 }
-function personalCalendar(){if(CAL&&(CAL.user!==kakaoUser?.id||CAL.id!==sid)){CAL=null;calIndex=null}return CAL}
+function personalCalendar(){if(CAL&&(CAL.user!==(kakaoUser?.id||null)||CAL.id!==sid)){CAL=null;calIndex=null}return CAL}
 function closeCalSheet(){calendarBrowserNotice?.close();calendarBrowserNotice=null;calDialog?.close();calDialog?.remove();calDialog=null}
 function clearCal(){CAL=null;calIndex=null}
 function calBounds(){const b=window.VoteTransfer.bounds(S.meta);return b?{start:[b.start,todayStr()].sort().at(-1),end:b.end}:null}
@@ -1884,9 +1884,8 @@ function openCalendarDay(date){
   el.setAttribute('aria-labelledby','calendarDayTitle');document.body.appendChild(el);el.querySelector('[data-close]').onclick=closeCalSheet;el.addEventListener('close',()=>{if(calDialog===el)calDialog=null;el.remove()});el.showModal();
 }
 function openCalSheet(){
-  if(!S.me||S.me!==kakaoUser?.id){toast('로그인 후 참여해 주세요.');return}
   closeVoteImport();closeCalSheet();
-  const c=voteImportContext(),bounds=calBounds();if(!bounds||bounds.start>bounds.end){toast('가져올 수 있는 투표 기간이 없어요.');return}
+  const c=voteImportContext(),account=kakaoUser?.id||null,bounds=calBounds();if(!bounds||bounds.start>bounds.end){toast('가져올 수 있는 투표 기간이 없어요.');return}
   const el=document.createElement('dialog');el.className='existing-meeting calendar-dialog';calDialog=el;
   const current=personalCalendar();
   el.innerHTML=`<section id="calendarImportPane"><div class="dialog-heading"><h2 id="calendarImportTitle" tabindex="-1">내 캘린더 같이 보기</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div>
@@ -1898,7 +1897,7 @@ function openCalSheet(){
   el.setAttribute('aria-labelledby','calendarImportTitle');document.body.appendChild(el);
   let token=null,disposed=false,working=false,config=null,googleReady=false;
   const canConnectGoogle=()=>googleReady&&Boolean(config?.clientId)&&config.enabled===true;
-  const active=()=>!disposed&&el.isConnected&&voteImportActive(c);
+  const active=()=>!disposed&&el.isConnected&&sid===c.id&&sessionLoad===c.request&&S.me===c.user&&(kakaoUser?.id||null)===account&&shown==='main'&&S.tab==='mine'&&S.meta?.start===c.start&&S.meta?.end===c.end;
   const dispose=()=>{disposed=true;token=null;el.remove();if(calDialog===el)calDialog=null};
   el.addEventListener('close',dispose);el.addEventListener('cancel',()=>{if(working)token=null});
   el.querySelector('[data-close]').onclick=()=>el.close();
@@ -1910,7 +1909,7 @@ function openCalSheet(){
     status.textContent=events.length?`${events.length}개 일정을 가져왔어요.`:'이 기간에 등록된 일정이 없어요.';
     choices.innerHTML='';
     preview.innerHTML=`<p><b>${bounds.start} ~ ${bounds.end}</b></p><div class="calendar-preview">${dates.slice(0,3).map(date=>`<div><small>${date}</small>${index[date].slice(0,3).map(e=>`<span>${esc(e.tm)} ${esc(e.t)}</span>`).join('')}</div>`).join('')||'<p class="hint">일정이 없는 날에도 직접 스티커를 붙일 수 있어요.</p>'}</div><button type="button" class="btn blue block" id="calApply">스티커판에 일정 표시하기</button>`;
-    preview.querySelector('#calApply').onclick=()=>{if(!active())return;CAL={id:c.id,user:c.user,source,events,engine};calIndex=null;closeCalSheet();renderCalendar();toast('내 일정을 표시했어요.')};
+    preview.querySelector('#calApply').onclick=()=>{if(!active())return;CAL={id:c.id,user:account,source,events,engine};calIndex=null;closeCalSheet();renderCalendar();toast('내 일정을 표시했어요.')};
   };
   el.querySelector('#calRemove')?.addEventListener('click',()=>{clearCal();closeCalSheet();renderCalendar();toast('가져온 일정을 지웠어요. 스티커는 유지돼요.')});
   const prepareGoogle=async()=>{
