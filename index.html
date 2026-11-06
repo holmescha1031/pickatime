@@ -324,7 +324,7 @@ dialog .dialog-close,dialog .icon-btn[data-close],dialog #closeExistingMeeting{w
 .calendar-help-heading{gap:8px}.calendar-help-heading h2{flex:1;font-size:22px;margin:0}
 .calendar-dialog [hidden]{display:none!important}
 .confirmed-banner{margin:16px 0;padding:20px 22px;border:1.5px solid #b8dac8;border-radius:24px;background:#eaf7ef;color:#246344}.confirmed-banner p{font-size:22px;font-weight:700;margin:10px 0}.confirmed-banner small{display:block;line-height:1.6}.confirmation-tools{display:flex;justify-content:flex-end;margin:8px 0}.confirm-row{padding:6px 0;font-size:13px;color:var(--s1)}.guest-save{margin-top:10px}.mebar:has(.guest-save){align-items:stretch}.edit-meeting-title[hidden]{display:none}dialog select.inp{appearance:auto}
-.create-top{margin:0 0 22px}.number-stepper{display:grid;grid-template-columns:52px minmax(80px,1fr) 52px;gap:10px;align-items:center}.number-stepper input{text-align:center;font-size:24px;font-weight:700;appearance:textfield}.number-stepper input::-webkit-inner-spin-button{appearance:none}.number-stepper button{height:52px;border:1.5px solid var(--line);border-radius:14px;background:var(--paper);color:var(--s1);font-size:28px;cursor:pointer}.number-stepper button:disabled{opacity:.35}.trip-month .half{height:96px}
+.create-top{margin:0 0 22px}.number-stepper{display:grid;grid-template-columns:52px minmax(80px,1fr) 52px;gap:10px;align-items:center}.number-stepper input{text-align:center;font-size:24px;font-weight:700;appearance:textfield}.number-stepper input::-webkit-inner-spin-button{appearance:none}.number-stepper button{display:grid;place-items:center;padding:0;line-height:1;height:52px;border:1.5px solid var(--line);border-radius:14px;background:var(--paper);color:var(--s1);font-size:28px;cursor:pointer}.number-stepper button svg{display:block;width:24px;height:24px}.number-stepper button:disabled{opacity:.35}#countHint{text-align:center}.kind-emoji{font-family:"Apple Color Emoji","Segoe UI Emoji",sans-serif;font-size:19px;line-height:1}.create-bottom{margin-top:6px}.trip-month .half{height:96px}
 .rank-actions{display:flex;justify-content:flex-end;margin:8px 0 12px}.rank-confirm-action{position:static;padding:8px 10px;font-size:12px;color:var(--s1)}.rank-pick-guide{grid-column:1/-1;margin:0 0 10px;padding:10px;border-radius:10px;background:var(--paper);color:var(--s1);font-size:13px;line-height:1.5}.ranked-date{padding:0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:default}.confirm-candidate{cursor:pointer;outline:1.5px solid #a8a4df}.confirm-candidate .ranked-date{cursor:pointer}.ranked-date:focus-visible{outline:2px solid var(--s1);outline-offset:4px}
 .drag-hint{margin:8px 0 0;font-size:12px;line-height:1.35;text-align:center}.vote-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 8px}.vote-toolbar .vote-save-status{flex:1;min-width:0;margin:0;font-size:12px;min-height:34px;align-items:center;overflow-wrap:anywhere}.vote-toolbar .vote-save-status>span{padding:6px 10px;min-height:34px}.reuse-votes{display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:34px;padding:6px 10px;border:1px solid #D5D0EC;border-radius:999px;background:#E3DFF5;color:#484177;font:700 12px/20px var(--body);cursor:pointer}.reuse-votes:disabled{opacity:.4;cursor:default}.reuse-votes[hidden]{display:none}.reuse-votes:focus-visible{outline:2px solid var(--s1);outline-offset:3px}
 .trip-fields{margin-bottom:28px}#chooseDay,#chooseTrip{min-height:58px}.meeting-kind-switch{margin-bottom:24px}.home-panel[hidden],.home-meetings[hidden]{display:none!important}.home-list-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 24px}.home-list-heading h2{margin:0;font-size:22px}.home-tabs{margin-bottom:24px}
@@ -823,8 +823,9 @@ function viewCreate(){
   let meetingType=validDraft&&draft.meetingType==='trip'?'trip':'day';
   let periodMode=validDraft&&draft.start.length===10?'dates':'months';
   const minDate=todayStr(),maxDate=window.VoteTransfer.bounds({start:months[0],end:months.at(-1)}).end;
-  const savedStart=validDraft&&draft.start.length===10?draft.start:'';
-  const savedEnd=validDraft&&draft.end.length===10?draft.end:'';
+  const fortnight=new Date(now.getFullYear(),now.getMonth(),now.getDate()+14);
+  const savedStart=validDraft&&draft.start.length===10?draft.start:minDate;
+  const savedEnd=validDraft&&draft.end.length===10?draft.end:fortnight.getFullYear()+'-'+pad(fortnight.getMonth()+1)+'-'+pad(fortnight.getDate());
   $('#app').innerHTML=`
     <div class="hero">
       <span class="brand brand--hero" id="homeLogo" aria-label="언제돼?"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></span>
@@ -838,25 +839,25 @@ function viewCreate(){
     </section>
     <section class="panel">
       <label class="f" for="expectedCount">몇 명이 함께하나요?</label>
-      <div class="number-stepper"><button type="button" id="countMinus" aria-label="참여 인원 줄이기">−</button><input class="inp" id="expectedCount" type="number" inputmode="numeric" min="2" max="100" step="1" required placeholder="참여 인원을 입력해 주세요" value="${Number.isSafeInteger(draft?.expectedCount)&&draft.expectedCount>=2&&draft.expectedCount<=100?draft.expectedCount:2}" aria-describedby="countHint countError"><button type="button" id="countPlus" aria-label="참여 인원 늘리기">+</button></div>
-      <p class="hint" id="countHint">나를 포함한 전체 인원이에요. (2명 이상)</p>
+      <div class="number-stepper"><button type="button" id="countMinus" aria-label="참여 인원 줄이기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button><input class="inp" id="expectedCount" type="number" inputmode="numeric" min="2" max="100" step="1" required placeholder="참여 인원을 입력해 주세요" value="${Number.isSafeInteger(draft?.expectedCount)&&draft.expectedCount>=2&&draft.expectedCount<=100?draft.expectedCount:2}" aria-describedby="countHint countError"><button type="button" id="countPlus" aria-label="참여 인원 늘리기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button></div>
+      <p class="hint" id="countHint">나를 포함한 전체 인원이에요.</p>
       <p class="count-error" id="countError" role="alert" hidden>참여 인원은 100명을 초과할 수 없어요.</p>
     </section>
     <section class="panel">
       <div class="period-switch meeting-kind-switch" role="group" aria-label="모임 종류">
-        <button type="button" class="period-option" id="chooseDay"><span class="period-option-title">하루 보기</span></button>
-        <button type="button" class="period-option" id="chooseTrip"><span class="period-option-title">여행 가기</span></button>
+        <button type="button" class="period-option" id="chooseDay"><span class="period-option-title"><span class="kind-emoji" aria-hidden="true">🍽️</span>하루 보기</span></button>
+        <button type="button" class="period-option" id="chooseTrip"><span class="period-option-title"><span class="kind-emoji" aria-hidden="true">🌴</span>여행 가기</span></button>
       </div>
-      <div id="tripFields" class="trip-fields" hidden><label class="f" for="tripDays">며칠 동안 여행하나요?</label><div class="number-stepper"><button type="button" id="tripMinus" aria-label="여행 일수 줄이기">−</button><input class="inp" id="tripDays" type="number" min="2" max="30" step="1" inputmode="numeric" value="${Number.isSafeInteger(draft?.tripDays)&&draft.tripDays>=2&&draft.tripDays<=30?draft.tripDays:2}"><button type="button" id="tripPlus" aria-label="여행 일수 늘리기">+</button></div></div>
+      <div id="tripFields" class="trip-fields" hidden><label class="f" for="tripDays">며칠 동안 여행하나요?</label><div class="number-stepper"><button type="button" id="tripMinus" aria-label="여행 일수 줄이기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button><input class="inp" id="tripDays" type="number" min="2" max="30" step="1" inputmode="numeric" value="${Number.isSafeInteger(draft?.tripDays)&&draft.tripDays>=2&&draft.tripDays<=30?draft.tripDays:2}"><button type="button" id="tripPlus" aria-label="여행 일수 늘리기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button></div></div>
       <label class="f">언제 중에 고를까요?</label>
       <div class="period-switch" role="group" aria-label="투표 기간 선택 방식">
         <button type="button" class="period-option" id="chooseMonths" aria-controls="monthChoice">
           <span class="period-option-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4M17 3v4M3 11h18"/><path d="M7 15h2M15 15h2M7 18h2M15 18h2"/></svg>월로 선택</span>
-          <span class="period-option-detail">월 단위로 고르기</span>
+          
         </button>
         <button type="button" class="period-option" id="chooseDates" aria-controls="dateChoice">
           <span class="period-option-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4M17 3v4M3 11h18"/><path d="M7 16h10M14 13l3 3-3 3"/></svg>날짜로 선택</span>
-          <span class="period-option-detail">시작일 ~ 종료일</span>
+          
         </button>
       </div>
       <div id="monthChoice"><div class="months" id="months"></div><p class="hint" id="phint"></p></div>
@@ -1111,8 +1112,8 @@ function openMeetingPeriod(){
   const el=document.createElement('dialog');el.className='existing-meeting period-editor';el.setAttribute('aria-labelledby','meetingPeriodHeading');
   el.innerHTML=`<div class="dialog-heading"><h2 id="meetingPeriodHeading">투표 후보 날짜 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">✕</button></div>
     <div class="period-switch" role="group" aria-label="투표 기간 선택 방식">
-      <button type="button" class="period-option" data-mode="months" aria-controls="editMonthFields"><span class="period-option-title">월로 선택</span><span class="period-option-detail">월 단위로 고르기</span></button>
-      <button type="button" class="period-option" data-mode="dates" aria-controls="editDateFields"><span class="period-option-title">날짜로 선택</span><span class="period-option-detail">시작일 ~ 종료일</span></button>
+      <button type="button" class="period-option" data-mode="months" aria-controls="editMonthFields"><span class="period-option-title">월로 선택</span></button>
+      <button type="button" class="period-option" data-mode="dates" aria-controls="editDateFields"><span class="period-option-title">날짜로 선택</span></button>
     </div>
     <div id="editMonthFields">
       <input id="editStartMonth" type="hidden" value="${esc(original.start.slice(0,7))}"><input id="editEndMonth" type="hidden" value="${esc(original.end.slice(0,7))}">
@@ -1633,7 +1634,7 @@ function openExpectedCountEditor(){
   closeMemberEditors();
   const id=sid,request=sessionLoad,minCount=()=>Math.max(2,Object.keys(S.members||{}).length),el=document.createElement('dialog');
   expectedCountDialog=el;el.className='existing-meeting member-editor';el.setAttribute('aria-labelledby','editCountTitle');
-  el.innerHTML=`<div class="dialog-heading"><h2 id="editCountTitle">참여 인원 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div><div class="dialog-stack"><div class="number-stepper"><button type="button" data-minus aria-label="참여 인원 줄이기">−</button><input class="inp" type="number" inputmode="numeric" min="${minCount()}" max="100" step="1" value="${Math.max(minCount(),S.meta.expectedCount||2)}" aria-label="참여 인원"><button type="button" data-plus aria-label="참여 인원 늘리기">+</button></div><p data-error role="alert" class="count-error" hidden></p><button type="button" class="btn blue block" data-save>저장하기</button></div>`;
+  el.innerHTML=`<div class="dialog-heading"><h2 id="editCountTitle">참여 인원 수정</h2><button type="button" class="btn ghost icon-btn dialog-close" data-close aria-label="닫기">×</button></div><div class="dialog-stack"><div class="number-stepper"><button type="button" data-minus aria-label="참여 인원 줄이기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button><input class="inp" type="number" inputmode="numeric" min="${minCount()}" max="100" step="1" value="${Math.max(minCount(),S.meta.expectedCount||2)}" aria-label="참여 인원"><button type="button" data-plus aria-label="참여 인원 늘리기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button></div><p data-error role="alert" class="count-error" hidden></p><button type="button" class="btn blue block" data-save>저장하기</button></div>`;
   document.body.appendChild(el);const input=el.querySelector('input'),minus=el.querySelector('[data-minus]'),plus=el.querySelector('[data-plus]');
   const sync=()=>{input.min=minCount();minus.disabled=Number(input.value)<=minCount();plus.disabled=Number(input.value)>=100;};el.syncCount=sync;
   input.oninput=sync;minus.onclick=()=>{input.value=Math.max(minCount(),(Number(input.value)||minCount())-1);sync()};plus.onclick=()=>{input.value=Math.min(100,(Number(input.value)||minCount())+1);sync()};sync();

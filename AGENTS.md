@@ -13,3 +13,4 @@
 - Keep sticker instructions in a compact card with tighter rows and a centered drag hint. The compact import pill uses the previous purple action palette, distinct from the green save status, with a small gap before the calendar. Match the sticky voting-tabs backdrop to the exact fixed page background.
 - Use “스티커 모두 떼기” for the clear action.
 - Place the home hero above the creation/list tabs and the creation action after all form fields. Keep the loaded meeting list when switching home tabs; refresh only on explicit refresh or a new home view/account. Parallelize independent reads and render existing votes before private-profile/join bookkeeping finishes.
+- Month/date choices have no small subtitles. Default explicit start to local today and end to local today plus 14 days; preserve valid restored drafts. Use small food/palm icons for day/trip, centered rounded SVG stepper symbols, and a centered participant hint without the parenthetical minimum.
