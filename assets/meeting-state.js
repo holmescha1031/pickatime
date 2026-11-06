@@ -7,7 +7,10 @@
   }
   for(const [uid,sources]of Object.entries(blocked||{}))for(const b of Object.values(sources||{})){
    if(!/^\d{4}-\d{2}-\d{2}$/.test(b?.date||'')||!['L','D'].includes(b.slot))continue;
-   result[uid]??={};result[uid][b.date]??={};result[uid][b.date][b.slot]=4;
+   const last=b.allDay&&/^\d{4}-\d{2}-\d{2}$/.test(b.endDate||'')?b.endDate:b.date;
+   for(let d=b.date,n=0;d<=last&&n<30;n++,d=new Date(Date.parse(d+'T00:00:00Z')+86400000).toISOString().slice(0,10)){
+    result[uid]??={};result[uid][d]??={};for(const slot of b.allDay?['L','D']:[b.slot])result[uid][d][slot]=4;
+   }
   }
   return result;
  }

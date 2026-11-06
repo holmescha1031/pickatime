@@ -56,5 +56,15 @@ function fixture(){root={};put(`sessions/${target}`,{meta:{title:'Target',start:
  await act('confirm',{date:tomorrow,slot:'L'});await act('cancel');await drain();assert.equal(get(`reservations/${peer}/${id}`),null);assert.equal(get(`sessions/${target}/blocked/${peer}/${id}`),null);
  const draft={at:Date.now(),votes:{[today]:{L:2,D:4},[later]:{L:9},'bad':{D:2}}};assert.deepEqual(cleanDraft(draft,today,later),{[today]:{L:2,D:4}});assert.deepEqual(cleanDraft({...draft,at:Date.now()-86400001},today,later),{});
  const before=copy(get(`sessions/${target}/votes`));effectiveVotes(before,get(`sessions/${target}/blocked`));assert.deepEqual(before,get(`sessions/${target}/votes`));
+ const tripId=workflow.ownerId(uid,'Travel'),tripEnd=new Date(Date.parse(today)+14*86400000).toISOString().slice(0,10);
+ await act('create',{sid:tripId,meta:{title:'Travel',start:today,end:tripEnd,expectedCount:2,meetingType:'trip',tripDays:5}});
+ await act('join',{sid:tripId,name:'A'});await act('join',{sid:tripId,name:'B'},{id:peer});
+ await assert.rejects(act('confirm',{sid:tripId,date:tripEnd,slot:'L'}),e=>e.status===400);
+ await act('confirm',{date:later,slot:'D'});await assert.rejects(act('confirm',{sid:tripId,date:tomorrow,slot:'L'}),e=>e.status===409);await act('cancel');await drain();
+ const tripResult=await act('confirm',{sid:tripId,date:tomorrow,slot:'L'});assert.equal(tripResult.confirmed.endDate,new Date(Date.parse(tomorrow)+4*86400000).toISOString().slice(0,10));
+ for(let step=0;step<200;step++){if(!(await act('advance',{sid:tripId})).pending)break;}
+ let targetState=get(`sessions/${target}`),tripVotes=effectiveVotes(targetState.votes,targetState.blocked);assert.equal(tripVotes[uid][tomorrow].L,4);assert.equal(tripVotes[uid][tomorrow].D,4);assert.equal(tripVotes[uid][later].D,4);
+ await act('cancel',{sid:tripId});for(let step=0;step<200;step++){if(!(await act('advance',{sid:tripId})).pending)break;}
+ assert.equal(effectiveVotes(get(`sessions/${target}/votes`),get(`sessions/${target}/blocked`))[uid][tomorrow].D,3);
  console.log('PASS: server ownership, create/join/count validation, all-member reservations, exact slot X, restore manual choices, overlapping sources, change/cancel, future joins, atomic retry, interrupted fan-out, 70-poll batch limits, guest expiry and non-mutating overlays.');
 })().catch(e=>{console.error(e);process.exitCode=1});
