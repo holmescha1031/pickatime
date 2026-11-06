@@ -37,10 +37,10 @@ button{cursor:pointer}
 :focus-visible{outline:3px solid var(--s1);outline-offset:2px}
 .wrap{max-width:560px;margin:0 auto;padding:20px 16px 80px}
 h1,h2,.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
-.brand{display:inline-flex;align-items:center;line-height:1;text-decoration:none;flex:none}
-.brand img{display:block;width:158px;max-width:100%;height:auto;object-fit:contain}
-.brand--hero{display:flex;margin:0 0 2px;width:clamp(180px,60vw,250px);max-width:100%}
-.brand--hero img{width:100%;height:auto}
+.brand{display:inline-block;position:relative;width:158px;aspect-ratio:1100/490;overflow:hidden;line-height:1;text-decoration:none;flex:none}
+.brand img{display:block;position:absolute;width:139.637%;max-width:none;height:auto;left:-21.818%;top:-53.061%}
+.brand--hero{display:block;margin:0 auto 2px;width:clamp(180px,60vw,250px);max-width:100%}
+
 
 .btn.home-meetings{margin-top:16px;background:#E3DFF5;color:#484177}
 .hero h1{font-size:40px;line-height:1.15;margin:18px 0 10px}
@@ -742,7 +742,7 @@ function showDeletedMeeting(){
   stopMeetingStatusWatch();detachVoteDrag?.();detachVoteDrag=null;
   (S.unsub||[]).forEach(f=>f());S.unsub=[];shown=null;
   S.meta=null;S.members={};S.votes={};
-  $('#app').innerHTML='<div class="hero"><a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></a><h1>삭제된 투표예요</h1><p>모임을 만든 사람이 삭제한 투표입니다.</p></div><a class="btn blue block" href="./">홈으로 돌아가기</a>';
+  $('#app').innerHTML='<div class="hero"><a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-calendar.webp" alt="언제돼?" width="1536" height="1024"></a><h1>삭제된 투표예요</h1><p>모임을 만든 사람이 삭제한 투표입니다.</p></div><a class="btn blue block" href="./">홈으로 돌아가기</a>';
 }
 function watchMeetingStatus(id,request){
   stopMeetingStatusWatch();let busy=false;
@@ -831,7 +831,7 @@ function viewCreate(){
   const savedEnd=validDraft&&draft.end.length===10?draft.end:fortnight.getFullYear()+'-'+pad(fortnight.getMonth()+1)+'-'+pad(fortnight.getDate());
   $('#app').innerHTML=`
     <div class="hero">
-      <span class="brand brand--hero" id="homeLogo" aria-label="언제돼?"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></span>
+      <span class="brand brand--hero" id="homeLogo" aria-label="언제돼?"><img src="./assets/brand-logo-calendar.webp" alt="언제돼?" width="1536" height="1024"></span>
       <h1 class="home-headline">되는 날에 스티커만 붙여줘</h1>
       <p>모임을 만들고 링크를 보내면, 친구들이 달력에 스티커를 붙여요.<br>다 같이 되는 날이 바로 보여요.</p>
     </div>
@@ -1219,7 +1219,7 @@ async function finishMeetingSync(id){
 }
 function viewCreationPreview(meta){
   S.isCreationPreview=true;S.meta=meta;S.me=null;S.members={};S.votes={};S.blocked={};S.isOwner=false;S.tab='mine';S.guestVotes=readGuestDraft();shown='main';
-  $('#app').innerHTML=`<a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></a><h1 class="stitle">${esc(meta.title)}</h1><p class="speriod">${esc(periodLabel(meta.start,meta.end))}</p><p class="hint">먼저 내 스티커를 붙인 뒤 로그인하면 모임이 만들어져요.</p><div class="mebar" id="mebar"></div><div id="body"></div><button type="button" class="btn ghost block" id="backToCreate">모임 정보 다시 수정</button>`;
+  $('#app').innerHTML=`<a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-calendar.webp" alt="언제돼?" width="1536" height="1024"></a><h1 class="stitle">${esc(meta.title)}</h1><p class="speriod">${esc(periodLabel(meta.start,meta.end))}</p><p class="hint">먼저 내 스티커를 붙인 뒤 로그인하면 모임이 만들어져요.</p><div class="mebar" id="mebar"></div><div id="body"></div><button type="button" class="btn ghost block" id="backToCreate">모임 정보 다시 수정</button>`;
   $('#backToCreate').onclick=()=>{writeGuestDraft();S.isCreationPreview=false;viewCreate()};renderMe();renderCalendar();window.scrollTo(0,0);
 }
 function draftKey(){return S.isCreationPreview?'wmd:createGuestVotes':'wmd:guest-votes:'+sid}
@@ -1327,7 +1327,7 @@ async function bootSession(prefetched=null){
   S.meta=data?.meta||null;
   if(!S.meta){
     setPageLoading(false);
-    $('#app').innerHTML=`<div class="hero"><a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></a><h1>모임을 찾을 수 없어요</h1><p>링크가 잘렸거나 모임을 불러올 수 없어요. 링크를 다시 확인해 주세요.</p></div><a class="btn block" href="./">새 모임 만들기</a>`;
+    $('#app').innerHTML=`<div class="hero"><a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-calendar.webp" alt="언제돼?" width="1536" height="1024"></a><h1>모임을 찾을 수 없어요</h1><p>링크가 잘렸거나 모임을 불러올 수 없어요. 링크를 다시 확인해 주세요.</p></div><a class="btn block" href="./">새 모임 만들기</a>`;
     return;
   }
   S.members=data.members||{};S.votes=data.votes||{};S.blocked=data.blocked||{};
@@ -1394,7 +1394,7 @@ function viewEntry(){
   detachVoteDrag?.();detachVoteDrag=null;
   const typed=myProfile.nickname||$('#nick')?.value||kakaoUser?.name||'';
   $('#app').innerHTML=`
-    <a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></a>
+    <a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-calendar.webp" alt="언제돼?" width="1536" height="1024"></a>
     ${meetingTitleMarkup('entryTitle')}
     ${meetingPeriodMarkup()}
     <section class="panel">
@@ -1439,7 +1439,7 @@ function viewMain(){
   clearAdminLogo();
   $('#app').innerHTML=`
     <div class="top">
-      <a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-whenfree.png" alt="언제돼?" width="2172" height="724"></a>
+      <a class="brand" href="./" aria-label="언제돼? 홈"><img src="./assets/brand-logo-calendar.webp" alt="언제돼?" width="1536" height="1024"></a>
       <div class="top-actions"><button class="btn ghost icon-btn" id="myMeetings" aria-label="내가 참여한 모임투표 목록" title="내 모임투표">${listIcon()}</button></div>
     </div>
     ${meetingTitleMarkup('meetingTitle')}
