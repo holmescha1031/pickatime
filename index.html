@@ -1695,7 +1695,11 @@ const normalizeVoteLevel=level=>level===1?2:level===2||level===3||level===4?leve
 const nextVoteLevel=level=>Number(level)===2?3:Number(level)===3||Number(level)===4?0:2;
 const SLOTS=[['L','점심'],['D','저녁']];
 const SLOT_NAME={L:'점심',D:'저녁'};
-function effectiveVotes(data=S){return window.MeetingState.effectiveVotes(data.votes,data.blocked)}
+let effectiveVoteCache=null;
+function effectiveVotes(data=S){
+  if(!effectiveVoteCache||effectiveVoteCache.votes!==data.votes||effectiveVoteCache.blocked!==data.blocked)effectiveVoteCache={votes:data.votes,blocked:data.blocked,result:window.MeetingState.effectiveVotes(data.votes,data.blocked)};
+  return effectiveVoteCache.result;
+}
 function myVotes(){return S.me?(effectiveVotes()[S.me]||{}):S.guestVotes}
 const lvOf=(v,d,sl)=>(v&&typeof v[d]==='object'&&v[d])?normalizeVoteLevel(v[d][sl]):0;
 function calendarVoteTotal(data=S){

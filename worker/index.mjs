@@ -41,7 +41,7 @@ export default {
  async fetch(request,env){
   const url=new URL(request.url);
   if(url.pathname.startsWith('/api/')){
-   if(env.FIREBASE_SERVICE_ACCOUNT_JSON&&request.method!=='OPTIONS'){try{await policy.ensure()}catch(e){console.error(JSON.stringify({event:'database_policy_failed',status:e.status,detail:e.detail}));return protect(Response.json({error:'DB 보호 설정을 적용하지 못했어요. 잠시 후 다시 시도해 주세요.'},{status:503,headers:{'Cache-Control':'no-store'}}));}}
+   if(env.FIREBASE_SERVICE_ACCOUNT_JSON&&request.method!=='OPTIONS'){try{await policy.ensure()}catch(e){console.error(JSON.stringify({event:'database_policy_failed',status:e.status,phase:e.phase,detail:e.detail}));return protect(Response.json({error:'DB 보호 설정을 적용하지 못했어요. 잠시 후 다시 시도해 주세요.'},{status:503,headers:{'Cache-Control':'no-store'}}));}}
    const handler=handlers[url.pathname];
    const result=handler?await invoke(handler,request):Response.json({error:'NOT_FOUND'},{status:404,headers:{'Cache-Control':'no-store'}});
    return protect(result);
