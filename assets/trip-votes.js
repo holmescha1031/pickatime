@@ -14,7 +14,7 @@
    }
    if(row.count)list.push(row);
   }
-  list.sort((a,b)=>a.unavailable-b.unavailable||b.count-a.count||b.score-a.score||a.d.localeCompare(b.d));return {ids,list};
+  list.sort((a,b)=>b.count-a.count||a.unavailable-b.unavailable||b.score-a.score||a.d.localeCompare(b.d));return {ids,list};
  }
  function booking(confirmed){return confirmed?.endDate?{date:confirmed.date,endDate:confirmed.endDate,slot:'L',allDay:true}:{date:confirmed.date,slot:confirmed.slot};}
  const contains=(b,date,slot)=>!!b&&date>=b.date&&date<=(b.endDate||b.date)&&(b.allDay||b.slot===slot);

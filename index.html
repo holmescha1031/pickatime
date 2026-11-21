@@ -2133,7 +2133,7 @@ function computeRank(data=S){
       }
     }
   }
-  return {ids,list:Object.values(map).filter(r=>r.count>0).sort((a,b)=>a.unavailable-b.unavailable||b.count-a.count||b.score-a.score||a.d.localeCompare(b.d)||['L','D'].indexOf(a.sl)-['L','D'].indexOf(b.sl))};
+  return {ids,list:Object.values(map).filter(r=>r.count>0).sort((a,b)=>b.count-a.count||a.unavailable-b.unavailable||b.score-a.score||a.d.localeCompare(b.d)||['L','D'].indexOf(a.sl)-['L','D'].indexOf(b.sl))};
 }
 async function confirmRankedDate(date,slot){
   if(!S.isOwner){toast('모임 정보는 모임장만 수정할 수 있어요');return;}
@@ -2191,7 +2191,7 @@ function renderRank(){
       </li>`}).join('')}</ol>
       ${list.length>10?`<button class="btn ghost more" id="more">${S.showAll?'상위 10개만 보기':`전체 ${list.length}개 보기`}</button>`:''}`
     :`<div class="empty">‘스티커 붙이기’에서 되는 점심·저녁 칸을 눌러 보세요.<br>친구들이 붙이는 대로 여기 순위가 바로 바뀌어요.</div>`}
-    <p class="hint" style="text-align:center;margin-top:14px">불가능한 사람이 적은 순, 가능한 사람이 많은 순, 합계 점수가 높은 순이에요. 아마 가능 2점 · 되긴 하는데… 1점 · 불가능 -2점. 미응답은 불가능으로 세지 않아요.</p>`;
+    <p class="hint" style="text-align:center;margin-top:14px">가능한 사람이 많은 순, 불가능한 사람이 적은 순, 합계 점수가 높은 순이에요. 아마 가능 2점 · 되긴 하는데… 1점 · 불가능 -2점. 미응답은 불가능으로 세지 않아요.</p>`;
   $('#body').onclick=e=>{
     if(e.target.closest('[data-arm-confirm]')){
       if(!S.isOwner){toast('모임 정보는 모임장만 수정할 수 있어요');return;}
