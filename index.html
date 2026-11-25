@@ -1589,8 +1589,8 @@ function rankShareState(data=S,ranked=computeRank(data).list){
   const total=Math.max(expected||0,ids.length),voted=voters.size,remaining=expected?Math.max(0,total-voted):null;
   const complete=Boolean(expected&&total>=2&&remaining===0);
   const headline=expected?(complete?'모두 투표에 참여했어요!':remaining+'명만 더 투표하면 돼요!'):voted+'명이 투표에 참여했어요.';
-  const dates=[],seen=new Set();
-  for(const row of ranked){if(seen.has(row.d))continue;seen.add(row.d);dates.push(row);if(dates.length===5)break}
+  // Share the same ranked choices as the page, including different meals on one date.
+  const dates=ranked.slice(0,5);
   const lines=dates.map((row,i)=>{const d=parseYmd(row.d);return (i+1)+'. '+d.getFullYear()+'.'+pad(d.getMonth()+1)+'.'+pad(d.getDate())+' ('+WD[d.getDay()]+') '+SLOT_NAME[row.sl]+' · '+row.count+'/'+total+'명'});
   const description=[headline,'',dates.length?(complete?'상위 '+dates.length+'개 날짜':'유력 날짜'):'아직 유력 날짜가 없어요.',...lines].join('\n');
   return {total,voted,remaining,complete,headline,dates,description};
